@@ -8,7 +8,8 @@ struct	server_bloc
 {
 	unsigned int				listen_port;
 	std::vector<std::string>	server_names;
-	std::vector<std::string>	directives;
+	std::map<std::string, std::vector<std::string> > _directives;
+	// std::vector<std::string>	directives;
 	std::map<std::vector<std::string>, std::multimap<std::string, std::string> >	locations;
 };
 
@@ -71,7 +72,7 @@ class ConfigParser
 
 		void	_display_error(void);
 
-		void	_parse_main_context(std::fstream & file);
+		void	_parse_main_context(std::fstream & file, std::map<std::string, int> dic);
 
 		void	_parse_context(std::string & key, std::fstream & file);
 		void	_parse_directive(std::string & key);
@@ -84,6 +85,7 @@ class ConfigParser
 		std::string	_line;
 		size_t		_line_no;
 		size_t		_count;
+		bool		_bracket;
 
 		std::map<std::string, std::vector<std::string> >	_directives;
 		std::vector<server_bloc>	_servers;
