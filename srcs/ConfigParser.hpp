@@ -3,25 +3,26 @@
 
 #include "./webserv.hpp"
 #include "./ServerDictionary.hpp"
+#include "./LocationBloc.hpp"
+#include "./ServerBloc.hpp"
 
-struct	server_bloc
-{
-	unsigned int				listen_port;
-	std::vector<std::string>	server_names;
-	std::map<std::string, std::vector<std::string> > _directives;
-	// std::vector<std::string>	directives;
-	std::map<std::vector<std::string>, std::multimap<std::string, std::string> >	locations;
-};
+class ServerBloc;
 
+/* ConfigParser Class Declaration */
 class ConfigParser
 {
-	/* Constructor */
-	private:
-		/*	default		(1)	*/	ConfigParser(void);
-		/*	copy		(3)	*/	ConfigParser(ConfigParser const & cpy);
-
+	/* Member Types */
 	public:
+		typedef ServerDictionary::Dic		Dic;
+		typedef std::vector<ServerBloc>	Servers;
+		typedef std::map<std::vector<std::string>, LocationBloc>				Locations;
+		typedef std::map<std::vector<std::string>, std::vector<std::string> >	Directives;
+
+	/* Constructor */
+	public:
+		/*	default		(1)	*/	ConfigParser(void);
 		/*	argument	(2)	*/	ConfigParser(const char * path);
+		/*	copy		(3)	*/	ConfigParser(ConfigParser const & cpy);
 
 	/* Destructor */
 		~ConfigParser();
@@ -54,6 +55,18 @@ class ConfigParser
 				virtual const char *	what() const throw() { return ("Error: Invalid key in Configuration File"); }
 		};
 
+		class MissingKey : public std::exception
+		{
+			public:
+				virtual const char *	what() const throw() { return ("Error: Missing key in Configuration File"); }
+		};
+
+		class RedundantDirKey : public std::exception
+		{
+			public:
+				virtual const char *	what() const throw() { return ("Error: Directive Key should be unique."); }
+		};
+
 		class UnexpectedToken : public std::exception
 		{
 			public:
@@ -67,15 +80,28 @@ class ConfigParser
 		};
 
 	/* Member Functions */
+	public:
+		Servers &	getServers(void);
+		int &		getStatus(void);
+
 	private:
-		bool	_is_in_dictionnary(std::map<std::string, int> dic, std::string word);
+		bool	_is_in_dictionnary(Dic dic, std::string word);
+		void	_display_parsing_error(size_t new_count);
 
-		void	_display_error(void);
+		void	_try_open_file(const char * path);
+		void	_parse_main_context(std::fstream & file, Dic dic, Directives & dir, Servers & serv, Locations & loc);
+		void	_parse_server(std::string & key, std::fstream & file, Servers & serv);
+		void	_parse_location(std::string & key, std::fstream & file, Servers & serv, Locations & loc);
+		void	_parse_directive(std::string & key, Directives & dir);
+		bool	_str_is_digit(std::string const & str);
+		int		_check_directive(std::vector<std::string> & key, std::vector<std::string> & values);
 
-		void	_parse_main_context(std::fstream & file, std::map<std::string, int> dic);
+		void	_verify_serverbloc(ServerBloc & serv);
+		// void	_check_uniqueness(ServerBloc & serv);
+		void	_check_if_already_exists(std::vector<std::string> & new_key);
 
-		void	_parse_context(std::string & key, std::fstream & file);
-		void	_parse_directive(std::string & key);
+	public:
+		void	display_config(void);
 
 	/* Member Attributes */
 	private:
@@ -85,10 +111,21 @@ class ConfigParser
 		std::string	_line;
 		size_t		_line_no;
 		size_t		_count;
-		bool		_bracket;
+		size_t		_bracket;
 
-		std::map<std::string, std::vector<std::string> >	_directives;
-		std::vector<server_bloc>	_servers;
+	protected:
+		Directives	_main_dir;
+		Servers		_servers;
+
+		/* Fork() utilities */
+		int			_status;
+
+	/* Static Functions for Debug */
+		static void	_display_string(std::string const & str);
+		static void	_display_arguments(std::string const & str);
+		static void	_display_dir(std::pair<const std::vector<std::string>, std::vector<std::string> > & pair);
+		static void	_display_location_bloc(std::pair<const std::vector<std::string>, LocationBloc> & pair);
+		static void	_display_server_bloc(ServerBloc & serv);
 };
 
 #endif

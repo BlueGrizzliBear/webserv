@@ -9,22 +9,28 @@
 #include <string.h>
 #include <sys/stat.h>
 
+#include <limits>
 #include <iostream>
 #include <string>
 #include <fstream>
 #include <utility>
+#include <csignal>
 
 #include <map>
 #include <vector>
 
+/* Default Config */
 #define PORT 8080
+#define BACK_LOG 128
 
 #define COUT std::cout
+#define CIN std::cin
 #define CERR std::cerr
 #define ENDL std::endl
 
 /* Debug for me */
 #define CME std::cerr << CYAN
+// #define CMEG std::cerr << GREEN
 #define EME RESET << std::endl
 
 # define RESET		"\033[0m"

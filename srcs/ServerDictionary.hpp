@@ -5,8 +5,11 @@
 
 class	ServerDictionary
 {
-	/* Constructor */
+	/* Member Types */
 	public:
+		typedef std::map<std::string, int>	Dic;
+
+	/* Constructor */
 		/*	default	(1)	*/	ServerDictionary(void);
 		/*	copy	(2)	*/	ServerDictionary(ServerDictionary const & cpy);
 
@@ -19,9 +22,9 @@ class	ServerDictionary
 	/* Member Functions */
 
 	/* Member Attributes */
-		std::map<std::string, int>	context_dictionary;
-		std::map<std::string, int>	location_dictionary;
-		std::map<std::string, int>	server_dictionary;
+		Dic	main_dictionary;
+		Dic	location_dictionary;
+		Dic	server_dictionary;
 };
 
 #endif
