@@ -8,6 +8,8 @@ ConfigParser::ConfigParser() {}
 ConfigParser::ConfigParser(const char * path) : _path(path), _line_no(0), _count(0), _bracket(0), _status(0)
 {
 	_try_open_file(path);
+
+	_initServers();
 }
 
 /*	copy		(3)	*/
@@ -27,7 +29,11 @@ ConfigParser &ConfigParser::operator=(ConfigParser const & rhs)
 	_line_no = rhs._line_no;
 	_count = rhs._count;
 	_bracket = rhs._bracket;
+
+	_main_dir = rhs._main_dir;
 	_servers = rhs._servers;
+
+	_status = rhs._status;
 	return (*this);
 }
 
@@ -52,10 +58,10 @@ void	ConfigParser::_display_arguments(std::string const & arg)
 	COUT << "[ " << arg << " ]";
 }
 
-void	ConfigParser::_display_dir(std::pair<const std::vector<std::string>, std::vector<std::string> > & pair)
+void	ConfigParser::_display_dir(std::pair<const std::string, std::vector<std::string> > & pair)
 {
 	COUT << "( ";
-	std::for_each(pair.first.begin(), pair.first.end(), _display_string);
+	_display_string(pair.first);
 	COUT << " : ";
 	std::for_each(pair.second.begin(), pair.second.end(), _display_string);
 	COUT << ")\n";
@@ -97,8 +103,6 @@ void	ConfigParser::display_config(void)
 
 	COUT << "=== Servers ===\n";
 	std::for_each(_servers.begin(), _servers.end(), _display_server_bloc);
-
-
 }
 
 bool	ConfigParser::_is_in_dictionnary(Dic dic, std::string word)
@@ -120,6 +124,11 @@ void	ConfigParser::_display_parsing_error(size_t new_count)
 	CERR << "1 error generated." << ENDL;
 }
 
+void	ConfigParser::_display_init_error(const char * main_err, const char * err)
+{
+	COUT << main_err << ": ";
+	COUT << err << ENDL;
+}
 
 void	ConfigParser::_try_open_file(const char * path)
 {
@@ -247,10 +256,7 @@ void	ConfigParser::_parse_server(std::string & key, std::fstream & file, Servers
 		++_bracket;
 		tmp.getNo() = serv.size() + 1;
 		while (old != _bracket && ++_line_no && getline(file, _line))
-		{
-			COUT << "line|" << _line << "|" << ENDL;
 			_parse_main_context(file, _dic.server_dictionary, tmp.serv_dir, serv, tmp.serv_loc);
-		}
 		_verify_serverbloc(tmp);
 		serv.push_back(tmp);
 	}
@@ -324,10 +330,8 @@ void	ConfigParser::_parse_directive(std::string & key, Directives & dir)
 	std::vector<std::string> values;
 	std::string::iterator it = _line.begin();
 	size_t tmp;
-	std::vector<std::string> keys; /* new */
 
 	_count = _line.find(key) + key.length();
-	keys.push_back(key); /* new */
 	tmp = _count - 1;
 	for (size_t i = 0; i < _count; i++)
 		++it;
@@ -348,15 +352,7 @@ void	ConfigParser::_parse_directive(std::string & key, Directives & dir)
 		else
 		{
 			size_t len(_line.find_first_of(" \t;#", _count));
-			if (key == "listen" && keys.size() < 2)
-			{
-				std::string word(_line.substr(_count, len - _count));
-				keys.push_back(word);
-				_check_if_already_exists(keys); /* new */
-				_count += len - _count;
-				it += static_cast<long>(word.length());
-			}
-			else if (len != std::string::npos)
+			if (len != std::string::npos)
 			{
 				std::string word(_line.substr(_count, len - _count));
 				values.push_back(word);
@@ -367,12 +363,12 @@ void	ConfigParser::_parse_directive(std::string & key, Directives & dir)
 				break ;
 		}
 	}
-	if (_check_directive(keys, values))
+	if (_check_directive(key, values))
 	{
 		_display_parsing_error(_count - 1);
 		throw UnexpectedToken();
 	}
-	if (!dir.insert(std::make_pair(keys, values)).second)
+	if (!dir.insert(std::make_pair(key, values)).second)
 	{
 		_display_parsing_error(tmp);
 		throw RedundantDirKey();
@@ -384,58 +380,61 @@ bool	ConfigParser::_str_is_digit(std::string const & str)
 {
 	std::string::const_iterator it = str.begin();
 	std::string::const_iterator ite = str.end();
+	
 	while (it != ite && std::isdigit(*it))
 		++it;
 	return (!str.empty() && it == ite);
 }
 
-int		ConfigParser::_check_directive(std::vector<std::string> & key, std::vector<std::string> & values)
+int		ConfigParser::_check_directive(std::string & key, std::vector<std::string> & values)
 {
 	static size_t default_server = 0;
 	/* Check it has at least 1 argument */
-	if (key.empty() || (key.size() == 1 && values.empty()))
+	if (key.empty())
 		return (1);
-	if (key[0] == "listen")
+	if (key == "listen")
 	{
-		/* Check if not 2 arguments */
-		if (!(key.size() == 2 && (values.size() == 0 || values.size() == 1)))
+		/* Check if not 1 or 2 arguments in values */
+		if (!(values.size() == 2 || values.size() == 1))
 			return (1);
 		/* Check if normal port number */
-		if (!_str_is_digit(key[1]))
+		if (!_str_is_digit(values[0]))
 			return (1);
 		/* Check if 2nd argument is 'default_server' */
-		if (values.size() == 1)
+		if (values.size() == 2)
 		{
-			if (default_server || values[0] != "default_server")
+			if (default_server || values[1] != "default_server")
 				return (1);
 			default_server++;
+		}
+		/* Check is port already exists in another server bloc */
+		std::vector<ServerBloc>::iterator it_base = _servers.begin();
+		std::vector<ServerBloc>::iterator ite_base = _servers.end();
+
+		while (it_base != ite_base)
+		{
+			if ((*it_base).serv_dir.find(key)->second == values)
+				return (1);
+			it_base++;
 		}
 	}
 	// else if (key[0] == "server_name")
 	// {
-
-
-
 	// }
 	// else if (key == "error_page")
 	// {
-
 	// }
 	// else if (key == "root")
 	// {
-		
 	// }
 	// else if (key == "autoindex")
 	// {
-		
 	// }
 	// else if (key == "limit_except")
 	// {
-		
 	// }
 	// else if (key == "upload_store")
 	// {
-		
 	// }
 	// missing 'expires', 'proxy_pass', 'cgi'
 	return (0);
@@ -443,34 +442,110 @@ int		ConfigParser::_check_directive(std::vector<std::string> & key, std::vector<
 
 void	ConfigParser::_verify_serverbloc(ServerBloc & serv)
 {
-	std::map<std::vector<std::string>, std::vector<std::string> >::iterator begin = serv.serv_dir.begin();
-	std::map<std::vector<std::string>, std::vector<std::string> >::iterator end = serv.serv_dir.end();
+	std::map<std::string, std::vector<std::string> >::iterator begin = serv.serv_dir.begin();
+	std::map<std::string, std::vector<std::string> >::iterator end = serv.serv_dir.end();
+	unsigned int exists = 0;
 
 	while (begin != end)
 	{
-		if ((*begin).first[0] == "listen")
-			return ;
+		if ((*begin).first == "listen")
+			exists++;
 		begin++;
 	}
+	if (exists == 1)
+		return ;
 	_display_parsing_error(_count);
 	throw MissingKey();
 }
 
-void	ConfigParser::_check_if_already_exists(std::vector<std::string> & new_key)
+void	ConfigParser::abortServers(const char * main_err, const char * err)
 {
-	std::vector<ServerBloc>::iterator it_base = _servers.begin();
-	std::vector<ServerBloc>::iterator ite_base = _servers.end();
+	_display_init_error(main_err, err);
 
-	size_t count = 1;
-	while (it_base != ite_base)
+	Servers::iterator s_it = _servers.begin();
+	Servers::iterator s_ite = _servers.end();
+
+	while (s_it != s_ite)
 	{
-		count += (*it_base).serv_dir.count(new_key);
-		it_base++;
+		if (s_it->serv_port.fd != 0)
+			close(s_it->serv_port.fd);
+		s_it++;
 	}
-	if (count > 1)
+	throw Abort();
+}
+
+void	ConfigParser::_initPort(ServerBloc & serv)
+{
+	Directives::iterator d_it = serv.serv_dir.begin();
+	Directives::iterator d_ite = serv.serv_dir.end();
+
+	while (d_it != d_ite)
 	{
-		_display_parsing_error(_count);
-		throw InvalidKey();
+		if ((*d_it).first == "listen")
+		{
+			/* Convert port from std::string to unsigned short */
+			serv.serv_port.port_no = static_cast<unsigned short>(std::atoi((*d_it).second[0].c_str()));
+			
+			/* Assigns boolean for default_server */
+			if ((*d_it).second[1] == "default_server")
+				serv.serv_port.is_default = 1;
+
+			/* Creating socket file descriptor */
+			if ((serv.serv_port.fd = socket(AF_INET, SOCK_STREAM, 0)) == 0)		/* AF_INET: Protocoles Internet IPv4	|	SOCK_STREAM: Virtual Circuit Service */
+				abortServers("Error in socket()", strerror(errno));
+
+			/* Defining address struct */
+			serv.serv_port.address.sin_family = AF_INET;						/* corresponding to IPv4 protocols */
+			serv.serv_port.address.sin_addr.s_addr = htonl(INADDR_ANY);			/* corresponding to 0.0.0.0 */
+			serv.serv_port.address.sin_port = htons(serv.serv_port.port_no);	/* corresponding to the server port, must be > 1024 */
+			
+			/* Defining address length */
+			serv.serv_port.addrlen = sizeof(serv.serv_port.address);
+			
+			/* Initialising other adress attributes to 0 */
+			memset(serv.serv_port.address.sin_zero, '\0', sizeof(serv.serv_port.address.sin_zero));
+			
+			/* Assigning adress to the socket */
+			if (bind(serv.serv_port.fd, reinterpret_cast<struct sockaddr *>(&serv.serv_port.address), sizeof(serv.serv_port.address)) < 0)
+				abortServers("Error in bind()", strerror(errno));
+
+			/* Enable socket to accept connections */
+			if (listen(serv.serv_port.fd, MAX_CLIENTS) < 0)
+				abortServers("Error in listen()", strerror(errno));
+		}
+		d_it++;
 	}
-	return ;
+}
+
+void	ConfigParser::_initSelect(ServerBloc & serv)
+{
+	FD_ZERO(&serv.serv_select.readfds);
+	FD_SET(serv.serv_port.fd, &serv.serv_select.readfds);
+
+	FD_ZERO(&serv.serv_select.writefds);
+	// FD_SET(serv.serv_port.fd, &serv.serv_select.writefds);
+
+	FD_ZERO(&serv.serv_select.exceptfds);
+	// FD_SET(serv.serv_port.fd, &serv.serv_select.exceptfds);
+
+	/* Setting time-out */
+	serv.serv_select.timeout.tv_sec = 0.0;
+	serv.serv_select.timeout.tv_usec = 0.0;
+
+	/* Setting max */
+	serv.serv_select.max = serv.serv_port.fd;
+
+}
+
+void	ConfigParser::_initServers(void)
+{
+	Servers::iterator s_it = _servers.begin();
+	Servers::iterator s_ite = _servers.end();
+
+	while (s_it != s_ite)
+	{
+		_initPort(*s_it);
+		_initSelect(*s_it);
+		s_it++;
+	}
 }

@@ -8,6 +8,7 @@
 #include <netinet/in.h>
 #include <string.h>
 #include <sys/stat.h>
+#include <fcntl.h>
 
 #include <limits>
 #include <iostream>
@@ -21,7 +22,7 @@
 
 /* Default Config */
 #define PORT 8080
-#define BACK_LOG 128
+#define MAX_CLIENTS 1024
 
 #define COUT std::cout
 #define CIN std::cin

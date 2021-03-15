@@ -11,15 +11,14 @@ class ServerBloc;
 /* ConfigParser Class Declaration */
 class ConfigParser
 {
-	/* Member Types */
 	public:
+	/* Member Types */
 		typedef ServerDictionary::Dic		Dic;
 		typedef std::vector<ServerBloc>	Servers;
-		typedef std::map<std::vector<std::string>, LocationBloc>				Locations;
-		typedef std::map<std::vector<std::string>, std::vector<std::string> >	Directives;
+		typedef std::map<std::vector<std::string>, LocationBloc>	Locations;
+		typedef std::map<std::string, std::vector<std::string> >	Directives;
 
 	/* Constructor */
-	public:
 		/*	default		(1)	*/	ConfigParser(void);
 		/*	argument	(2)	*/	ConfigParser(const char * path);
 		/*	copy		(3)	*/	ConfigParser(ConfigParser const & cpy);
@@ -79,6 +78,12 @@ class ConfigParser
 				virtual const char *	what() const throw() { return ("Error: Missing argument in Configuration File"); }
 		};
 
+		class Abort : public std::exception
+		{
+			public:
+				virtual const char *	what() const throw() { return ("Exiting."); }
+		};
+
 	/* Member Functions */
 	public:
 		Servers &	getServers(void);
@@ -86,7 +91,9 @@ class ConfigParser
 
 	private:
 		bool	_is_in_dictionnary(Dic dic, std::string word);
+
 		void	_display_parsing_error(size_t new_count);
+		void	_display_init_error(const char * main_err, const char * err);
 
 		void	_try_open_file(const char * path);
 		void	_parse_main_context(std::fstream & file, Dic dic, Directives & dir, Servers & serv, Locations & loc);
@@ -94,24 +101,33 @@ class ConfigParser
 		void	_parse_location(std::string & key, std::fstream & file, Servers & serv, Locations & loc);
 		void	_parse_directive(std::string & key, Directives & dir);
 		bool	_str_is_digit(std::string const & str);
-		int		_check_directive(std::vector<std::string> & key, std::vector<std::string> & values);
+		int		_check_directive(std::string & key, std::vector<std::string> & values);
 
 		void	_verify_serverbloc(ServerBloc & serv);
-		// void	_check_uniqueness(ServerBloc & serv);
-		void	_check_if_already_exists(std::vector<std::string> & new_key);
+
+		void	_initPort(ServerBloc & serv);
+		void	_initServers(void);
+	
+	public:
+		void	_initSelect(ServerBloc & serv);
 
 	public:
+		/* Clean-up functions */
+		void	abortServers(const char * main_err, const char * err);
+
+	public:
+		/* Debug utility functions */
 		void	display_config(void);
 
 	/* Member Attributes */
 	private:
-		ServerDictionary	_dic;
-		
-		std::string	_path;
-		std::string	_line;
-		size_t		_line_no;
-		size_t		_count;
-		size_t		_bracket;
+		/* Parsing utilities */
+		ServerDictionary	_dic;		
+		std::string			_path;
+		std::string			_line;
+		size_t				_line_no;
+		size_t				_count;
+		size_t				_bracket;
 
 	protected:
 		Directives	_main_dir;
@@ -123,7 +139,7 @@ class ConfigParser
 	/* Static Functions for Debug */
 		static void	_display_string(std::string const & str);
 		static void	_display_arguments(std::string const & str);
-		static void	_display_dir(std::pair<const std::vector<std::string>, std::vector<std::string> > & pair);
+		static void	_display_dir(std::pair<const std::string, std::vector<std::string> > & pair);
 		static void	_display_location_bloc(std::pair<const std::vector<std::string>, LocationBloc> & pair);
 		static void	_display_server_bloc(ServerBloc & serv);
 };

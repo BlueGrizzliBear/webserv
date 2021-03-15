@@ -7,12 +7,33 @@
 
 class ConfigParser;
 
+struct Socket
+{
+	int					fd;
+	unsigned short		port_no;
+	bool				is_default;
+	struct sockaddr_in	address;
+	int					addrlen;
+};
+
+struct Select
+{
+	bool			finished;
+	int				max;
+	fd_set			readfds;
+	char			buf[1024];
+	fd_set			writefds;
+	fd_set			exceptfds;
+	struct timeval	timeout;
+};
+
 /* ServerBloc Class Declaration */
 class ServerBloc
 {
 	/* Member Types */
-	typedef std::map<std::vector<std::string>, std::vector<std::string> >	Directives;
-	typedef std::map<std::vector<std::string>, LocationBloc>				Locations;
+	public:
+		typedef std::map<std::string, std::vector<std::string> >	Directives;
+		typedef std::map<std::vector<std::string>, LocationBloc>	Locations;
 
 	/* Constructor */
 	public:
@@ -28,7 +49,6 @@ class ServerBloc
 	
 	/* Member Functions */
 	public:
-		unsigned short	getPort(void);
 		size_t &		getNo(void);
 		ConfigParser *	getParent(void);
 
@@ -38,10 +58,9 @@ class ServerBloc
 		Directives	serv_dir;
 		Locations	serv_loc;
 
-		/* Socket Attributes */
-		int					server_fd;
-		struct sockaddr_in	address;
-		int					addrlen;
+		/* Attributes from initialization */
+		Socket		serv_port;
+		Select		serv_select;
 
 		/* Process Attributes */
 		pid_t	pid;

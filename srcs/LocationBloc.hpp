@@ -6,11 +6,11 @@
 /* LocationBloc Class Declaration */
 class LocationBloc
 {
+	public:
 	/* Member Types */
-	typedef std::map<std::vector<std::string>, std::vector<std::string> >	Directives;
+		typedef std::map<std::string, std::vector<std::string> >	Directives;
 
 	/* Constructor */
-	public:
 		/*	default		(1)	*/	LocationBloc(void);
 		/*	copy		(2)	*/	LocationBloc(LocationBloc const & cpy);
 

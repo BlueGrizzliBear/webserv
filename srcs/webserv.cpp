@@ -1,103 +1,265 @@
-// Server side C program to demonstrate Socket programming
-
 #include "./webserv.hpp"
 #include "./ConfigParser.hpp"
 
-int	errorMsg(const char * main_err, const char * err, int ret)
+void	displayError(const char * main_err, const char * err)
 {
 	COUT << main_err << ": ";
 	COUT << err << ENDL;
-	return (ret);
 }
 
-void	abortServers(int ret, ConfigParser * parent)
+void	exitServerOnError(const char * main_err, const char * err, ServerBloc & server, int client_socket)
 {
-	// COUT << "--- ABORTING ---" << ENDL;
-	if (parent)
-	{
-		std::vector<ServerBloc>::iterator begin = parent->getServers().begin();
-		std::vector<ServerBloc>::iterator end = parent->getServers().end();
+	displayError(main_err, err);
+	FD_ZERO(&server.serv_select.readfds);
+	FD_ZERO(&server.serv_select.writefds);
+	FD_ZERO(&server.serv_select.exceptfds);
+	close(client_socket);
+	exit(EXIT_FAILURE);
+}
 
-		while (begin->pid != 0 && begin != end)
-		{
-			COUT << "killing pid |" << begin->pid << "|" << ENDL;
-			kill(begin->pid, SIGKILL);
-			begin->pid = 0;
-			begin++;
-		}
-		if (begin->server_fd != -1)
-			close(begin->server_fd);
+ssize_t	readClient(int socket, char * buffer)
+{
+	ssize_t n = 0;
+
+	COUT << "Waiting to receive message\n";
+	if ((n = recv(socket, buffer, (1024 - 1), 0)) < 0)
+	{
+		displayError("Error in recv()", strerror(errno));
+		n = 0;
 	}
-	exit(ret);
+	buffer[n] = 0;
+	return (n);
+}
+
+int	parseClientRequest(ServerBloc & server, int client_socket)
+{
+	/* Reading request from new client */
+	if (readClient(client_socket, server.serv_select.buf) == -1)
+	{
+		displayError("Error in readClient()", "disconnecting client");
+		return (-1);
+	}
+	/* Displaying Client request */
+	COUT << "Received Data from client\n";
+	std::cerr << "|" << GREEN << server.serv_select.buf << RESET << "|" << std::endl;
+
+	/* Check if last characters in request are the end of http request */
+	// if (!the_end)
+	// 	return (1);
+	server.serv_select.finished = 1;
+
+	return (0);
+}
+
+int	parseServerResponse(ServerBloc & server, Socket & client)
+{
+	/* Answering to the Client tmp */
+	char hello[3000] = "HTTP/1.1 200 OK\nContent-Type: text/plain\nContent-Length: 12\n\nHello world!";
+	write(client.fd, hello, strlen(hello));
+	COUT << "------------------Hello message sent-------------------" << ENDL;
+
+	/* Removing client socket from write playlist */
+	FD_CLR(client.fd, &server.serv_select.writefds);
+
+	/* Closing client socket, finished processing request */
+	close(client.fd);
+	client.fd = -1;
+	server.serv_select.finished = 1;
+
+	/* Re-assgning max value for select */
+	server.serv_select.max = server.serv_port.fd > client.fd ? server.serv_port.fd : client.fd;
+
+	return (0);
 }
 
 int	launchServer(ServerBloc & server)
 {
-	std::string	buf;
-	int			new_socket;
-	long		valread;
+	Socket new_client;
+	new_client.fd = -1;
 
-	/* Message to send back to Client */
-    char hello[3000] = "HTTP/1.1 200 OK\nContent-Type: text/plain\nContent-Length: 12\n\nHello world!";
-
-	CME << "Launching Server #" << server.getNo() <<  ". . ." << EME;
 
     while (1)
     {
-        printf("\n+++++++ Waiting for new connection ++++++++\n\n");
-        if ((new_socket = accept(server.server_fd, (struct sockaddr *)&server.address, (socklen_t*)&server.addrlen)) < 0)
-        {
-            perror("In accept");
-            exit(EXIT_FAILURE);
-        }
-        char buffer[30000] = {0};
-        valread = read( new_socket , buffer, 30000);
-        printf("%s\n",buffer );
-        write(new_socket , hello , strlen(hello));
-        printf("------------------Hello message sent-------------------\n");
-        close(new_socket);
+		/* ------ Configuring which fds should be listened to ------ */
+		/* Adding the Standard Input Fd to the read playlist */
+		FD_SET(STDIN_FILENO, &server.serv_select.readfds);
+
+		/* ------ Listening to sockets . . . ----------------------- */
+		int recVal = 0;
+
+		// CME << "Listening to sockets" << EME;
+		recVal = select(server.serv_select.max + 1, &server.serv_select.readfds, &server.serv_select.writefds, NULL, &server.serv_select.timeout);
+		switch (recVal)
+		{
+			case 0:
+			{
+				// displayError("Error in Select()", "select timed out");
+				if (new_client.fd == -1)
+					server.getParent()->_initSelect(server);
+				else
+					FD_SET(new_client.fd, &server.serv_select.readfds);
+				break ;
+			}
+			case -1:
+			{
+				displayError("Error in Select()", strerror(errno));
+				break ;
+			}
+			default:
+			{
+				// COUT << "default, new_client.fd|" << new_client.fd << "\n";
+				/* Keyboard was pressed, exiting server properly */
+				if (FD_ISSET(STDIN_FILENO, &server.serv_select.readfds))
+				{
+					COUT << "Keyboard was pressed, exiting server properly\n";
+					FD_ZERO(&server.serv_select.readfds);
+					FD_ZERO(&server.serv_select.writefds);
+					FD_ZERO(&server.serv_select.exceptfds);
+					close(new_client.fd);
+					close(server.serv_port.fd);
+					exit(EXIT_SUCCESS);
+				}
+				/* Someone is talking through their respective socket */
+				else if ((new_client.fd != -1) && FD_ISSET(new_client.fd, &server.serv_select.readfds))
+				{
+					// COUT << "Someone is talking through their respective socket" << ENDL;
+
+					/* Parsing Client Request */
+					// COUT << "Parsing Request . . ." << ENDL;
+					if (parseClientRequest(server, new_client.fd))
+						exitServerOnError("Error in parseClientRequest()", "Unknown error occured", server, new_client.fd);
+
+					/* Removing client socket from read playlist if finished */
+					if (server.serv_select.finished)
+					{
+						/* Clearing read list from client socket */
+						FD_CLR(new_client.fd, &server.serv_select.readfds);
+						/* Adding the client socket to the write playlist */
+						FD_SET(new_client.fd, &server.serv_select.writefds);
+					}
+					// COUT << "Finished reading from client\n";
+				}
+				/* Respective socket is ready for writing request response */
+				else if ((new_client.fd != -1) && FD_ISSET(new_client.fd, &server.serv_select.writefds))
+				{
+					// COUT << "Respective socket is ready for writing request response" << ENDL;
+
+					/* Parsing Server Response */
+					if (parseServerResponse(server, new_client))
+						exitServerOnError("Error in parseServerResponse()", "Unknown error occured", server, new_client.fd);
+					// COUT << "Finished writing to client\n";
+
+					/* Reseting server fd in reading list */
+					server.getParent()->_initSelect(server);
+				}
+				/* Someone is talking to the server socket */
+				else if ((new_client.fd == -1) && FD_ISSET(server.serv_port.fd, &server.serv_select.readfds))
+				{
+					// COUT << "Someone is talking to the server socket" << ENDL;
+
+					/* Opening socket for new client */
+					new_client.fd = accept(server.serv_port.fd, reinterpret_cast<struct sockaddr *>(&new_client.address), reinterpret_cast<socklen_t *>(&new_client.addrlen));
+					/* EAGAIN = no connections */
+					if (new_client.fd == -1)
+					{
+						displayError("Error in accept()", strerror(errno));
+						break ;
+					}
+					fcntl(new_client.fd, F_SETFL, O_NONBLOCK);
+
+					/* removing server fd from reading list to process request first */
+					FD_CLR(server.serv_port.fd, &server.serv_select.readfds);
+
+					/* Adding the respective socket to the read playlist */
+					FD_SET(new_client.fd, &server.serv_select.readfds);
+
+					/* Re-assgning max value for select */
+					server.serv_select.max = server.serv_select.max > new_client.fd ? server.serv_select.max : new_client.fd;
+
+					// COUT << "Finished creating new client\n";
+				}
+				else
+				{
+					COUT << "FD weird\n";
+				}
+				// COUT << "done\n";
+				break ;
+			}
+		}
+
+
+
+
+
+
+		// COUT << ENDL << "+++++++ Waiting for new connection ++++++++" << ENDL << ENDL;
+
+		// int	new_socket;
+		// // COUT << "ADDRLEN|" << server.serv_port.addrlen << "|\n";
+        // if ((new_socket = accept(server.serv_port.fd, (struct sockaddr *)&server.serv_port.address, (socklen_t*)&server.serv_port.addrlen)) < 0)
+        // {
+        //     perror("In accept");
+        //     exit(EXIT_FAILURE);
+        // }
+		// COUT << "Client wants to connect\n";
+
+		// int recVal = 0;
+		// // recVal = select(new_socket + 1, &server.serv_select.readfds, &server.serv_select.writefds, &server.serv_select.exceptfds, &server.serv_select.timeout);
+		// // while ((recVal = select(new_socket + 1, &server.serv_select.readfds, &server.serv_select.writefds, &server.serv_select.exceptfds, &server.serv_select.timeout)) > 0)
+		// while ((recVal = select(new_socket + 1, &server.serv_select.readfds, &server.serv_select.writefds, &server.serv_select.exceptfds, NULL)) > 0)
+		// {
+		// 		COUT << "Select worked ! \n";
+		// 		/*Packet Data Type*/
+		// 		// if (recv(server.serv_port.fd, &server.serv_select.buf, sizeof(server.serv_select.buf), 0) < 0)
+		// 		if (recv(new_socket, &server.serv_select.buf, sizeof(server.serv_select.buf), 0) < 0)
+		// 		{
+		// 			COUT << "Failed to receive Data\n";
+		// 			COUT << "strerror(errno)|" << strerror(errno) << "|\n";
+		// 			break;
+		// 		}
+		// 		else
+		// 		{
+		// 			COUT << "Received Data\n";
+		// 			std::cerr << "|" << GREEN << server.serv_select.buf << RESET << "|" << std::endl;
+
+		// 			write(new_socket, hello, strlen(hello));
+		// 			COUT << "------------------Hello message sent-------------------" << ENDL;
+		// 			close(new_socket);
+		// 		}
+		// 		break;
+		// }
+		// if (recVal == 0)
+		// {
+		// 	COUT << "Select Time out\n";
+		// 	close(new_socket);
+		// }
+		// if (recVal == -1)
+		// {
+		// 	COUT << "strerror(errno) = |" << strerror(errno) << "\n";
+		// 	COUT << "Error in Select\n";
+		// 	close(new_socket);
+		// }
+
+
+
+
     }
-	return (1);
+	CME << "Error in the Server: exiting now" << EME;
+	exit(1);
 }
 
 int	initServer(ServerBloc & server)
 {
-	/* Creating socket file descriptor */
-	/* AF_INET: Protocoles Internet IPv4	|	SOCK_STREAM: Virtual Circuit Service */
-    if ((server.server_fd = socket(AF_INET, SOCK_STREAM, 0)) == 0)
-		abortServers(errorMsg("Error in socket()", strerror(errno), EXIT_FAILURE), server.getParent());
-
-	/* Defining adress */
-    server.address.sin_family = AF_INET;	/* corresponding to IPv4 protocols */
-    // server.address.sin_addr.s_addr = INADDR_ANY;	/* corresponding to 0.0.0.0 */
-    // server.address.sin_addr.s_addr = htonl(INADDR_ANY);	/* corresponding to 0.0.0.0 */
-    server.address.sin_addr.s_addr = htonl(INADDR_LOOPBACK);	/* corresponding to 127.0.0.1 */
-	server.address.sin_port = htons(server.getPort());	/* corresponding to the server port, must be > 1024 */
-    // server.address.sin_port = server.getPort();	/* corresponding to the server port */
-    
-	/* Initialising other adress attributes to 0 */
-    memset(server.address.sin_zero, '\0', sizeof(server.address.sin_zero));
-    
-	/* Assigning adress to the socket */
-    // COUT << "server.server_fd|" << server.server_fd << "|\n";
-    // COUT << "Port|" << htons(server.address.sin_port) << "|\n"; 
-    if (bind(server.server_fd, reinterpret_cast<struct sockaddr *>(&server.address), sizeof(server.address)) < 0)
-		abortServers(errorMsg("Error in bind()", strerror(errno), EXIT_FAILURE), server.getParent());
-		// exit_with_error("Error in bind()", strerror(errno), EXIT_FAILURE);
-
-	/* Enable socket to accept connections */
-    if (listen(server.server_fd, BACK_LOG) < 0)
-		abortServers(errorMsg("Error in listen()", strerror(errno), EXIT_FAILURE), server.getParent());
+	/* Fork() the program for each server bloc */
 	if ((server.pid = fork()) == -1)
-		abortServers(errorMsg("Error in fork()", strerror(errno), EXIT_FAILURE), server.getParent());
+		server.getParent()->abortServers("Error in fork()", strerror(errno));
 	else if (server.pid == 0)
 	{
-		// COUT << "THE CHILD LIVES HERE\n";
+		CME << "Launching Server #" << server.getNo() <<  ". . ." << EME;
 		launchServer(server);
 	}
 	else
 	{
-		// COUT << "THE PARENT CONTINUES TO LIVE\n";
 	}
 	return (0);
 }
@@ -116,9 +278,12 @@ int main(int argc, char const ** argv)
 			unsigned long size = config.getServers().size();
 			std::for_each(config.getServers().begin(), config.getServers().end(), initServer);
 			
-			CME << "Now waiting for Servers . . ." << EME;
 			while (size-- > 0)
+			{
+				CME << "Waiting for Servers . . ." << EME;
 				waitpid(-1, &config.getStatus(), 0);
+				CME << "One server came back . . ." << EME;
+			}
 			CME << "All servers came back . . ." << EME;
 		}
 		catch(const std::exception& e)
