@@ -20,8 +20,8 @@ ServerBloc::~ServerBloc() {}
 /* Operators */
 ServerBloc &	ServerBloc::operator=(ServerBloc const & rhs)
 {
-	serv_dir = rhs.serv_dir;
-	serv_loc = rhs.serv_loc;
+	dir = rhs.dir;
+	loc = rhs.loc;
 	serv_port = rhs.serv_port;
 	serv_select = rhs.serv_select;
 	pid = rhs.pid;

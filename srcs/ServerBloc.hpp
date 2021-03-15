@@ -18,13 +18,13 @@ struct Socket
 
 struct Select
 {
-	bool			finished;
 	int				max;
-	fd_set			readfds;
 	char			buf[1024];
+	fd_set			readfds;
 	fd_set			writefds;
 	fd_set			exceptfds;
 	struct timeval	timeout;
+	bool			finished;
 };
 
 /* ServerBloc Class Declaration */
@@ -55,8 +55,8 @@ class ServerBloc
 	/* Member Attributes */
 	public:
 		/* Attributes from parsing */
-		Directives	serv_dir;
-		Locations	serv_loc;
+		Directives	dir;
+		Locations	loc;
 
 		/* Attributes from initialization */
 		Socket		serv_port;

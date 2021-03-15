@@ -14,6 +14,7 @@ void	exitServerOnError(const char * main_err, const char * err, ServerBloc & ser
 	FD_ZERO(&server.serv_select.writefds);
 	FD_ZERO(&server.serv_select.exceptfds);
 	close(client_socket);
+	close(server.serv_port.fd);
 	exit(EXIT_FAILURE);
 }
 
@@ -186,63 +187,6 @@ int	launchServer(ServerBloc & server)
 				break ;
 			}
 		}
-
-
-
-
-
-
-		// COUT << ENDL << "+++++++ Waiting for new connection ++++++++" << ENDL << ENDL;
-
-		// int	new_socket;
-		// // COUT << "ADDRLEN|" << server.serv_port.addrlen << "|\n";
-        // if ((new_socket = accept(server.serv_port.fd, (struct sockaddr *)&server.serv_port.address, (socklen_t*)&server.serv_port.addrlen)) < 0)
-        // {
-        //     perror("In accept");
-        //     exit(EXIT_FAILURE);
-        // }
-		// COUT << "Client wants to connect\n";
-
-		// int recVal = 0;
-		// // recVal = select(new_socket + 1, &server.serv_select.readfds, &server.serv_select.writefds, &server.serv_select.exceptfds, &server.serv_select.timeout);
-		// // while ((recVal = select(new_socket + 1, &server.serv_select.readfds, &server.serv_select.writefds, &server.serv_select.exceptfds, &server.serv_select.timeout)) > 0)
-		// while ((recVal = select(new_socket + 1, &server.serv_select.readfds, &server.serv_select.writefds, &server.serv_select.exceptfds, NULL)) > 0)
-		// {
-		// 		COUT << "Select worked ! \n";
-		// 		/*Packet Data Type*/
-		// 		// if (recv(server.serv_port.fd, &server.serv_select.buf, sizeof(server.serv_select.buf), 0) < 0)
-		// 		if (recv(new_socket, &server.serv_select.buf, sizeof(server.serv_select.buf), 0) < 0)
-		// 		{
-		// 			COUT << "Failed to receive Data\n";
-		// 			COUT << "strerror(errno)|" << strerror(errno) << "|\n";
-		// 			break;
-		// 		}
-		// 		else
-		// 		{
-		// 			COUT << "Received Data\n";
-		// 			std::cerr << "|" << GREEN << server.serv_select.buf << RESET << "|" << std::endl;
-
-		// 			write(new_socket, hello, strlen(hello));
-		// 			COUT << "------------------Hello message sent-------------------" << ENDL;
-		// 			close(new_socket);
-		// 		}
-		// 		break;
-		// }
-		// if (recVal == 0)
-		// {
-		// 	COUT << "Select Time out\n";
-		// 	close(new_socket);
-		// }
-		// if (recVal == -1)
-		// {
-		// 	COUT << "strerror(errno) = |" << strerror(errno) << "\n";
-		// 	COUT << "Error in Select\n";
-		// 	close(new_socket);
-		// }
-
-
-
-
     }
 	CME << "Error in the Server: exiting now" << EME;
 	exit(1);
@@ -266,11 +210,12 @@ int	initServer(ServerBloc & server)
 
 int main(int argc, char const ** argv)
 {
-	if (argc == 2)
+	if (argc == 1 || argc == 2)
 	{
 		try
 		{
-			ConfigParser	config(argv[1]);
+			std::string path = (argc == 1 ? "./configuration/default.conf" : argv[1]);
+			ConfigParser	config(path.c_str());
 			CME << "Parsing Complete !" << EME;
 			config.display_config();
 

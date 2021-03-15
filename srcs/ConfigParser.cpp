@@ -87,11 +87,11 @@ void	ConfigParser::_display_server_bloc(ServerBloc & serv)
 	COUT << MAGENTA << "--- Server #" << i++ << " ---" << RESET << ENDL;
 
 	COUT << "--- Server Directives ---\n";
-	std::for_each(serv.serv_dir.begin(), serv.serv_dir.end(), _display_dir);
+	std::for_each(serv.dir.begin(), serv.dir.end(), _display_dir);
 	COUT << ENDL;
 	
 	COUT << "--- Server Locations ---\n";
-	std::for_each(serv.serv_loc.begin(), serv.serv_loc.end(), _display_location_bloc);
+	std::for_each(serv.loc.begin(), serv.loc.end(), _display_location_bloc);
 	COUT << ENDL;
 }
 
@@ -156,7 +156,7 @@ void	ConfigParser::_try_open_file(const char * path)
 				while (getline(file, _line))
 				{
 					++_line_no;
-					_parse_main_context(file, _dic.main_dictionary, _main_dir, _servers, _servers.back().serv_loc);
+					_parse_main_context(file, _dic.main_dictionary, _main_dir, _servers, _servers.back().loc);
 				}
 				file.close();
 			}
@@ -256,7 +256,7 @@ void	ConfigParser::_parse_server(std::string & key, std::fstream & file, Servers
 		++_bracket;
 		tmp.getNo() = serv.size() + 1;
 		while (old != _bracket && ++_line_no && getline(file, _line))
-			_parse_main_context(file, _dic.server_dictionary, tmp.serv_dir, serv, tmp.serv_loc);
+			_parse_main_context(file, _dic.server_dictionary, tmp.dir, serv, tmp.loc);
 		_verify_serverbloc(tmp);
 		serv.push_back(tmp);
 	}
@@ -413,7 +413,7 @@ int		ConfigParser::_check_directive(std::string & key, std::vector<std::string> 
 
 		while (it_base != ite_base)
 		{
-			if ((*it_base).serv_dir.find(key)->second == values)
+			if ((*it_base).dir.find(key)->second == values)
 				return (1);
 			it_base++;
 		}
@@ -442,8 +442,8 @@ int		ConfigParser::_check_directive(std::string & key, std::vector<std::string> 
 
 void	ConfigParser::_verify_serverbloc(ServerBloc & serv)
 {
-	std::map<std::string, std::vector<std::string> >::iterator begin = serv.serv_dir.begin();
-	std::map<std::string, std::vector<std::string> >::iterator end = serv.serv_dir.end();
+	std::map<std::string, std::vector<std::string> >::iterator begin = serv.dir.begin();
+	std::map<std::string, std::vector<std::string> >::iterator end = serv.dir.end();
 	unsigned int exists = 0;
 
 	while (begin != end)
@@ -476,8 +476,8 @@ void	ConfigParser::abortServers(const char * main_err, const char * err)
 
 void	ConfigParser::_initPort(ServerBloc & serv)
 {
-	Directives::iterator d_it = serv.serv_dir.begin();
-	Directives::iterator d_ite = serv.serv_dir.end();
+	Directives::iterator d_it = serv.dir.begin();
+	Directives::iterator d_ite = serv.dir.end();
 
 	while (d_it != d_ite)
 	{
