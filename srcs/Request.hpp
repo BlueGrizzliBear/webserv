@@ -30,6 +30,11 @@ class Request
 		size_t		_passSpaces(void);
 
 		bool	_isLegitPath(std::string const & path);
+		bool	_isinDic(char needle, char const * dic);
+		void	_passOneChar(char const * dic);
+		void	_passOneChar(int func(int));
+		void	_passOptionalChars(char const * dic);
+		void	_passOptionalChars(int func(int));
 
 		int		_parseRequestLine(void);
 		int		_parseHeaders(void);

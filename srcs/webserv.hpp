@@ -29,6 +29,9 @@
 #define CERR std::cerr
 #define ENDL std::endl
 
+#define SP ' '
+#define OWS ""
+
 /* Debug for me */
 #define CME std::cerr << CYAN
 // #define CMEG std::cerr << GREEN

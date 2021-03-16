@@ -43,13 +43,47 @@ Request &	Request::operator=(Request const & rhs)
 }
 
 /* Member Functions */
-size_t	Request::_passSpaces(void)
+/* A conditional function which returns a bool if the needle is in the dictionary dic */
+bool	Request::_isinDic(char needle, char const * dic)
 {
-	while (_req[_pos] == ' ' || _req[_pos] == '\t')
-		_pos++;
-	return (_pos);
+	int i = 0;
+	
+	while (dic[i] && dic[i] != needle)
+		i++;
+	if (dic[i] == '\0')
+		return (false);
+	return (true);
 }
 
+/* A function which passes 1 char from the dictionary dic */
+void	Request::_passOneChar(char const * dic)
+{
+	if (_isinDic(_req[_pos], dic))
+		_pos++;
+}
+
+/* . . . and an overload with a conditional function (usage with isspace() for example) */
+void	Request::_passOneChar(int func(int))
+{
+	if (_req[_pos] && !func(_req[_pos]))
+		_pos++;
+}
+
+/* A function which passes 1 or more Chars from the dictionary dic */
+void	Request::_passOptionalChars(char const * dic)
+{
+	while (_isinDic(_req[_pos], dic))
+		_pos++;
+}
+
+/* . . . and an overload with a conditional function (usage with isspace() for example) */
+void	Request::_passOptionalChars(int func(int))
+{
+	while (_req[_pos] && !func(_req[_pos]))
+		_pos++;
+}
+
+/* A function gets the first encountered word */
 std::string	Request::_getWord(void)
 {
 	std::string word;
@@ -80,7 +114,8 @@ int	Request::_parseRequestLine(void)
 	else
 		COUT << "1 - wrong method|" << method << "|\n";
 
-	_passSpaces();
+	/* Pass 1 Space */
+	_passOneChar(" ");
 
 	/* Check Request-URI */
 	// Request-URI = "*" | absoluteURI | abs_path | authority
@@ -90,7 +125,8 @@ int	Request::_parseRequestLine(void)
 	else
 		COUT << "2 - wrong path|" << uri << "|\n";
 
-	_passSpaces();
+	/* Pass 1 Space */
+	_passOneChar(" ");
 
 	/* Check HTTP-Version */
 	protocol_v = _getWord();
@@ -119,12 +155,14 @@ int	Request::_parseHeaders(void)
 	else
 		COUT << "1 - wrong Header Field|" << header_key << "|\n";
 
+	/* Check is ':' is present */
 	if (_req[_pos] != ':')
 		COUT << "1 - char is not ':'|" << _req[_pos] << "|\n";
 	else
 		_pos++;
 
-	_passSpaces();
+	/* Pass Optionnal White Spaces */
+	_passOptionalChars(&isspace);
 
 	while (_req[_pos] && _req[_pos] != '\n')
 	{
@@ -139,7 +177,8 @@ int	Request::_parseHeaders(void)
 
 		
 
-		_passSpaces();
+		/* Pass Optionnal White Spaces */
+		_passOptionalChars(&isspace);
 
 	}
 
