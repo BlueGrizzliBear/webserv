@@ -22,7 +22,7 @@ ssize_t	readClient(int socket, char * buffer)
 {
 	ssize_t n = 0;
 
-	COUT << "Waiting to receive message\n";
+	// COUT << "Waiting to receive message\n";
 	if ((n = recv(socket, buffer, (1024 - 1), 0)) < 0)
 	{
 		displayError("Error in recv()", strerror(errno));
@@ -40,9 +40,18 @@ int	parseClientRequest(ServerBloc & server, int client_socket)
 		displayError("Error in readClient()", "disconnecting client");
 		return (-1);
 	}
-	/* Displaying Client request */
-	COUT << "Received Data from client\n";
-	std::cerr << "|" << GREEN << server.serv_select.buf << RESET << "|" << std::endl;
+
+	/* Initialize the Request object of ServerBloc */
+	try
+	{
+		server.parseRequest(server.serv_select.buf);
+	}
+	catch(const std::exception& e)
+	{
+		/* Catching exception from request parsing */
+		std::cerr << RED << e.what() << RESET << std::endl;
+	}
+	
 
 	/* Check if last characters in request are the end of http request */
 	// if (!the_end)
@@ -197,11 +206,13 @@ int	initServer(ServerBloc & server)
 	/* Fork() the program for each server bloc */
 	if ((server.pid = fork()) == -1)
 		server.getParent()->abortServers("Error in fork()", strerror(errno));
+	/* Child program */
 	else if (server.pid == 0)
 	{
 		CME << "Launching Server #" << server.getNo() <<  ". . ." << EME;
 		launchServer(server);
 	}
+	/* Parent program */
 	else
 	{
 	}

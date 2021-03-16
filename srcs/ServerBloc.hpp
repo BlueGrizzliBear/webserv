@@ -4,6 +4,7 @@
 #include "./webserv.hpp"
 #include "./LocationBloc.hpp"
 #include "./ConfigParser.hpp"
+#include "./Request.hpp"
 
 class ConfigParser;
 
@@ -52,6 +53,8 @@ class ServerBloc
 		size_t &		getNo(void);
 		ConfigParser *	getParent(void);
 
+		void	parseRequest(const char * request);
+
 	/* Member Attributes */
 	public:
 		/* Attributes from parsing */
@@ -61,6 +64,9 @@ class ServerBloc
 		/* Attributes from initialization */
 		Socket		serv_port;
 		Select		serv_select;
+
+		/* Attributes from RequestParsing */
+		Request		req;
 
 		/* Process Attributes */
 		pid_t	pid;

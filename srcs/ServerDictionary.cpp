@@ -4,27 +4,68 @@
 /*	default	(1)	*/
 ServerDictionary::ServerDictionary()
 {
-	main_dictionary.insert(std::make_pair("user", 0));
-	main_dictionary.insert(std::make_pair("worker_processes", 1));
-	main_dictionary.insert(std::make_pair("pid", 2));
-	main_dictionary.insert(std::make_pair("worker_connections", 3));
-	main_dictionary.insert(std::make_pair("client_max_body_size", 4));
-	main_dictionary.insert(std::make_pair("server", 5));
+	/* Dictionary for keys in main context */
+	std::string main_dir[] = {	"user",
+								"worker_processes",
+								"pid",
+								"worker_connections",
+								"client_max_body_size",
+								"server"					};
+	_createDic(mainDic, main_dir, sizeof(main_dir));
 
-	location_dictionary.insert(std::make_pair("root", 0));
-	location_dictionary.insert(std::make_pair("autoindex", 1));
-	location_dictionary.insert(std::make_pair("limit_except", 2));
-	location_dictionary.insert(std::make_pair("upload_store", 3));
-	location_dictionary.insert(std::make_pair("expires", 4));
-	location_dictionary.insert(std::make_pair("proxy_pass", 5));
-	location_dictionary.insert(std::make_pair("cgi", 6));
+	/* Dictionary for keys in location blocs */
+	std::string locations[] = {	"root",
+								"autoindex",
+								"limit_except",
+								"upload_store",
+								"expires",
+								"proxy_pass",
+								"cgi"			};
+	_createDic(locationDic, locations, sizeof(locations));
 
-	server_dictionary.insert(std::make_pair("listen", 0));
-	server_dictionary.insert(std::make_pair("server_name", 1));
-	server_dictionary.insert(std::make_pair("error_page", 2));
-	server_dictionary.insert(std::make_pair("location", 3));
-	server_dictionary.insert(std::make_pair("root", 4));
-	server_dictionary.insert(std::make_pair("autoindex", 5));
+	/* Dictionary for keys in server blocs */
+	std::string servers[] = {	"listen",
+								"server_name",
+								"error_page",
+								"location",
+								"root",
+								"autoindex"		};
+	_createDic(serverDic, servers, sizeof(servers));
+
+	/* Dictionary for methods in requests */
+	std::string methods[] = {	"GET",
+								"HEAD",
+								"POST",
+								"PUT",
+								"DELETE",
+								"CONNECT",
+								"OPTIONS",
+								"TRACE",
+								"WHAT",
+								"PATCH"		};
+	_createDic(methodDic, methods, sizeof(methods));
+
+	// case insensitive
+	/* Dictionary for implemented Headers in requests */
+	std::string headers[] = {	"Accept-Charsets",
+								"Accept-Language",
+								"Allow",
+								"Authorization",
+								"Content-Language",
+								"Content-Length",
+								"Content-Location",
+								"Content-Type",
+								"Date",
+								"Host",
+								"Last-Modified",
+								"Location",
+								"Referer",
+								"Retry-After",
+								"Server",
+								"Transfer-Encoding",
+								"User-Agent",
+								"WWW-Authenticate"		};
+	_createDic(headerDic, headers, sizeof(headers));
 }
 
 /*	copy	(2)	*/
@@ -37,10 +78,15 @@ ServerDictionary::ServerDictionary(ServerDictionary const & cpy)
 ServerDictionary::~ServerDictionary() {}
 
 /* Operators */
-ServerDictionary &ServerDictionary::operator=( ServerDictionary const & rhs )
+ServerDictionary &	ServerDictionary::operator=( ServerDictionary const & rhs )
 {
 	(void)rhs;
 	return (*this);
 }
 
 /* Member Functions */
+void	ServerDictionary::_createDic(Dic & dic, std::string const * tab, size_t size)
+{
+	for (size_t i = 0; i < (size / sizeof(*tab)); i++)
+		dic.insert(std::make_pair(*(tab + i), static_cast<int>(i)));
+}

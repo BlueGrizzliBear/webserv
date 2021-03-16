@@ -156,7 +156,7 @@ void	ConfigParser::_try_open_file(const char * path)
 				while (getline(file, _line))
 				{
 					++_line_no;
-					_parse_main_context(file, _dic.main_dictionary, _main_dir, _servers, _servers.back().loc);
+					_parse_main_context(file, _dic.mainDic, _main_dir, _servers, _servers.back().loc);
 				}
 				file.close();
 			}
@@ -256,7 +256,7 @@ void	ConfigParser::_parse_server(std::string & key, std::fstream & file, Servers
 		++_bracket;
 		tmp.getNo() = serv.size() + 1;
 		while (old != _bracket && ++_line_no && getline(file, _line))
-			_parse_main_context(file, _dic.server_dictionary, tmp.dir, serv, tmp.loc);
+			_parse_main_context(file, _dic.serverDic, tmp.dir, serv, tmp.loc);
 		_verify_serverbloc(tmp);
 		serv.push_back(tmp);
 	}
@@ -314,7 +314,7 @@ void	ConfigParser::_parse_location(std::string & key, std::fstream & file, Serve
 
 		++_bracket;
 		while (++_line_no && getline(file, _line) && old != _bracket)
-			_parse_main_context(file, _dic.location_dictionary, tmp.loc_dir, serv, loc);
+			_parse_main_context(file, _dic.locationDic, tmp.loc_dir, serv, loc);
 		loc.insert(std::make_pair(values, tmp));
 	}
 	else

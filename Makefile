@@ -4,7 +4,8 @@ SRCS_NAME		=		webserv.cpp	\
 						ConfigParser.cpp \
 						ServerDictionary.cpp \
 						ServerBloc.cpp \
-						LocationBloc.cpp
+						LocationBloc.cpp \
+						Request.cpp
 
 OBJS			= 		${SRCS:.cpp=.o}
 

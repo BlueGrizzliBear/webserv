@@ -20,11 +20,16 @@ class	ServerDictionary
 		ServerDictionary &	operator=(ServerDictionary const & rhs);
 
 	/* Member Functions */
+	private:
+		void	_createDic(Dic & dic, std::string const * tab, size_t size);
 
 	/* Member Attributes */
-		Dic	main_dictionary;
-		Dic	location_dictionary;
-		Dic	server_dictionary;
+	public:
+		Dic	mainDic;
+		Dic	locationDic;
+		Dic	serverDic;
+		Dic	methodDic;
+		Dic	headerDic;
 };
 
 #endif

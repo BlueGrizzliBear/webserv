@@ -40,3 +40,14 @@ ConfigParser *	ServerBloc::getParent(void)
 {
 	return (_parent);
 }
+
+void	ServerBloc::parseRequest(const char * request)
+{
+	/* Displaying Client request */
+	COUT << "Received Data from client\n";
+	std::cerr << "|" << GREEN << request << RESET << "|" << std::endl;
+
+	/* Constructing request object from request char * */
+	Request new_req(request);
+	req = new_req;
+}
