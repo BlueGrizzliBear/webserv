@@ -5,8 +5,10 @@
 #include "./LocationBloc.hpp"
 #include "./ConfigParser.hpp"
 #include "./Request.hpp"
+#include "./Response.hpp"
 
 class ConfigParser;
+// class Request;
 
 struct Socket
 {
@@ -54,6 +56,8 @@ class ServerBloc
 		ConfigParser *	getParent(void);
 
 		void	parseRequest(const char * request);
+		void	executeRequest(void);
+		void	sendResponse(Socket & client);
 
 	/* Member Attributes */
 	public:
@@ -66,7 +70,8 @@ class ServerBloc
 		Select		serv_select;
 
 		/* Attributes from RequestParsing */
-		Request		req;
+		Request 	req;
+		Response 	resp;
 
 		/* Process Attributes */
 		pid_t	pid;

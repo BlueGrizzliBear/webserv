@@ -48,6 +48,24 @@ void	ServerBloc::parseRequest(const char * request)
 	std::cerr << "|" << GREEN << request << RESET << "|" << std::endl;
 
 	/* Constructing request object from request char * */
-	Request new_req(request);
+	Request new_req(*this, request);
 	req = new_req;
+}
+
+void	ServerBloc::executeRequest(void)
+{
+	// Pour Oliv
+	COUT << "Executing Request here" << ENDL;
+}
+
+void	ServerBloc::sendResponse(Socket & client)
+{
+	/* Answering to the Client tmp */
+	char hello[3000] = "HTTP/1.1 200 OK\nContent-Type: text/plain\nContent-Length: 12\n\nHello world!";
+
+	write(client.fd, hello, strlen(hello));
+
+	COUT << "------------------Hello message sent-------------------" << ENDL;
+
+	COUT << "Sending Response to Client" << ENDL;
 }

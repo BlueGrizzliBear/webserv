@@ -51,7 +51,6 @@ int	parseClientRequest(ServerBloc & server, int client_socket)
 		/* Catching exception from request parsing */
 		std::cerr << RED << e.what() << RESET << std::endl;
 	}
-	
 
 	/* Check if last characters in request are the end of http request */
 	// if (!the_end)
@@ -63,10 +62,27 @@ int	parseClientRequest(ServerBloc & server, int client_socket)
 
 int	parseServerResponse(ServerBloc & server, Socket & client)
 {
-	/* Answering to the Client tmp */
-	char hello[3000] = "HTTP/1.1 200 OK\nContent-Type: text/plain\nContent-Length: 12\n\nHello world!";
-	write(client.fd, hello, strlen(hello));
-	COUT << "------------------Hello message sent-------------------" << ENDL;
+	/* Execute the Request object of ServerBloc */
+	try
+	{
+		server.executeRequest();
+	}
+	catch(const std::exception& e)
+	{
+		/* Catching exception from request execution */
+		std::cerr << RED << e.what() << RESET << std::endl;
+	}
+	
+	/* Send Response to Client */
+	try
+	{
+		server.sendResponse(client);
+	}
+	catch(const std::exception& e)
+	{
+		/* Catching exception from sending repsonse */
+		std::cerr << RED << e.what() << RESET << std::endl;
+	}
 
 	/* Removing client socket from write playlist */
 	FD_CLR(client.fd, &server.serv_select.writefds);

@@ -6,21 +6,14 @@
 Request::Request(void) {}
 
 /*	argument	(2)	*/
-Request::Request(const char * request) : _req(request), _pos(0)
+Request::Request(ServerBloc & server, const char * request) : _req(request), _pos(0), _parent(&server)
 {
-	// construction with request buffer here
-
-
 	_parseRequestLine();
-	// _parseHeaders();
+	_parseHeaders();
 	// _parseBody();
 
 	/* Check if cariage return */
-	if (_req[_pos] == '\r')
-		COUT << "found cariage return\n";
-	else
-		COUT << "A-1 - no cariage return |" << _req[_pos] << "|\n";
-
+	_passStrictOneChar("\r");
 }
 
 /*	copy		(3)	*/
@@ -39,6 +32,9 @@ Request &	Request::operator=(Request const & rhs)
 	uri = rhs.uri;
 	protocol_v = rhs.protocol_v;
 	headers = rhs.headers;
+	_req = rhs._req;
+	_pos = rhs._pos;
+	_parent = rhs._parent;
 	return (*this);
 }
 
@@ -53,6 +49,24 @@ bool	Request::_isinDic(char needle, char const * dic)
 	if (dic[i] == '\0')
 		return (false);
 	return (true);
+}
+
+/* A function which strictly passes 1 char from the dictionary dic, and if not, throws */
+void	Request::_passStrictOneChar(char const * dic)
+{
+	if (_isinDic(_req[_pos], dic))
+		_pos++;
+	else
+		COUT << "ERROR: Character not found\n";
+}
+
+/* . . . and an overload with a conditional function (usage with isspace() for example) */
+void	Request::_passStrictOneChar(int func(int))
+{
+	if (_req[_pos] && !func(_req[_pos]))
+		_pos++;
+	else
+		COUT << "ERROR: Character not found\n";
 }
 
 /* A function which passes 1 char from the dictionary dic */
@@ -83,23 +97,35 @@ void	Request::_passOptionalChars(int func(int))
 		_pos++;
 }
 
-/* A function gets the first encountered word */
-std::string	Request::_getWord(void)
+/* A function which gets the first encountered word until the character delim is found */
+std::string	Request::_getWord(char const * delimiter_dic)
 {
 	std::string word;
 
-	while (_req[_pos] && !isspace(_req[_pos]))
+	while (_req[_pos] && !_isinDic(_req[_pos], delimiter_dic))
 		word += _req[_pos++];
 	return (word);
 }
 
-// to implement
+/* A function which gets the first encountered word until the function func is true */
+std::string	Request::_getWord(int func(int))
+{
+	std::string word;
+
+	while (_req[_pos] && !func(_req[_pos]))
+		word += _req[_pos++];
+	return (word);
+}
+
 bool	Request::_isLegitPath(std::string const & path)
 {
-	if (path == "/")
-		return (true);
-	if (path != "*")
+	/* Request-URI = "*" | absoluteURI | abs_path | authority */
+
+	if (path.empty())
 		return (false);
+	// Option to check maybe ?
+	// if (path == "*" /* && method == "OPTION"*/)
+		// return (false);
 	return (true);
 }
 
@@ -108,39 +134,32 @@ int	Request::_parseRequestLine(void)
 	/* Request-Line = Method SP Request-URI SP HTTP-Version CRLF */
 
 	/* Check Method */
-	method = _getWord();
-	if (_dic.methodDic.find(method) != _dic.methodDic.end())
-		COUT << "Found legit method\n";
-	else
-		COUT << "1 - wrong method|" << method << "|\n";
+	method = _getWord(&isspace);
+	if (_dic.methodDic.find(method) == _dic.methodDic.end())
+		throw NotImplemented();
+	// else
+	// 	COUT << "Found legit method\n";
 
 	/* Pass 1 Space */
-	_passOneChar(" ");
+	_passStrictOneChar(" ");
 
 	/* Check Request-URI */
-	// Request-URI = "*" | absoluteURI | abs_path | authority
-	uri = _getWord();
-	if (_isLegitPath(uri))
-		COUT << "Found legit path\n";
-	else
+	uri = _getWord(&isspace);
+	if (!_isLegitPath(uri))
 		COUT << "2 - wrong path|" << uri << "|\n";
 
 	/* Pass 1 Space */
-	_passOneChar(" ");
+	_passStrictOneChar(" ");
 
 	/* Check HTTP-Version */
-	protocol_v = _getWord();
-	if (protocol_v == "HTTP/1.1")
-		COUT << "Found legit protocol\n";
-	else
+	protocol_v = _getWord(&isspace);
+	if (protocol_v != "HTTP/1.1")
 		COUT << "3 - wrong protocol|" << protocol_v << "|\n";
 
-	/* Check if end of the line */
-	if (_req[_pos] == '\n')
-		COUT << "found the end of the line\n";
-	else
-		COUT << "A-1 - no \\n at the end |" << _req[_pos] << "|\n";
-
+	/* Check if end of the line (CRLF = \r\n) */
+	_passStrictOneChar("\r");
+	_passStrictOneChar("\n");
+	
 	return (0);
 }
 
@@ -149,33 +168,33 @@ int	Request::_parseHeaders(void)
 	/* Request Header Fields */
 
 	/* Check Header Key */
-	std::string header_key = _getWord();
-	if (_dic.headerDic.find(header_key) != _dic.headerDic.end())
-		COUT << "Found legit header_key\n";
-	else
+	std::string header_key = _getWord("(),/:;<=>?@[\\]{}\" \t\r\f\n\v");
+	if (_dic.headerDic.find(header_key) == _dic.headerDic.end())
 		COUT << "1 - wrong Header Field|" << header_key << "|\n";
+	else
+		COUT << "Header-key valid\n";
 
 	/* Check is ':' is present */
-	if (_req[_pos] != ':')
-		COUT << "1 - char is not ':'|" << _req[_pos] << "|\n";
-	else
-		_pos++;
+	_passStrictOneChar(":");
 
 	/* Pass Optionnal White Spaces */
 	_passOptionalChars(&isspace);
 
+	/* Check Header Values */
+	std::vector<std::string> header_values;
 	while (_req[_pos] && _req[_pos] != '\n')
 	{
-		/* Check Header Field */
-		std::string header = _getWord();
-		if (_dic.headerDic.find(header) != _dic.headerDic.end())
+		std::string header_val = _getWord("(),/:;<=>?@[\\]{}\" \t\r\f\n\v");
+		CME << "req|" << _req[_pos] << "|" << EME;
+		CME << "word|" << header_val << "|" << EME;
+		if (header_val != "")
 			COUT << "Found legit header\n";
-		// else if (header == "")
-		// 	_pos++;
 		else
-			COUT << "1 - wrong Header Field|" << header << "|\n";
-
-		
+		{
+			COUT << "ERROR: values needs to be one character long at least\n";
+			_pos++;
+		}
+		header_values.push_back(header_val);
 
 		/* Pass Optionnal White Spaces */
 		_passOptionalChars(&isspace);

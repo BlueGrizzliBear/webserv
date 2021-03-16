@@ -3,9 +3,10 @@ SRC_PATH		=		./srcs/
 SRCS_NAME		=		webserv.cpp	\
 						ConfigParser.cpp \
 						ServerDictionary.cpp \
-						ServerBloc.cpp \
 						LocationBloc.cpp \
-						Request.cpp
+						Request.cpp \
+						Response.cpp \
+						ServerBloc.cpp
 
 OBJS			= 		${SRCS:.cpp=.o}
 
