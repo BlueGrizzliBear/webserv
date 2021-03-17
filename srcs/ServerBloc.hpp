@@ -22,13 +22,18 @@ struct Socket
 
 struct Select
 {
-	int				max;
-	char			buf[1024];
+	int					fd_max;
+	char				buf[MAX_HEADER_SIZE];
+	
+	ssize_t			n;
+
 	fd_set			readfds;
 	fd_set			writefds;
 	fd_set			exceptfds;
+	
 	struct timeval	timeout;
-	bool			finished;
+	
+	bool			incomplete;
 };
 
 /* ServerBloc Class Declaration */
@@ -58,7 +63,9 @@ class ServerBloc
 
 		void	parseException(const char * code);
 
-		void	parseRequest(const char * request);
+		void	readClient(int client_socket);
+
+		void	parseRequest();
 		void	executeRequest(void);
 		void	sendResponse(Socket & client);
 

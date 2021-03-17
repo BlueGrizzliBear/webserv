@@ -6,7 +6,7 @@
 Request::Request(void) {}
 
 /*	argument	(2)	*/
-Request::Request(const char * request) : _req(request), _pos(0)
+Request::Request(std::stringstream & ss) : _req(ss.str()), _pos(0)
 {
 	_parseRequestLine();
 	CME << "REQUEST LINE OK" << EME;
@@ -35,13 +35,13 @@ Request::~Request() {}
 /* Operators */
 Request &	Request::operator=(Request const & rhs)
 {
+	finished = rhs.finished;
+
 	method = rhs.method;
 	uri = rhs.uri;
 	protocol_v = rhs.protocol_v;
 	headers = rhs.headers;
 	body = rhs.body;
-	
-	finished = rhs.finished;
 
 	_req = rhs._req;
 	_pos = rhs._pos;
@@ -231,7 +231,7 @@ int	Request::_parseHeaders(void) throw(BadRequest)
 		_passOneChar("\r");
 		_passOneChar("\n");
 	}
-	COUT << "CHAR HERE IS |" << _req[_pos] << "|" << ENDL;
+	// COUT << "CHAR HERE IS |" << _req[_pos] << "|" << ENDL;
 	return (0);
 }
 

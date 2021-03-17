@@ -18,38 +18,23 @@ void	exitServerOnError(const char * main_err, const char * err, ServerBloc & ser
 	exit(EXIT_FAILURE);
 }
 
-ssize_t	readClient(int socket, char * buffer)
-{
-	ssize_t n = 0;
-
-	// COUT << "Waiting to receive message\n";
-	if ((n = recv(socket, buffer, (1024 - 1), 0)) < 0)
-	{
-		displayError("Error in recv()", strerror(errno));
-		n = 0;
-	}
-	buffer[n] = '\0';
-	return (n);
-}
-
 int	parseClientRequest(ServerBloc & server, int client_socket)
 {
-	/* Reading request from new client */
-	if (readClient(client_socket, server.serv_select.buf) == -1)
-	{
-		displayError("Error in readClient()", "disconnecting client");
-		return (-1);
-	}
 
 	/* Initialize the Request object of ServerBloc */
 	try
 	{
+		/* Read Client Request with recv */
+		server.readClient(client_socket);
+
+		if (server.serv_select.incomplete)
+			return (0);
+
 		/* Parse Client Request first */
-		server.parseRequest(server.serv_select.buf);
+		server.parseRequest();
 
 		/* Execute Client Request if at the end */
-		if (server.req.finished == 1)
-			server.executeRequest();
+		server.executeRequest();
 	}
 	catch(const std::exception& e)
 	{
@@ -82,8 +67,8 @@ int	parseServerResponse(ServerBloc & server, Socket & client)
 	client.fd = -1;
 	server.req.finished = 0;
 
-	/* Re-assgning max value for select */
-	server.serv_select.max = server.serv_port.fd > client.fd ? server.serv_port.fd : client.fd;
+	/* Re-assgning fd_max value for select */
+	server.serv_select.fd_max = server.serv_port.fd > client.fd ? server.serv_port.fd : client.fd;
 
 	return (0);
 }
@@ -104,7 +89,7 @@ int	launchServer(ServerBloc & server)
 		int recVal = 0;
 
 		// CME << "Listening to sockets" << EME;
-		recVal = select(server.serv_select.max + 1, &server.serv_select.readfds, &server.serv_select.writefds, NULL, &server.serv_select.timeout);
+		recVal = select(server.serv_select.fd_max + 1, &server.serv_select.readfds, &server.serv_select.writefds, NULL, &server.serv_select.timeout);
 		switch (recVal)
 		{
 			case 0:
@@ -193,8 +178,8 @@ int	launchServer(ServerBloc & server)
 					/* Adding the respective socket to the read playlist */
 					FD_SET(new_client.fd, &server.serv_select.readfds);
 
-					/* Re-assgning max value for select */
-					server.serv_select.max = server.serv_select.max > new_client.fd ? server.serv_select.max : new_client.fd;
+					/* Re-assgning fd_max value for select */
+					server.serv_select.fd_max = server.serv_select.fd_max > new_client.fd ? server.serv_select.fd_max : new_client.fd;
 
 					// COUT << "Finished creating new client\n";
 				}

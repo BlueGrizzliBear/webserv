@@ -61,17 +61,42 @@ void	ServerBloc::parseException(const char * code)
 	}
 }
 
-void	ServerBloc::parseRequest(const char * request)
+void	ServerBloc::readClient(int client_socket)
+{
+	if (serv_select.incomplete == 0)
+		req.ss.str("");
+	serv_select.n = 0;
+	if ((serv_select.n = recv(client_socket, serv_select.buf, (MAX_HEADER_SIZE - 1), 0)) < 0)
+	{
+		std::cerr << "Error in recv(): " << strerror(errno) << ENDL;
+		serv_select.n = 0;
+		return ;
+	}
+	serv_select.buf[serv_select.n] = '\0';
+	req.ss << serv_select.buf;
+
+	if (req.ss.str().find("\r\n\r\n") == std::string::npos)
+	{
+		serv_select.incomplete = 1;
+		// COUT << "Imcomplete request|" << req.ss.str() << "|" << ENDL;
+	}
+	else
+		/* Found ending sequence */
+		serv_select.incomplete = 0;
+	return ;
+}
+
+void	ServerBloc::parseRequest()
 {
 	/* Displaying Client request */
 	COUT << "Received Data from client\n";
-	std::cerr << "|" << GREEN << request << RESET << "|" << std::endl;
+	std::cerr << "|" << GREEN << req.ss.str() << RESET << "|" << std::endl;
 
 	/* Constructing request object from request char * */
 	try
 	{
-		Request new_req(request);
-		req = new_req;
+		Request new_req(req.ss);
+		req = new_req;	
 	}
 	catch(const std::exception& e)
 	{

@@ -16,7 +16,7 @@ class Request
 
 	/* Constructor */
 		/*	default		(1)	*/	Request(void);
-		/*	argument	(2)	*/	Request(const char * request);
+		/*	argument	(2)	*/	Request(std::stringstream & ss);
 		/*	copy		(3)	*/	Request(Request const & cpy);
 
 	/* Destructor */
@@ -66,14 +66,16 @@ class Request
 
 	/* Member Attributes */
 	public:
+		/* Parsing Attributes */
+		std::stringstream	ss;
+		bool				finished;
+
 		/* Request Attributes */
 		std::string		method;
 		std::string		uri;
 		std::string		protocol_v;
 		Headers			headers;
 		std::string		body;
-
-		bool			finished;
 
 	private:
 		ServerDictionary	_dic;

@@ -28,6 +28,7 @@
 /* Default Config */
 #define PORT 8080
 #define MAX_CLIENTS 1024
+#define MAX_HEADER_SIZE 8192
 
 /* Debug defines */
 #define COUT std::cout

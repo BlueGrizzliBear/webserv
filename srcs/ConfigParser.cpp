@@ -538,7 +538,7 @@ void	ConfigParser::_initSelect(ServerBloc & serv)
 	serv.serv_select.timeout.tv_usec = 0.0;
 
 	/* Setting max */
-	serv.serv_select.max = serv.serv_port.fd;
+	serv.serv_select.fd_max = serv.serv_port.fd;
 
 }
 
