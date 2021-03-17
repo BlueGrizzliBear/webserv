@@ -86,8 +86,9 @@ class ConfigParser
 
 	/* Member Functions */
 	public:
-		Servers &	getServers(void);
-		int &		getStatus(void);
+		Servers &			getServers(void);
+		ServerDictionary &	getDictionary(void);
+		int &				getStatus(void);
 
 	private:
 		bool	_is_in_dictionnary(Dic dic, std::string word);

@@ -29,3 +29,7 @@ Response &	Response::operator=(Response const & rhs)
 }
 
 /* Member Functions */
+// void	Response::setClientFd(int client_fd)
+// {
+// 	_client_fd = client_fd;
+// }

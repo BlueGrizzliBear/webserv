@@ -55,6 +55,8 @@ class ServerBloc
 		size_t &		getNo(void);
 		ConfigParser *	getParent(void);
 
+		void	parseException(const char * code);
+
 		void	parseRequest(const char * request);
 		void	executeRequest(void);
 		void	sendResponse(Socket & client);

@@ -1,6 +1,7 @@
 #ifndef WEBSERV_HPP
 #define WEBSERV_HPP
 
+/* C libraries */
 #include <stdio.h>
 #include <sys/socket.h>
 #include <unistd.h>
@@ -10,13 +11,16 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 
+/* C++ libraries */
 #include <limits>
 #include <iostream>
 #include <string>
 #include <fstream>
 #include <utility>
 #include <csignal>
+#include <sstream>
 
+/* STL libraries */
 #include <map>
 #include <vector>
 
@@ -24,19 +28,18 @@
 #define PORT 8080
 #define MAX_CLIENTS 1024
 
+/* Debug defines */
 #define COUT std::cout
 #define CIN std::cin
 #define CERR std::cerr
 #define ENDL std::endl
 
-#define SP ' '
-#define OWS ""
-
-/* Debug for me */
+/* For debug puroposes */
 #define CME std::cerr << CYAN
 // #define CMEG std::cerr << GREEN
 #define EME RESET << std::endl
 
+/* Terminal Colors */
 # define RESET		"\033[0m"
 # define RED		"\033[0;31m"
 # define GREEN		"\033[0;32m"

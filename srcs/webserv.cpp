@@ -44,35 +44,23 @@ int	parseClientRequest(ServerBloc & server, int client_socket)
 	/* Initialize the Request object of ServerBloc */
 	try
 	{
+		/* Parse Client Request first */
 		server.parseRequest(server.serv_select.buf);
+
+		/* Execute Client Request if at the end */
+		if (server.req.finished == 1)
+			server.executeRequest();
 	}
 	catch(const std::exception& e)
 	{
 		/* Catching exception from request parsing */
 		std::cerr << RED << e.what() << RESET << std::endl;
 	}
-
-	/* Check if last characters in request are the end of http request */
-	// if (!the_end)
-	// 	return (1);
-	server.serv_select.finished = 1;
-
 	return (0);
 }
 
 int	parseServerResponse(ServerBloc & server, Socket & client)
-{
-	/* Execute the Request object of ServerBloc */
-	try
-	{
-		server.executeRequest();
-	}
-	catch(const std::exception& e)
-	{
-		/* Catching exception from request execution */
-		std::cerr << RED << e.what() << RESET << std::endl;
-	}
-	
+{	
 	/* Send Response to Client */
 	try
 	{
@@ -90,7 +78,7 @@ int	parseServerResponse(ServerBloc & server, Socket & client)
 	/* Closing client socket, finished processing request */
 	close(client.fd);
 	client.fd = -1;
-	server.serv_select.finished = 1;
+	server.req.finished = 0;
 
 	/* Re-assgning max value for select */
 	server.serv_select.max = server.serv_port.fd > client.fd ? server.serv_port.fd : client.fd;
@@ -156,7 +144,7 @@ int	launchServer(ServerBloc & server)
 						exitServerOnError("Error in parseClientRequest()", "Unknown error occured", server, new_client.fd);
 
 					/* Removing client socket from read playlist if finished */
-					if (server.serv_select.finished)
+					if (server.req.finished)
 					{
 						/* Clearing read list from client socket */
 						FD_CLR(new_client.fd, &server.serv_select.readfds);
@@ -191,7 +179,11 @@ int	launchServer(ServerBloc & server)
 						displayError("Error in accept()", strerror(errno));
 						break ;
 					}
+					/* Set the socket to non blocking */
 					fcntl(new_client.fd, F_SETFL, O_NONBLOCK);
+
+					// /* Store the client_fd in response object */
+					// server.resp.setClientFd(new_client.fd);
 
 					/* removing server fd from reading list to process request first */
 					FD_CLR(server.serv_port.fd, &server.serv_select.readfds);

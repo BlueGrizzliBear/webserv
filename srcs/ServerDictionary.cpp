@@ -66,6 +66,12 @@ ServerDictionary::ServerDictionary()
 								"User-Agent",
 								"WWW-Authenticate"		};
 	_createDic(headerDic, headers, sizeof(headers));
+
+	/* Dictionary for error-codes */
+	std::pair<std::string, std::string>	error_codes[] = {	std::make_pair("400", "Bad Request"),
+															std::make_pair("501", "Not Implemented"),
+															std::make_pair("501", "Not Implemented")	};
+	_createDic(errorDic, error_codes, sizeof(error_codes));
 }
 
 /*	copy	(2)	*/
@@ -88,5 +94,12 @@ ServerDictionary &	ServerDictionary::operator=( ServerDictionary const & rhs )
 void	ServerDictionary::_createDic(Dic & dic, std::string const * tab, size_t size)
 {
 	for (size_t i = 0; i < (size / sizeof(*tab)); i++)
-		dic.insert(std::make_pair(*(tab + i), static_cast<int>(i)));
+		dic.insert(std::make_pair(*(tab + i), ""));
+}
+
+/* . . . overloaded function for error-codes */
+void	ServerDictionary::_createDic(Dic & dic, std::pair<std::string , std::string> const * tab, size_t size)
+{
+	for (size_t i = 0; i < (size / sizeof(*tab)); i++)
+		dic.insert(*(tab + i));
 }

@@ -7,7 +7,7 @@ class	ServerDictionary
 {
 	/* Member Types */
 	public:
-		typedef std::map<std::string, int>	Dic;
+		typedef std::map<std::string, std::string>	Dic;
 
 	/* Constructor */
 		/*	default	(1)	*/	ServerDictionary(void);
@@ -22,6 +22,7 @@ class	ServerDictionary
 	/* Member Functions */
 	private:
 		void	_createDic(Dic & dic, std::string const * tab, size_t size);
+		void	_createDic(Dic & dic, std::pair<std::string , std::string> const * tab, size_t size);
 
 	/* Member Attributes */
 	public:
@@ -30,6 +31,7 @@ class	ServerDictionary
 		Dic	serverDic;
 		Dic	methodDic;
 		Dic	headerDic;
+		Dic	errorDic;
 };
 
 #endif

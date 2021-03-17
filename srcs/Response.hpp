@@ -25,22 +25,23 @@ class Response
 
 	/* Member Functions */
 	public:
+		// void	setClientFd(int client_fd);
 
 	/* Member Attributes */
 	public:
 		/* Header */
 		std::string		version;
-		unsigned short	status;
+		std::string		status;
 		std::string		status_msg;
 		std::string		date;
 		std::string		server;
 		std::string		content_type;
-		int				content_length;
+		std::string		content_length;
 		/* Body */
 		std::string		body;
 
-	private:
-
+	// private:
+	// 	int		_client_fd;
 };
 
 #endif

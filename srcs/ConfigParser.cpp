@@ -48,6 +48,11 @@ int &	ConfigParser::getStatus(void)
 	return (_status);
 }
 
+ServerDictionary &	ConfigParser::getDictionary(void)
+{
+	return (_dic);
+}
+
 void	ConfigParser::_display_string(std::string const & str)
 {
 	COUT << str << " ";
