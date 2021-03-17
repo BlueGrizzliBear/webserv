@@ -60,9 +60,9 @@ class Request
 		std::string	_getWord(char const * delimiter_dic);
 		std::string	_getWord(int func(int));
 
-		int		_parseRequestLine(void) throw(NotImplemented);
+		int		_parseRequestLine(void) throw(NotImplemented, BadRequest);
 		int		_parseHeaders(void);
-		int		_parseBody(void);
+		int		_parseBody(void) throw(BadRequest);
 
 	/* Member Attributes */
 	public:
@@ -71,6 +71,8 @@ class Request
 		std::string		uri;
 		std::string		protocol_v;
 		Headers			headers;
+		std::string		body;
+
 		bool			finished;
 
 	private:

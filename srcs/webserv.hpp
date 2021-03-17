@@ -12,6 +12,7 @@
 #include <fcntl.h>
 
 /* C++ libraries */
+#include <cstdlib>
 #include <limits>
 #include <iostream>
 #include <string>

@@ -9,14 +9,18 @@ Request::Request(void) {}
 Request::Request(const char * request) : _req(request), _pos(0)
 {
 	_parseRequestLine();
-	CME << "HEADER OK" << EME;
+	CME << "REQUEST LINE OK" << EME;
 	_parseHeaders();
-	// _parseBody();
+	CME << "HEADERS OK" << EME;
+	_parseBody();
+	CME << "BODY OK" << EME;
 
 	/* Check if cariage return */
-	if (_passStrictOneChar("\r"))
+	if (_passStrictOneChar("\0"))
+	{
+		COUT << "Found End of Request" << ENDL;
 		finished = true;
-
+	}
 }
 
 /*	copy		(3)	*/
@@ -35,9 +39,13 @@ Request &	Request::operator=(Request const & rhs)
 	uri = rhs.uri;
 	protocol_v = rhs.protocol_v;
 	headers = rhs.headers;
+	body = rhs.body;
+	
+	finished = rhs.finished;
+
 	_req = rhs._req;
 	_pos = rhs._pos;
-	// _parent = rhs._parent;
+	
 	return (*this);
 }
 
@@ -49,7 +57,7 @@ bool	Request::_isinDic(char needle, char const * dic)
 	
 	while (dic[i] && dic[i] != needle)
 		i++;
-	if (dic[i] == '\0')
+	if (dic[i] == '\0' && needle != '\0')
 		return (false);
 	return (true);
 }
@@ -148,7 +156,7 @@ bool	Request::_isLegitPath(std::string const & path)
 	return (true);
 }
 
-int	Request::_parseRequestLine(void) throw(NotImplemented)
+int	Request::_parseRequestLine(void) throw(NotImplemented, BadRequest)
 {
 	/* Request-Line = Method SP Request-URI SP HTTP-Version CRLF */
 
@@ -191,17 +199,24 @@ int	Request::_parseHeaders(void)
 {
 	/* Request Header Fields */
 
-	while (_req[_pos] && _req[_pos] != '\n')
+	while (_req[_pos] && _req[_pos] != '\r')
 	{
 		/* Check Header Key */
 		std::string header_key = _getWord("(),/:;<=>?@[\\]{}\" \t\r\f\n\v");
-		if (!(_dic.headerDic.find(header_key) == _dic.headerDic.end()))
+		if (header_key == "")
+			break ;
+		else if (_dic.headerDic.find(header_key) == _dic.headerDic.end())
 		{
-			COUT << "Header key not implemented |" << header_key << "|" << ENDL;
-			_passUntilChar("\r");
+			/* Header is not implemented: pass until the end of line */
+			_passUntilChar('\r');
+			_passUntilChar('\n');
+			_pos++;
 		}
 		else
 		{
+			/* Header is implemented: get values and insert into Headers */
+			// COUT << "Header IS implemented |" << header_key << "|" << ENDL;
+
 			/* Check is ':' is present */
 			_passStrictOneChar(":");
 
@@ -210,30 +225,43 @@ int	Request::_parseHeaders(void)
 
 			/* Gather Header Values */
 			std::string header_val = _getWord("\r");
-			CME << "word|" << header_val << "|" << EME;
-			if (header_val == "")
-			{
-				COUT << "ERROR: values needs to be one character long at least\n";
-				_pos++;
-			}
-			else
-			{
-				headers.insert(std::make_pair(header_key, header_val));
-				_pos++;
-			}
+			// CME << "Values|" << header_val << "|" << EME;
+			headers.insert(std::make_pair(header_key, header_val));
+
+			/* Pass the end of line */
+			_passUntilChar('\n');
+			_pos++;
 		}
 	}
-
 	return (0);
 }
 
-int	Request::_parseBody(void)
+int	Request::_parseBody(void) throw(BadRequest)
 {
-	while (_req[_pos] && _req[_pos] != '\n')
-	{
-		COUT << "_req[_pos]|" << _req[_pos] << "|\n";
-		_pos++;
-	}
+	/* Check if new line */
+	if (!(_passStrictOneChar("\r") && _passStrictOneChar("\n")))
+		/* in the mean time */
+		throw BadRequest();
 
+	/* Parse Body */
+	if (headers.find("Transfer-Encoding") != headers.end())
+	{
+		while (_req[_pos])
+		{
+			// COUT << "Passing body text\n";
+			_pos++;
+		}
+	}
+	else if (headers.find("Content-Length") != headers.end())
+	{
+		int size = std::atoi(headers.find("Content-Length")->second.c_str());
+		while (_req[_pos] && size--)
+		{
+			// COUT << "Passing body text\n";
+			_pos++;
+		}
+	}
+	// else
+		/* No body */
 	return (0);
 }
