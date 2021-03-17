@@ -9,7 +9,7 @@ class Response
 {
 	public:
 	/* Member Types */
-		typedef std::map<std::string, std::vector<std::string> > Headers;
+		typedef std::map<std::string, std::string > Headers;
 
 	/* Constructor */
 		/*	default		(1)	*/	Response(void);
@@ -25,23 +25,16 @@ class Response
 
 	/* Member Functions */
 	public:
-		// void	setClientFd(int client_fd);
 
 	/* Member Attributes */
 	public:
-		/* Header */
-		std::string		version;
-		std::string		status;
-		std::string		status_msg;
-		std::string		date;
-		std::string		server;
-		std::string		content_type;
-		std::string		content_length;
-		/* Body */
-		std::string		body;
+		/* Status Line */
+		std::string			status_code;	/* Status Line */
+		std::string			reason_phrase;	/* Status Line */
 
-	// private:
-	// 	int		_client_fd;
+		Headers			header_fields;	/* Header Fields */
+
+		std::string		body;			/* Body */
 };
 
 #endif

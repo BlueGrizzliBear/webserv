@@ -53,8 +53,10 @@ int	parseClientRequest(ServerBloc & server, int client_socket)
 	}
 	catch(const std::exception& e)
 	{
-		/* Catching exception from request parsing */
+		/* Catching exception from parsing request or execute request */
 		std::cerr << RED << e.what() << RESET << std::endl;
+		/* The request is done for */
+		server.req.finished = 1;
 	}
 	return (0);
 }

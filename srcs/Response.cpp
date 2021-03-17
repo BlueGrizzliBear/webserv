@@ -16,20 +16,18 @@ Response::~Response() {}
 
 /* Operators */
 Response &	Response::operator=(Response const & rhs)
-{
-	version = rhs.version;
-	status = rhs.status;
-	status_msg = rhs.status_msg;
-	date = rhs.date;
-	server = rhs.server;
-	content_type = rhs.content_type;
-	content_length = rhs.content_length;
+{	
+	/* Status Line */
+	status_code = rhs.status_code;
+	reason_phrase = rhs.reason_phrase;
+	
+	/* Header Fields */
+	header_fields = rhs.header_fields;
+
+	/* Body */
 	body = rhs.body;
+	
 	return (*this);
 }
 
 /* Member Functions */
-// void	Response::setClientFd(int client_fd)
-// {
-// 	_client_fd = client_fd;
-// }

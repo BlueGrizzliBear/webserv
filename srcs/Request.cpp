@@ -178,9 +178,6 @@ int	Request::_parseRequestLine(void) throw(NotImplemented, BadRequest)
 	if (!_passStrictOneChar(" "))
 		throw BadRequest();
 
-// 400 (Bad Request) error or a 301 (Moved Permanently) redirect with
-//    the request-target properly encoded. 
-
 	/* Check HTTP-Version */
 	protocol_v = _getWord(&isspace);
 	if (protocol_v != "HTTP/1.1")

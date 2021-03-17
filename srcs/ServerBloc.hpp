@@ -61,6 +61,10 @@ class ServerBloc
 		void	executeRequest(void);
 		void	sendResponse(Socket & client);
 
+	private:
+		std::string	_getSizeOfBody(void);
+		std::string	_concatenateResponse(void);
+
 	/* Member Attributes */
 	public:
 		/* Attributes from parsing */

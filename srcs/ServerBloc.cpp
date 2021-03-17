@@ -48,10 +48,16 @@ void	ServerBloc::parseException(const char * code)
 
 	if (it != _parent->getDictionary().errorDic.end())
 	{
-		resp.status = it->first;
+		/* Fill Status Line */
+		resp.status_code = it->first;
+		resp.reason_phrase = "OK";
+	
+		/* Fill Body */
 		resp.body = it->second;
-		resp.status_msg = "OK";
-		resp.content_type = "text/plain";
+
+		/* Fill Header Fields */
+		resp.header_fields.insert(std::make_pair("Content-Type", "text/plain"));
+		resp.header_fields.insert(std::make_pair("Content-Length", _getSizeOfBody()));
 	}
 }
 
@@ -71,6 +77,7 @@ void	ServerBloc::parseRequest(const char * request)
 	{
 		std::cerr << "Exception caught|" << e.what() << "|" << ENDL;
 		parseException(e.what());
+		throw(e);
 	}
 }
 
@@ -80,38 +87,67 @@ void	ServerBloc::executeRequest(void)
 
 	COUT << "Executing Request here" << ENDL;
 
-	/* En attendant */
-	resp.status = "200";
-	resp.status_msg = "OK";
-	resp.content_type = "text/plain";
-	resp.body = "WebServ says \"Hi\" !";
+	/* Depending on Execution */
+	/* Fill Status Line */
+	resp.status_code = "200";
+	resp.reason_phrase = "OK";
+
+	/* Fill Body */
+	resp.body = "WebServ says < Hi > !";	
+
+	/* Fill Header Fields */
+	resp.header_fields.insert(std::make_pair("Content-Type", "text/plain"));
+	resp.header_fields.insert(std::make_pair("Content-Length", _getSizeOfBody()));
 }
 
 void	ServerBloc::sendResponse(Socket & client)
 {
-	/* Finish initializing responsonse */
-	resp.version = "HTTP/1.1";
-	resp.date = "date";
-	resp.server = dir.find("server_name")->second[0];
-	resp.content_length = sizeof(resp.body);
+	/* Create corresponding header fields */
+	resp.header_fields.insert(std::make_pair("Date", "date"));
+	resp.header_fields.insert(std::make_pair("Server", dir.find("server_name")->second[0]));
 
 	/* Fill response msg */
-	std::string msg;
-	msg = resp.version + resp.status + resp.status_msg
-		+ resp.date
-		+ resp.server
-		+ resp.content_type
-		+ resp.content_length
-		+ "\n"
-		+ resp.body;
+	std::string msg = _concatenateResponse();
+	/* Clear Map */
+	resp.header_fields.clear();
 
-	/* Answering to the Client tmp */
-	// char hello[3000] = "HTTP/1.1 200 OK\nContent-Type: text/plain\nContent-Length: 12\n\nHello world!";
+	CME << "|" << msg << "|" << EME;
 
 	/* Send message to client */
-	// write(client.fd, hello, strlen(hello));
 	write(client.fd, msg.c_str(), msg.length());
 	COUT << "------------------Hello message sent-------------------" << ENDL;
 
 	COUT << "Sending Response to Client" << ENDL;
+}
+
+std::string	ServerBloc::_getSizeOfBody(void)
+{
+	std::stringstream size;
+	size << resp.body.length();
+	return (size.str());
+}
+
+std::string	ServerBloc::_concatenateResponse(void)
+{
+	std::string msg;
+
+	/* Status Line */
+	msg = "HTTP/1.1 " + resp.status_code + " " + resp.reason_phrase + "\n";
+
+	/* Header Fields */
+	std::map<std::string, std::string>::iterator begin = resp.header_fields.begin();
+	while (begin != resp.header_fields.end())
+	{
+		msg += begin->first + ": " + begin->second + "\n";
+		begin++;
+	}
+
+	/* New line */
+	msg += "\n";
+
+	/* Body */
+	if (resp.body.size())
+		msg += resp.body;
+
+	return (msg);
 }
