@@ -96,7 +96,7 @@ void	ServerBloc::parseRequest()
 	try
 	{
 		Request new_req(req.ss);
-		req = new_req;	
+		req = new_req;
 	}
 	catch(const std::exception& e)
 	{
@@ -111,7 +111,20 @@ void	ServerBloc::executeRequest(void)
 	// Pour Oliv
 
 	COUT << "Executing Request here" << ENDL;
+	if (req.method == "GET")
+	{
+		std::map<std::vector<std::string>, LocationBloc>::iterator it = loc.begin();
 
+		while (it != loc.end())
+		{
+			if (it->first[0] == req.uri)
+				// concatener le uri avec le root et verifier si fichier existe
+				COUT << "found it" << ENDL;
+			it++;
+		}
+		// si req.uri pas trouvé dans location, on prend le premier location avec first[1]=="{"
+			//et concatener le uri avec le root et verifier si fichier existe
+	}
 	/* Depending on Execution */
 	/* Fill Status Line */
 	resp.status_code = "200";
@@ -121,6 +134,7 @@ void	ServerBloc::executeRequest(void)
 	resp.body = "WebServ says < Hi > !";
 
 	/* Fill Header Fields */
+	resp.header_fields.insert(std::make_pair("Connection", "close"));
 	resp.header_fields.insert(std::make_pair("Content-Type", "text/plain"));
 	resp.header_fields.insert(std::make_pair("Content-Length", _getSizeOfBody()));
 }
@@ -130,6 +144,16 @@ void	ServerBloc::sendResponse(Socket & client)
 	/* Create corresponding header fields */
 	resp.header_fields.insert(std::make_pair("Date", _getDate()));
 	resp.header_fields.insert(std::make_pair("Server", dir.find("server_name")->second[0]));
+
+	/* specific case header fields */
+		// MAKE SPECIFIC FUNCTION
+	/* If status code 405 Method not allowed, repond with the server allowed method */
+	if (resp.status_code == "405")
+		resp.header_fields.insert(std::make_pair("Allow", "GET, HEAD, POST, PUT, DELETE, CONNECT, OPTIONS, TRACE, WHAT, PATCH"));
+	/* If status code 401 Unauthorized, respond with the WWW-authenticate to specify needed format */
+	if (resp.status_code == "401")
+		resp.header_fields.insert(std::make_pair("WWW-Authenticate", "Basic"));
+
 
 	/* Fill response msg */
 	std::string msg = _concatenateResponse();
