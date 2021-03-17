@@ -28,7 +28,7 @@ ssize_t	readClient(int socket, char * buffer)
 		displayError("Error in recv()", strerror(errno));
 		n = 0;
 	}
-	buffer[n] = 0;
+	buffer[n] = '\0';
 	return (n);
 }
 

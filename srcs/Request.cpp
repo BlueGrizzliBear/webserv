@@ -81,6 +81,8 @@ bool	Request::_passStrictOneChar(char const * dic)
 {
 	if (_isinDic(_req[_pos], dic))
 		_pos++;
+	else if (!_req[_pos])
+		return (true);
 	else
 		return (false);
 	return (true);
@@ -91,6 +93,8 @@ bool	Request::_passStrictOneChar(int func(int))
 {
 	if (_req[_pos] && func(_req[_pos]))
 		_pos++;
+	else if (!_req[_pos])
+		return (true);
 	else
 		return (false);
 	return (true);
@@ -192,7 +196,7 @@ int	Request::_parseRequestLine(void) throw(NotImplemented, BadRequest)
 	return (0);
 }
 
-int	Request::_parseHeaders(void)
+int	Request::_parseHeaders(void) throw(BadRequest)
 {
 	/* Request Header Fields */
 
@@ -206,8 +210,6 @@ int	Request::_parseHeaders(void)
 		{
 			/* Header is not implemented: pass until the end of line */
 			_passUntilChar('\r');
-			_passUntilChar('\n');
-			_pos++;
 		}
 		else
 		{
@@ -215,9 +217,9 @@ int	Request::_parseHeaders(void)
 			// COUT << "Header IS implemented |" << header_key << "|" << ENDL;
 
 			/* Check is ':' is present */
-			_passStrictOneChar(":");
+			if (!_passStrictOneChar(":"))
+				throw BadRequest();
 
-			/* Pass Optionnal White Spaces */
 			_passOptionalChars(&isspace);
 
 			/* Gather Header Values */
@@ -225,11 +227,11 @@ int	Request::_parseHeaders(void)
 			// CME << "Values|" << header_val << "|" << EME;
 			headers.insert(std::make_pair(header_key, header_val));
 
-			/* Pass the end of line */
-			_passUntilChar('\n');
-			_pos++;
 		}
+		_passOneChar("\r");
+		_passOneChar("\n");
 	}
+	COUT << "CHAR HERE IS |" << _req[_pos] << "|" << ENDL;
 	return (0);
 }
 

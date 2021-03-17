@@ -127,6 +127,19 @@ std::string	ServerBloc::_getSizeOfBody(void)
 	return (size.str());
 }
 
+std::string	ServerBloc::_getDate(void)
+{
+	struct timeval	time_val;
+	struct tm		*time;
+	char			buffer[30];
+
+	gettimeofday(&time_val, nullptr);
+	time = gmtime(&time_val.tv_sec);
+	strftime(buffer, 30, "%a, %d %b %Y %H:%M:%S GMT", time);
+	std::string	str(buffer);
+	return (str);
+}
+
 std::string	ServerBloc::_concatenateResponse(void)
 {
 	std::string msg;
@@ -150,18 +163,4 @@ std::string	ServerBloc::_concatenateResponse(void)
 		msg += resp.body;
 
 	return (msg);
-}
-
-std::string	ServerBloc::_getDate(void)
-{
-	struct timeval	time_val;
-	struct tm		*time;
-	char			buffer[30];
-
-	gettimeofday(&time_val, nullptr);
-	time = gmtime(&time_val.tv_sec);
-	strftime(buffer, 30, "%a, %d %b %Y %H:%M:%S GMT", time);
-	std::string	str(buffer);
-	COUT << str << ENDL;
-	return (str);
 }

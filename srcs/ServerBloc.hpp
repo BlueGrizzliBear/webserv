@@ -64,8 +64,8 @@ class ServerBloc
 
 	private:
 		std::string	_getSizeOfBody(void);
-		std::string	_concatenateResponse(void);
 		std::string	_getDate(void);
+		std::string	_concatenateResponse(void);
 
 	/* Member Attributes */
 	public:

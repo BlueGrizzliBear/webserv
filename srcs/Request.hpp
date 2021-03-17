@@ -61,7 +61,7 @@ class Request
 		std::string	_getWord(int func(int));
 
 		int		_parseRequestLine(void) throw(NotImplemented, BadRequest);
-		int		_parseHeaders(void);
+		int		_parseHeaders(void) throw(BadRequest);
 		int		_parseBody(void) throw(BadRequest);
 
 	/* Member Attributes */
