@@ -51,7 +51,7 @@ void	ServerBloc::parseException(const char * code)
 		/* Fill Status Line */
 		resp.status_code = it->first;
 		resp.reason_phrase = "OK";
-	
+
 		/* Fill Body */
 		resp.body = it->second;
 
@@ -93,7 +93,7 @@ void	ServerBloc::executeRequest(void)
 	resp.reason_phrase = "OK";
 
 	/* Fill Body */
-	resp.body = "WebServ says < Hi > !";	
+	resp.body = "WebServ says < Hi > !";
 
 	/* Fill Header Fields */
 	resp.header_fields.insert(std::make_pair("Content-Type", "text/plain"));
@@ -103,7 +103,7 @@ void	ServerBloc::executeRequest(void)
 void	ServerBloc::sendResponse(Socket & client)
 {
 	/* Create corresponding header fields */
-	resp.header_fields.insert(std::make_pair("Date", "date"));
+	resp.header_fields.insert(std::make_pair("Date", _getDate()));
 	resp.header_fields.insert(std::make_pair("Server", dir.find("server_name")->second[0]));
 
 	/* Fill response msg */
@@ -150,4 +150,18 @@ std::string	ServerBloc::_concatenateResponse(void)
 		msg += resp.body;
 
 	return (msg);
+}
+
+std::string	ServerBloc::_getDate(void)
+{
+	struct timeval	time_val;
+	struct tm		*time;
+	char			buffer[30];
+
+	gettimeofday(&time_val, nullptr);
+	time = gmtime(&time_val.tv_sec);
+	strftime(buffer, 30, "%a, %d %b %Y %H:%M:%S GMT", time);
+	std::string	str(buffer);
+	COUT << str << ENDL;
+	return (str);
 }

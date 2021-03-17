@@ -1,11 +1,12 @@
 #ifndef SERVERBLOC_HPP
-#define SERVERBLOC_HPP
+# define SERVERBLOC_HPP
 
-#include "./webserv.hpp"
-#include "./LocationBloc.hpp"
-#include "./ConfigParser.hpp"
-#include "./Request.hpp"
-#include "./Response.hpp"
+# include <sys/time.h>
+# include "./webserv.hpp"
+# include "./LocationBloc.hpp"
+# include "./ConfigParser.hpp"
+# include "./Request.hpp"
+# include "./Response.hpp"
 
 class ConfigParser;
 // class Request;
@@ -49,7 +50,7 @@ class ServerBloc
 
 	/* Operators */
 		ServerBloc &	operator=(ServerBloc const & rhs);
-	
+
 	/* Member Functions */
 	public:
 		size_t &		getNo(void);
@@ -64,6 +65,7 @@ class ServerBloc
 	private:
 		std::string	_getSizeOfBody(void);
 		std::string	_concatenateResponse(void);
+		std::string	_getDate(void);
 
 	/* Member Attributes */
 	public:
