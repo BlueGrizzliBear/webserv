@@ -236,8 +236,8 @@ int	Request::_parseChunkedBody(ssize_t & size) throw(BadRequest)
 		tmp += _req[_pos];
 		body += _req[_pos++];
 	}
-	if (!(_req[_pos] && _passStrictOneChar("\r") && _req[_pos] && _passStrictOneChar("\n")))
-		throw BadRequest();
+	_passStrictOneChar("\r");
+	_passStrictOneChar("\n");
 	size = std::atoi(tmp.c_str());
 	while (_req[_pos] && size-- > 0)
 		body += _req[_pos++];
