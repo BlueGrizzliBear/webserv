@@ -93,9 +93,16 @@ int	launchServer(ServerBloc & server)
 			{
 				// displayError("Error in Select()", "select timed out");
 				if (new_client.fd == -1)
+				{
+					// COUT << "reseting server\n";
 					server.getParent()->_initSelect(server);
+				}
 				else
+				{
+					// COUT << "reseting read fds\n";
+					FD_ZERO(&server.serv_select.readfds);
 					FD_SET(new_client.fd, &server.serv_select.readfds);
+				}
 				break ;
 			}
 			case -1:
@@ -154,6 +161,7 @@ int	launchServer(ServerBloc & server)
 
 					/* Opening socket for new client */
 					new_client.fd = accept(server.serv_port.fd, reinterpret_cast<struct sockaddr *>(&new_client.address), reinterpret_cast<socklen_t *>(&new_client.addrlen));
+
 					/* EAGAIN = no connections */
 					if (new_client.fd == -1)
 					{
@@ -162,9 +170,6 @@ int	launchServer(ServerBloc & server)
 					}
 					/* Set the socket to non blocking */
 					fcntl(new_client.fd, F_SETFL, O_NONBLOCK);
-
-					// /* Store the client_fd in response object */
-					// server.resp.setClientFd(new_client.fd);
 
 					/* removing server fd from reading list to process request first */
 					FD_CLR(server.serv_port.fd, &server.serv_select.readfds);

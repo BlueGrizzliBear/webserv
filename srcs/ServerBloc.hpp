@@ -85,6 +85,7 @@ class ServerBloc
 		void		_applyGet(void);
 		void		_applyHead(void);
 		void		_findLocation(void) throw (NotFound);
+		std::string	_mimeType(std::string const &path);
 		void		_fillBody(std::string const &path);
 		bool		_fileExist(std::string const &path);
 		std::string	_findIndex(const std::string& path);

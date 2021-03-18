@@ -125,11 +125,11 @@ void	ServerBloc::processRequest(void)
 	resp.reason_phrase = "OK";
 
 	/* Fill Body */
-	resp.body = "WebServ says < Hi > !";
+	// resp.body = "WebServ says < Hi > !";
 
 	/* Fill Header Fields */
-	resp.header_fields.insert(std::make_pair("Connection", "close"));
-	resp.header_fields.insert(std::make_pair("Content-Type", "text/plain"));
+	resp.header_fields.insert(std::make_pair("Connection", "keep-alive"));
+	// resp.header_fields.insert(std::make_pair("Content-Type", "text/plain"));
 	resp.header_fields.insert(std::make_pair("Content-Length", _getSizeOfBody()));
 }
 
@@ -137,11 +137,9 @@ void	ServerBloc::executeRequest(void)
 {
 	COUT << "Executing Request here" << ENDL;
 	if (req.method == "GET")
-		{}
-		// _applyGet();
+		_applyGet();
 	else if (req.method == "HEAD")
-		{}
-		// _applyHead();
+		_applyHead();
 	else if (req.method == "POST")
 	{
 		// throw Unauthorized();
