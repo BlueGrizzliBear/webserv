@@ -184,7 +184,6 @@ void	ConfigParser::_parse_main_context(std::fstream & file, Dic dic, Directives 
 			return ;
 		if (_bracket != 0 && *it == '}')
 		{
-			COUT << _bracket << ENDL;
 			--_bracket;
 			return ;
 		}
@@ -258,7 +257,6 @@ void	ConfigParser::_parse_server(std::string & key, std::fstream & file, Servers
 	{
 		ServerBloc tmp(this);
 		size_t old = _bracket;
-		CME << "old here|" << old << "|" << EME;
 
 		++_bracket;
 		tmp.getNo() = serv.size() + 1;
@@ -347,6 +345,7 @@ void	ConfigParser::_parse_directive(std::string & key, Directives & dir)
 		++_count;
 		++it;
 	}
+	COUT << "Begin _count|" << _count << "|" << ENDL;
 	while (*it)
 	{
 		if (*it == '#' || *it == ';')
@@ -363,7 +362,15 @@ void	ConfigParser::_parse_directive(std::string & key, Directives & dir)
 			{
 				std::string word(_line.substr(_count, len - _count));
 				values.push_back(word);
-				_count += len - _count;
+				_count += (len - _count);
+				it += static_cast<long>(word.length());
+			}
+			else if (_count != _line.size())
+			{
+				len = _line.size() - _count;
+				std::string word(_line.substr(_count, len - _count));
+				values.push_back(word);
+				_count += len;
 				it += static_cast<long>(word.length());
 			}
 			else
@@ -373,6 +380,11 @@ void	ConfigParser::_parse_directive(std::string & key, Directives & dir)
 	if (_check_directive(key, values))
 	{
 		_display_parsing_error(_count - 1);
+		throw UnexpectedToken();
+	}
+	if (*it != ';')
+	{
+		_display_parsing_error(_count);
 		throw UnexpectedToken();
 	}
 	if (!dir.insert(std::make_pair(key, values)).second)

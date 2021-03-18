@@ -33,6 +33,9 @@ int	parseClientRequest(ServerBloc & server, int client_socket)
 		/* Parse Client Request first */
 		server.parseRequest();
 
+		if (!server.req.finished)
+			return (0);
+
 		/* Execute Client Request if at the end */
 		server.executeRequest();
 	}

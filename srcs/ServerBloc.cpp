@@ -102,6 +102,8 @@ void	ServerBloc::parseRequest(void)
 	{
 		Request new_req(req.ss);
 		req = new_req;
+		// if (!req.finished)
+		// 	serv_select.incomplete = 1;
 	}
 	catch(const std::exception& e)
 	{

@@ -20,6 +20,7 @@
 #include <utility>
 #include <csignal>
 #include <sstream>
+#include <cctype>
 
 /* STL libraries */
 #include <map>

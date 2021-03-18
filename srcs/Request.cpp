@@ -13,13 +13,14 @@ Request::Request(std::stringstream & ss) : _req(ss.str()), _pos(0)
 	_parseHeaders();
 	CME << "HEADERS OK" << EME;
 	_parseBody();
-	CME << "BODY OK" << EME;
+	CME << "BODY DONE" << EME;
 
 	/* Check if cariage return */
-	if (_passStrictOneChar("\0"))
+	// if (_passStrictOneChar("\0"))
+	if (finished == true)
 	{
 		COUT << "Found End of Request" << ENDL;
-		finished = true;
+		// finished = true;
 	}
 }
 
@@ -235,23 +236,53 @@ int	Request::_parseHeaders(void) throw(BadRequest)
 	return (0);
 }
 
+int	Request::_parseChunkedBody(ssize_t & size)
+{
+	std::string tmp;
+
+	while (_req[_pos] && std::isxdigit(_req[_pos]))
+	{
+		tmp += _req[_pos];
+		body += _req[_pos++];
+	}
+	if (_passStrictOneChar("\r") && _req[_pos] && _passStrictOneChar("\n") && _req[_pos])
+		COUT << "ok" << ENDL;
+	size = std::atoi(tmp.c_str());
+	while (_req[_pos] && size-- > 0)
+		body += _req[_pos++];
+	return (0);
+}
+
+bool	Request::_checkEndOfChunkedEncoding(ssize_t & size)
+{
+	if (_req[_pos] && _req[_pos] == '0'
+	&& _req[_pos + 1] && _req[_pos + 1] == '\r'
+	&& _req[_pos + 2] && _req[_pos + 2] == '\n'
+	&& _req[_pos + 3] && _req[_pos + 3] == '\r'
+	&& _req[_pos + 4] && _req[_pos + 4] == '\n')
+	{
+		if (size == 0)
+		{
+			body += _req[_pos] + _req[_pos + 1] + _req[_pos + 2] + _req[_pos + 3];
+			COUT << "Ended chunk" << ENDL;
+			return (true);
+		}
+	}
+	return (false);
+}
+
 int	Request::_parseBody(void) throw(BadRequest)
 {
 	/* Check if new line */
 	if (!(_passStrictOneChar("\r") && _passStrictOneChar("\n")))
+	{
 		/* in the mean time */
+		COUT << "ici\n";
 		throw BadRequest();
+	}
 
 	/* Parse Body */
-	if (headers.find("Transfer-Encoding") != headers.end())
-	{
-		while (_req[_pos])
-		{
-			// COUT << "Passing body text\n";
-			_pos++;
-		}
-	}
-	else if (headers.find("Content-Length") != headers.end())
+	if (headers.find("Content-Length") != headers.end())
 	{
 		int size = std::atoi(headers.find("Content-Length")->second.c_str());
 		while (_req[_pos] && size--)
@@ -259,8 +290,36 @@ int	Request::_parseBody(void) throw(BadRequest)
 			// COUT << "Passing body text\n";
 			_pos++;
 		}
+		finished = true;
+		CME << "Content-Length: BODY IS COMPLETE" << EME;
 	}
-	// else
+	/* Can only be "Transfert-Encoding: chunked" */
+	else if (headers.find("Transfer-Encoding") != headers.end())
+	{
+		static ssize_t size = 0;
+
+		while (_req[_pos])
+		{
+			if (_checkEndOfChunkedEncoding(size))
+			{
+				finished = true;
+				CME << "Transfert-Encoding: BODY IS COMPLETE" << EME;
+			}
+			else
+			{
+				_parseChunkedBody(size);
+				finished = false;
+				CME << "Transfert-Encoding: INCOMPLETE BODY" << EME;
+			}
+			// _pos++;
+		}
+		CME << "Transfert-Encoding: INCOMPLETE BODY" << EME;
+	}
+	else
+	{
 		/* No body */
+		finished = true;
+		CME << "NO BODY" << EME;
+	}
 	return (0);
 }
