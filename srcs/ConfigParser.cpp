@@ -345,7 +345,6 @@ void	ConfigParser::_parse_directive(std::string & key, Directives & dir)
 		++_count;
 		++it;
 	}
-	COUT << "Begin _count|" << _count << "|" << ENDL;
 	while (*it)
 	{
 		if (*it == '#' || *it == ';')

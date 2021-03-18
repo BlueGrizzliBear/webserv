@@ -68,7 +68,6 @@ int	parseServerResponse(ServerBloc & server, Socket & client)
 	/* Closing client socket, finished processing request */
 	close(client.fd);
 	client.fd = -1;
-	server.req.finished = 0;
 
 	/* Re-assgning fd_max value for select */
 	server.serv_select.fd_max = server.serv_port.fd > client.fd ? server.serv_port.fd : client.fd;
@@ -111,7 +110,6 @@ int	launchServer(ServerBloc & server)
 			}
 			default:
 			{
-				// COUT << "default, new_client.fd|" << new_client.fd << "\n";
 				/* Keyboard was pressed, exiting server properly */
 				if (FD_ISSET(STDIN_FILENO, &server.serv_select.readfds))
 				{
@@ -126,6 +124,8 @@ int	launchServer(ServerBloc & server)
 				/* Someone is talking through their respective socket */
 				else if ((new_client.fd != -1) && FD_ISSET(new_client.fd, &server.serv_select.readfds))
 				{
+					CMEY << "Respective socket is ready for reading request" << EME;
+
 					/* Parsing Client Request */
 					if (parseClientRequest(server, new_client.fd))
 						exitServerOnError("Error in parseClientRequest()", "Unknown error occured", server, new_client.fd);
@@ -142,7 +142,7 @@ int	launchServer(ServerBloc & server)
 				/* Respective socket is ready for writing request response */
 				else if ((new_client.fd != -1) && FD_ISSET(new_client.fd, &server.serv_select.writefds))
 				{
-					// COUT << "Respective socket is ready for writing request response" << ENDL;
+					CMEY << "Respective socket is ready for writing request response" << EME;
 
 					/* Parsing Server Response */
 					if (parseServerResponse(server, new_client))
@@ -155,7 +155,7 @@ int	launchServer(ServerBloc & server)
 				/* Someone is talking to the server socket */
 				else if ((new_client.fd == -1) && FD_ISSET(server.serv_port.fd, &server.serv_select.readfds))
 				{
-					// COUT << "Someone is talking to the server socket" << ENDL;
+					CMEY << "Someone is talking to the server socket" << EME;
 
 					/* Opening socket for new client */
 					new_client.fd = accept(server.serv_port.fd, reinterpret_cast<struct sockaddr *>(&new_client.address), reinterpret_cast<socklen_t *>(&new_client.addrlen));

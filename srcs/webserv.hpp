@@ -39,6 +39,7 @@
 
 /* For debug puroposes */
 #define CME std::cerr << CYAN
+#define CMEY std::cerr << YELLOW
 // #define CMEG std::cerr << GREEN
 #define EME RESET << std::endl
 

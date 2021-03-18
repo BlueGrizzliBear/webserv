@@ -64,7 +64,8 @@ class ServerBloc
 
 		void	readClient(int client_socket);
 		void	parseException(const char * code);
-		void	parseRequest();
+
+		void	processRequest(void);
 		void	executeRequest(void);
 		void	sendResponse(Socket & client);
 

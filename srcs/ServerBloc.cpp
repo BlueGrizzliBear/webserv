@@ -50,10 +50,10 @@ void	ServerBloc::parseException(const char * code)
 	{
 		/* Fill Status Line */
 		resp.status_code = it->first;
-		resp.reason_phrase = "OK";
+		resp.reason_phrase = it->second;
 
 		/* Fill Body */
-		resp.body = it->second;
+		// resp.body = 
 
 		/* Fill Header Fields */
 		resp.header_fields.insert(std::make_pair("Content-Type", "text/plain"));
@@ -63,8 +63,12 @@ void	ServerBloc::parseException(const char * code)
 
 void	ServerBloc::readClient(int client_socket)
 {
-	if (!serv_select.incomplete)
+	if (req.finished && !serv_select.incomplete)
+	{
 		req.ss.str("");
+		req.finished = 0;
+		serv_select.incomplete = 1;
+	}
 	serv_select.n = 0;
 	if ((serv_select.n = recv(client_socket, serv_select.buf, (MAX_HEADER_SIZE - 1), 0)) < 0)
 	{
@@ -91,19 +95,20 @@ void	ServerBloc::readClient(int client_socket)
 	return ;
 }
 
-void	ServerBloc::parseRequest(void)
+void	ServerBloc::processRequest(void)
 {
 	/* Displaying Client request */
 	COUT << "Received Data from client\n";
 	std::cerr << "|" << GREEN << req.ss.str() << RESET << "|" << std::endl;
 
-	/* Constructing request object from request char * */
 	try
 	{
+		/* Parse request */
 		Request new_req(req.ss);
 		req = new_req;
-		// if (!req.finished)
-		// 	serv_select.incomplete = 1;
+
+		/* Execute the parsed request */
+		executeRequest();
 	}
 	catch(const std::exception& e)
 	{
@@ -111,20 +116,6 @@ void	ServerBloc::parseRequest(void)
 		parseException(e.what());
 		throw(e);
 	}
-}
-
-void	ServerBloc::executeRequest(void)
-{
-	COUT << "Executing Request here" << ENDL;
-	if (req.method == "GET")
-		_applyGet();
-	// else if (req.method == "HEAD")
-	// {}
-	// else if (req.method == "POST")
-	// {}
-	// else
-	// {}
-
 	/* Depending on Execution */
 	/* Fill Status Line */
 	resp.status_code = "200";
@@ -136,7 +127,20 @@ void	ServerBloc::executeRequest(void)
 	/* Fill Header Fields */
 	resp.header_fields.insert(std::make_pair("Connection", "close"));
 	resp.header_fields.insert(std::make_pair("Content-Type", "text/plain"));
-	resp.header_fields.insert(std::make_pair("Content-Length", _getSizeOfBody()));
+	resp.header_fields.insert(std::make_pair("Content-Length", _getSizeOfBody()));		
+}
+
+void	ServerBloc::executeRequest(void)
+{
+	COUT << "Executing Request here" << ENDL;
+	if (req.method == "GET")
+		_applyGet();
+	else if (req.method == "HEAD")
+		_applyHead();
+	// else if (req.method == "POST")
+	// {}
+	// else
+	// {}
 }
 
 void	ServerBloc::sendResponse(Socket & client)
@@ -165,8 +169,6 @@ void	ServerBloc::sendResponse(Socket & client)
 	/* Send message to client */
 	write(client.fd, msg.c_str(), msg.length());
 	COUT << "------------------Hello message sent-------------------" << ENDL;
-
-	COUT << "Sending Response to Client" << ENDL;
 }
 
 std::string	ServerBloc::_getSizeOfBody(void)

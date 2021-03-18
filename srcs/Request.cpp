@@ -14,14 +14,6 @@ Request::Request(std::stringstream & ss) : _req(ss.str()), _pos(0)
 	CME << "HEADERS OK" << EME;
 	_parseBody();
 	CME << "BODY DONE" << EME;
-
-	/* Check if cariage return */
-	// if (_passStrictOneChar("\0"))
-	if (finished == true)
-	{
-		COUT << "Found End of Request" << ENDL;
-		// finished = true;
-	}
 }
 
 /*	copy		(3)	*/
@@ -232,11 +224,10 @@ int	Request::_parseHeaders(void) throw(BadRequest)
 		_passOneChar("\r");
 		_passOneChar("\n");
 	}
-	// COUT << "CHAR HERE IS |" << _req[_pos] << "|" << ENDL;
 	return (0);
 }
 
-int	Request::_parseChunkedBody(ssize_t & size)
+int	Request::_parseChunkedBody(ssize_t & size) throw(BadRequest)
 {
 	std::string tmp;
 
@@ -245,8 +236,8 @@ int	Request::_parseChunkedBody(ssize_t & size)
 		tmp += _req[_pos];
 		body += _req[_pos++];
 	}
-	if (_passStrictOneChar("\r") && _req[_pos] && _passStrictOneChar("\n") && _req[_pos])
-		COUT << "ok" << ENDL;
+	if (!(_req[_pos] && _passStrictOneChar("\r") && _req[_pos] && _passStrictOneChar("\n")))
+		throw BadRequest();
 	size = std::atoi(tmp.c_str());
 	while (_req[_pos] && size-- > 0)
 		body += _req[_pos++];
@@ -255,16 +246,12 @@ int	Request::_parseChunkedBody(ssize_t & size)
 
 bool	Request::_checkEndOfChunkedEncoding(ssize_t & size)
 {
-	if (_req[_pos] && _req[_pos] == '0'
-	&& _req[_pos + 1] && _req[_pos + 1] == '\r'
-	&& _req[_pos + 2] && _req[_pos + 2] == '\n'
-	&& _req[_pos + 3] && _req[_pos + 3] == '\r'
-	&& _req[_pos + 4] && _req[_pos + 4] == '\n')
+	if (_req[_pos] == '0' && _req[_pos + 1] == '\r' && _req[_pos + 2] == '\n' && _req[_pos + 3] == '\r' && _req[_pos + 4] == '\n')
 	{
 		if (size == 0)
 		{
-			body += _req[_pos] + _req[_pos + 1] + _req[_pos + 2] + _req[_pos + 3];
-			COUT << "Ended chunk" << ENDL;
+			body += _req[_pos] + _req[_pos + 1] + _req[_pos + 2] + _req[_pos + 3] + _req[_pos + 4];;
+			_pos += 5;
 			return (true);
 		}
 	}
@@ -277,7 +264,6 @@ int	Request::_parseBody(void) throw(BadRequest)
 	if (!(_passStrictOneChar("\r") && _passStrictOneChar("\n")))
 	{
 		/* in the mean time */
-		COUT << "ici\n";
 		throw BadRequest();
 	}
 
@@ -286,12 +272,9 @@ int	Request::_parseBody(void) throw(BadRequest)
 	{
 		int size = std::atoi(headers.find("Content-Length")->second.c_str());
 		while (_req[_pos] && size--)
-		{
-			// COUT << "Passing body text\n";
 			_pos++;
-		}
 		finished = true;
-		CME << "Content-Length: BODY IS COMPLETE" << EME;
+		COUT << "Content-Length: BODY IS COMPLETE" << ENDL;
 	}
 	/* Can only be "Transfert-Encoding: chunked" */
 	else if (headers.find("Transfer-Encoding") != headers.end())
@@ -300,26 +283,25 @@ int	Request::_parseBody(void) throw(BadRequest)
 
 		while (_req[_pos])
 		{
-			if (_checkEndOfChunkedEncoding(size))
+			if ((finished = _checkEndOfChunkedEncoding(size)))
 			{
-				finished = true;
-				CME << "Transfert-Encoding: BODY IS COMPLETE" << EME;
+				COUT << "Transfert-Encoding: complete" << ENDL;
+				return (0);
 			}
 			else
 			{
 				_parseChunkedBody(size);
-				finished = false;
-				CME << "Transfert-Encoding: INCOMPLETE BODY" << EME;
+				COUT << "Transfert-Encoding: INCOMPLETE BODY" << ENDL;
 			}
 			// _pos++;
 		}
-		CME << "Transfert-Encoding: INCOMPLETE BODY" << EME;
+		COUT << "Transfert-Encoding: INCOMPLETE BODY" << ENDL;
 	}
 	else
 	{
 		/* No body */
 		finished = true;
-		CME << "NO BODY" << EME;
+		COUT << "NO BODY" << ENDL;
 	}
 	return (0);
 }

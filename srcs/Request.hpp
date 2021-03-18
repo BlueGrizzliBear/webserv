@@ -64,7 +64,7 @@ class Request
 		int		_parseHeaders(void) throw(BadRequest);
 		int		_parseBody(void) throw(BadRequest);
 
-		int		_parseChunkedBody(ssize_t & size);
+		int		_parseChunkedBody(ssize_t & size) throw(BadRequest);
 		bool	_checkEndOfChunkedEncoding(ssize_t & size);
 
 	/* Member Attributes */
