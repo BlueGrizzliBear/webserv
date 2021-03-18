@@ -137,11 +137,15 @@ void	ServerBloc::executeRequest(void)
 {
 	COUT << "Executing Request here" << ENDL;
 	if (req.method == "GET")
-		_applyGet();
+		{}
+		// _applyGet();
 	else if (req.method == "HEAD")
-		_applyHead();
-	// else if (req.method == "POST")
-	// {}
+		{}
+		// _applyHead();
+	else if (req.method == "POST")
+	{
+		// throw Unauthorized();
+	}
 	// else
 	// {}
 }

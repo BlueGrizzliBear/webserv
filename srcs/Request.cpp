@@ -295,6 +295,7 @@ int	Request::_parseBody(void) throw(BadRequest)
 			}
 			// _pos++;
 		}
+		COUT << "Char|" << _req[_pos] << "|" << ENDL;
 		COUT << "Transfert-Encoding: INCOMPLETE BODY" << ENDL;
 	}
 	else

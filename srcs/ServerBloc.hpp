@@ -57,6 +57,11 @@ class ServerBloc
 		ServerBloc &	operator=(ServerBloc const & rhs);
 
 	/* Exceptions */
+		class Unauthorized : public std::exception {
+			public:
+				virtual const char *	what() const throw() { return ("401"); }
+		};
+
 		class NotFound : public std::exception {
 			public:
 				virtual const char *	what() const throw() { return ("404"); }
@@ -79,7 +84,7 @@ class ServerBloc
 		/* Method functions */
 		void		_applyGet(void);
 		void		_applyHead(void);
-		void		_findLocation(void);
+		void		_findLocation(void) throw (NotFound);
 		void		_fillBody(std::string const &path);
 		bool		_fileExist(std::string const &path);
 		std::string	_findIndex(const std::string& path);

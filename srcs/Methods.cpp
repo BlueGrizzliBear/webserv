@@ -15,7 +15,7 @@ void	ServerBloc::_applyHead()
 }
 
 
-void	ServerBloc::_findLocation()
+void	ServerBloc::_findLocation(void) throw (NotFound) 
 {
 	std::string					path;
 
