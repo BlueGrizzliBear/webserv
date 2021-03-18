@@ -184,6 +184,7 @@ void	ConfigParser::_parse_main_context(std::fstream & file, Dic dic, Directives 
 			return ;
 		if (_bracket != 0 && *it == '}')
 		{
+			COUT << _bracket << ENDL;
 			--_bracket;
 			return ;
 		}
@@ -257,6 +258,7 @@ void	ConfigParser::_parse_server(std::string & key, std::fstream & file, Servers
 	{
 		ServerBloc tmp(this);
 		size_t old = _bracket;
+		CME << "old here|" << old << "|" << EME;
 
 		++_bracket;
 		tmp.getNo() = serv.size() + 1;
@@ -318,7 +320,7 @@ void	ConfigParser::_parse_location(std::string & key, std::fstream & file, Serve
 		size_t old = _bracket;
 
 		++_bracket;
-		while (++_line_no && getline(file, _line) && old != _bracket)
+		while (old != _bracket && ++_line_no && getline(file, _line))
 			_parse_main_context(file, _dic.locationDic, tmp.loc_dir, serv, loc);
 		loc.insert(std::make_pair(values, tmp));
 	}
