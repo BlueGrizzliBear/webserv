@@ -24,15 +24,15 @@ struct Select
 {
 	int					fd_max;
 	char				buf[MAX_HEADER_SIZE];
-	
+
 	ssize_t			n;
 
 	fd_set			readfds;
 	fd_set			writefds;
 	fd_set			exceptfds;
-	
+
 	struct timeval	timeout;
-	
+
 	bool			incomplete;
 };
 
@@ -58,18 +58,21 @@ class ServerBloc
 
 	/* Member Functions */
 	public:
+		/* Gets and Sets */
 		size_t &		getNo(void);
 		ConfigParser *	getParent(void);
 
-		void	parseException(const char * code);
-
 		void	readClient(int client_socket);
-
+		void	parseException(const char * code);
 		void	parseRequest();
 		void	executeRequest(void);
 		void	sendResponse(Socket & client);
 
 	private:
+		/* Method functions */
+		void		_applyGet(void);
+
+		/* Response functions */
 		std::string	_getSizeOfBody(void);
 		std::string	_getDate(void);
 		std::string	_concatenateResponse(void);

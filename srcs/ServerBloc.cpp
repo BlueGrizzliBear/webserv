@@ -113,23 +113,16 @@ void	ServerBloc::parseRequest(void)
 
 void	ServerBloc::executeRequest(void)
 {
-	// Pour Oliv
-
 	COUT << "Executing Request here" << ENDL;
 	if (req.method == "GET")
-	{
-		std::map<std::vector<std::string>, LocationBloc>::iterator it = loc.begin();
+		_applyGet();
+	// else if (req.method == "HEAD")
+	// {}
+	// else if (req.method == "POST")
+	// {}
+	// else
+	// {}
 
-		while (it != loc.end())
-		{
-			if (it->first[0] == req.uri)
-				// concatener le uri avec le root et verifier si fichier existe
-				COUT << "found it" << ENDL;
-			it++;
-		}
-		// si req.uri pas trouvé dans location, on prend le premier location avec first[1]=="{"
-			//et concatener le uri avec le root et verifier si fichier existe
-	}
 	/* Depending on Execution */
 	/* Fill Status Line */
 	resp.status_code = "200";

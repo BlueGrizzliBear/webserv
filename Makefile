@@ -6,7 +6,8 @@ SRCS_NAME		=		webserv.cpp	\
 						LocationBloc.cpp \
 						Request.cpp \
 						Response.cpp \
-						ServerBloc.cpp
+						ServerBloc.cpp \
+						Methods.cpp
 
 OBJS			= 		${SRCS:.cpp=.o}
 
