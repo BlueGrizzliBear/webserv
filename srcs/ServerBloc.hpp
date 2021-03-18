@@ -82,6 +82,7 @@ class ServerBloc
 		void		_findLocation(void);
 		void		_fillBody(std::string const &path);
 		bool		_fileExist(std::string const &path);
+		std::string	_findIndex(const std::string& path);
 		std::string	_uriFirstPart();
 
 		/* Response functions */

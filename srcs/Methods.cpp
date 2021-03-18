@@ -17,23 +17,46 @@ void	ServerBloc::_applyHead()
 
 void	ServerBloc::_findLocation()
 {
-	std::string	path;
+	std::string					path;
 
 	if (dir.find("root") != dir.end())
 		path = dir.find("root")->second[0];
-	for (std::map<std::vector<std::string>, LocationBloc>::iterator loc_it = loc.begin(); loc_it != loc.end(); ++loc_it)
+	for (std::map<std::vector<std::string>, LocationBloc>::iterator it = loc.begin(); it != loc.end(); ++it)
 	{
-		if (loc_it->first[0] == _uriFirstPart())
+		if (it->first[0] == _uriFirstPart())
 		{
-			if (loc_it->second.loc_dir.find("root") != loc_it->second.loc_dir.end())
-				path = loc_it->second.loc_dir.find("root")->second[0];
+			if (it->second.loc_dir.find("root") != it->second.loc_dir.end())
+				path = it->second.loc_dir.find("root")->second[0];
 		}
 	}
 	path += req.uri;
-	COUT << "file path:" <<  path << ENDL;
+	COUT << "file path:" << path << ENDL;
+	path = _findIndex(path);
+	COUT << "file path:" << path << ENDL;
 	if (_fileExist(path) == false)
 		throw NotFound();
 	_fillBody(path);
+}
+
+std::string	ServerBloc::_findIndex(const std::string& path)
+{
+	std::vector<std::string>	index;
+
+
+	if (dir.find("index") != dir.end())
+	{
+		COUT << "index found" << ENDL;
+		index = dir.find("index")->second;
+		for (std::vector<std::string>::iterator it = index.begin(); it != index.end(); ++it)
+		{
+			if (_fileExist(path + *it) == true)
+			{
+				COUT << "file path:" << path << "+ it:" << *it << ENDL;
+				return (path + *it);
+			}
+		}
+	}
+	return path;
 }
 
 bool	ServerBloc::_fileExist(const std::string& name)

@@ -15,6 +15,7 @@ ServerDictionary::ServerDictionary()
 
 	/* Dictionary for keys in location blocs */
 	std::string locations[] = {	"root",
+								"index",
 								"autoindex",
 								"limit_except",
 								"upload_store",
@@ -29,6 +30,7 @@ ServerDictionary::ServerDictionary()
 								"error_page",
 								"location",
 								"root",
+								"index",
 								"autoindex"		};
 	_createDic(serverDic, servers, sizeof(servers));
 
