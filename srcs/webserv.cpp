@@ -123,10 +123,7 @@ int	launchServer(ServerBloc & server)
 				/* Someone is talking through their respective socket */
 				else if ((new_client.fd != -1) && FD_ISSET(new_client.fd, &server.serv_select.readfds))
 				{
-					// COUT << "Someone is talking through their respective socket" << ENDL;
-
 					/* Parsing Client Request */
-					// COUT << "Parsing Request . . ." << ENDL;
 					if (parseClientRequest(server, new_client.fd))
 						exitServerOnError("Error in parseClientRequest()", "Unknown error occured", server, new_client.fd);
 
@@ -138,7 +135,6 @@ int	launchServer(ServerBloc & server)
 						/* Adding the client socket to the write playlist */
 						FD_SET(new_client.fd, &server.serv_select.writefds);
 					}
-					// COUT << "Finished reading from client\n";
 				}
 				/* Respective socket is ready for writing request response */
 				else if ((new_client.fd != -1) && FD_ISSET(new_client.fd, &server.serv_select.writefds))

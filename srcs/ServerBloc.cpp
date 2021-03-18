@@ -63,7 +63,7 @@ void	ServerBloc::parseException(const char * code)
 
 void	ServerBloc::readClient(int client_socket)
 {
-	if (serv_select.incomplete == 0)
+	if (!serv_select.incomplete)
 		req.ss.str("");
 	serv_select.n = 0;
 	if ((serv_select.n = recv(client_socket, serv_select.buf, (MAX_HEADER_SIZE - 1), 0)) < 0)
@@ -77,16 +77,21 @@ void	ServerBloc::readClient(int client_socket)
 
 	if (req.ss.str().find("\r\n\r\n") == std::string::npos)
 	{
+		// COUT << "Incomplete request|" << req.ss.str() << "|" << ENDL;
 		serv_select.incomplete = 1;
-		// COUT << "Imcomplete request|" << req.ss.str() << "|" << ENDL;
 	}
 	else
 		/* Found ending sequence */
 		serv_select.incomplete = 0;
+
+	/* If client closed the connection or if we arrived at eof */
+	if (serv_select.n == 0)
+		serv_select.incomplete = 0;
+
 	return ;
 }
 
-void	ServerBloc::parseRequest()
+void	ServerBloc::parseRequest(void)
 {
 	/* Displaying Client request */
 	COUT << "Received Data from client\n";
