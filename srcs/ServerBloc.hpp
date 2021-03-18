@@ -56,6 +56,12 @@ class ServerBloc
 	/* Operators */
 		ServerBloc &	operator=(ServerBloc const & rhs);
 
+	/* Exceptions */
+		class NotFound : public std::exception {
+			public:
+				virtual const char *	what() const throw() { return ("404"); }
+		};
+
 	/* Member Functions */
 	public:
 		/* Gets and Sets */
@@ -72,6 +78,11 @@ class ServerBloc
 	private:
 		/* Method functions */
 		void		_applyGet(void);
+		void		_applyHead(void);
+		void		_findLocation(void);
+		void		_fillBody(std::string const &path);
+		bool		_fileExist(std::string const &path);
+		std::string	_uriFirstPart();
 
 		/* Response functions */
 		std::string	_getSizeOfBody(void);

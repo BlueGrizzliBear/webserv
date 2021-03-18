@@ -53,7 +53,7 @@ void	ServerBloc::parseException(const char * code)
 		resp.reason_phrase = it->second;
 
 		/* Fill Body */
-		// resp.body = 
+		// resp.body =
 
 		/* Fill Header Fields */
 		resp.header_fields.insert(std::make_pair("Content-Type", "text/plain"));
@@ -107,6 +107,9 @@ void	ServerBloc::processRequest(void)
 		Request new_req(req.ss);
 		req = new_req;
 
+		if (!req.finished)
+			return ;
+
 		/* Execute the parsed request */
 		executeRequest();
 	}
@@ -127,7 +130,7 @@ void	ServerBloc::processRequest(void)
 	/* Fill Header Fields */
 	resp.header_fields.insert(std::make_pair("Connection", "close"));
 	resp.header_fields.insert(std::make_pair("Content-Type", "text/plain"));
-	resp.header_fields.insert(std::make_pair("Content-Length", _getSizeOfBody()));		
+	resp.header_fields.insert(std::make_pair("Content-Length", _getSizeOfBody()));
 }
 
 void	ServerBloc::executeRequest(void)

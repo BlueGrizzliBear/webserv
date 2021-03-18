@@ -31,13 +31,8 @@ int	parseClientRequest(ServerBloc & server, int client_socket)
 			return (0);
 
 		/* Parse Client Request first */
-		server.parseRequest();
+		server.processRequest();
 
-		if (!server.req.finished)
-			return (0);
-
-		/* Execute Client Request if at the end */
-		server.executeRequest();
 	}
 	catch(const std::exception& e)
 	{
@@ -50,7 +45,7 @@ int	parseClientRequest(ServerBloc & server, int client_socket)
 }
 
 int	parseServerResponse(ServerBloc & server, Socket & client)
-{	
+{
 	/* Send Response to Client */
 	try
 	{
@@ -227,7 +222,7 @@ int main(int argc, char const ** argv)
 			CME << "Launching All Servers . . ." << EME;
 			unsigned long size = config.getServers().size();
 			std::for_each(config.getServers().begin(), config.getServers().end(), initServer);
-			
+
 			while (size-- > 0)
 			{
 				CME << "Waiting for Servers . . ." << EME;
@@ -242,6 +237,6 @@ int main(int argc, char const ** argv)
 		}
 	}
 	else
-		COUT << "Incorrect argument number" << ENDL;	
+		COUT << "Incorrect argument number" << ENDL;
     return 0;
 }
