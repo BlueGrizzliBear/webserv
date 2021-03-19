@@ -57,9 +57,29 @@ class ServerBloc
 		ServerBloc &	operator=(ServerBloc const & rhs);
 
 	/* Exceptions */
+		class SeeOther : public std::exception {
+			public:
+				virtual const char *	what() const throw() { return ("303"); }
+		};
+
+		class BadRequest : public std::exception {
+			public:
+				virtual const char *	what() const throw() { return ("400"); }
+		};
+
 		class Unauthorized : public std::exception {
 			public:
 				virtual const char *	what() const throw() { return ("401"); }
+		};
+
+		class MethodNotAllowed : public std::exception {
+			public:
+				virtual const char *	what() const throw() { return ("405"); }
+		};
+
+		class UnsupportedMediaType : public std::exception {
+			public:
+				virtual const char *	what() const throw() { return ("415"); }
 		};
 
 		class NotFound : public std::exception {
@@ -84,11 +104,13 @@ class ServerBloc
 		/* Method functions */
 		void		_applyGet(void);
 		void		_applyHead(void);
-		// void		_applyPost();
-		void		_findLocation(void) throw (NotFound);
-		void		_fillBody(std::string const &path);
+		void		_applyPost();
+		void		_findPath(void);
+		void		_checkContentType(void);
+		void		_fillBody(void);
+		/* usefull method function */
 		bool		_fileExist(std::string const &path);
-		std::string	_findIndex(const std::string& path);
+		void		_findIndex(void);
 		std::string	_uriFirstPart();
 		std::string	_pathExtension(std::string const &path);
 
@@ -115,6 +137,7 @@ class ServerBloc
 		pid_t	pid;
 
 	private:
+		std::string		_path;
 		size_t			_server_no;
 		ConfigParser *	_parent;
 };

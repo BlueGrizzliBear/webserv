@@ -138,6 +138,9 @@ void	ServerBloc::executeRequest(void)
 		_applyHead();
 	else if (req.method == "POST")
 	{
+		_applyPost();
+		// throw BadRequest();
+		// throw UnsupportedMediaType();
 		// throw Unauthorized();
 	}
 	// else
@@ -163,7 +166,7 @@ void	ServerBloc::sendResponse(Socket & client)
 
 	/* Fill response msg */
 	std::string msg = _concatenateResponse();
-	
+
 	/* Send message to client */
 	write(client.fd, msg.c_str(), msg.length());
 	COUT << "------------------Hello message sent-------------------" << ENDL;

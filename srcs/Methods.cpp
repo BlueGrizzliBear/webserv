@@ -3,7 +3,19 @@
 /* Member Functions */
 void	ServerBloc::_applyGet()
 {
-	_findLocation();
+	/* Check if file exist on server */
+	_findPath();
+	/* Check access rights to access */
+		// A FAIRE
+	/* Check if server knows file type */
+	_checkContentType();
+	/* Fill body with file content */
+	_fillBody();
+
+	/* if req header is If-Modified-Since, respond with 200 if modified file after the date or respond 304 with empty body */
+	if (req.headers.find("If-Modified-Since") != req.headers.end())
+		std::string date = req.headers.find("If-Modified-Since")->second;
+
 	// resp.header_fields.insert(std::make_pair("Transfer-Encoding", "identity"));
 }
 
@@ -11,38 +23,54 @@ void	ServerBloc::_applyHead()
 {
 	_applyGet();
 	resp.body.clear();
+	// POUR PASSER LE TESTEUR
+	// resp.header_fields.insert(std::make_pair("Allow", "GET, HEAD"));
+	// throw MethodNotAllowed();
 }
 
-// void	ServerBloc::_applyPost()
-// {
-
-// }
-
-void	ServerBloc::_findLocation(void) throw (NotFound)
+void	ServerBloc::_applyPost()
 {
-	std::string					path;
+	// if (req.body.empty())
+	// {
+		// resp.header_fields.insert(std::make_pair("Location", req.uri));
+		resp.header_fields.insert(std::make_pair("Allow", "GET, HEAD"));
+		throw MethodNotAllowed();
+	// }
+}
 
+void	ServerBloc::_findPath(void)
+{
 	if (dir.find("root") != dir.end())
-		path = "." + dir.find("root")->second[0];
+		_path = "." + dir.find("root")->second[0];
 	for (std::map<std::vector<std::string>, LocationBloc>::iterator it = loc.begin(); it != loc.end(); ++it)
 	{
 		// COUT << "it->first:" << it->first[0] << ", uriFirstPart:" << _uriFirstPart() << ENDL;
 		if (it->first[0] == _uriFirstPart())
 		{
 			if (it->second.loc_dir.find("root") != it->second.loc_dir.end())
-				path = "." + it->second.loc_dir.find("root")->second[0];
+				_path = "." + it->second.loc_dir.find("root")->second[0];
+			// REDIRECTION A FAIRE pour location /directory/ pointant sur un autre dossier
+			// if (it->second.loc_dir.find("root") != it->second.loc_dir.end())
 		}
 	}
-	path += req.uri;
-	// COUT << "file path:" << path << ENDL;
-	if ((path.back()) == '/')
-		path = _findIndex(path);
-	// COUT << "file index path:" << path << ENDL;
-	if (_fileExist(path) == false)
+	_path += req.uri;
+	if ((_path.back()) == '/')
+		_findIndex();
+	if (_fileExist(_path) == false)
 		throw NotFound();
-	// COUT << "file exist path:" << path << ENDL;
-	resp.header_fields.insert(std::make_pair("Content-Type", _parent->getDictionary().mimeDic.find(_pathExtension(path))->second));
-	_fillBody(path);
+}
+
+void		ServerBloc::_checkContentType()
+{
+	std::string	contentType = _parent->getDictionary().mimeDic.find(_pathExtension(_path))->second;
+
+	/* check if content-type exist */
+	if (req.headers.find("Content-Type") != req.headers.end())
+	{
+		if (req.headers.find("Content-Type")->second != contentType)
+			throw UnsupportedMediaType();
+	}
+	resp.header_fields.insert(std::make_pair("Content-Type", contentType));
 }
 
 std::string	ServerBloc::_pathExtension(const std::string& path)
@@ -64,7 +92,7 @@ std::string	ServerBloc::_pathExtension(const std::string& path)
 	return ("plain/text");
 }
 
-std::string	ServerBloc::_findIndex(const std::string& path)
+void	ServerBloc::_findIndex()
 {
 	std::vector<std::string>	index;
 
@@ -73,27 +101,36 @@ std::string	ServerBloc::_findIndex(const std::string& path)
 		index = dir.find("index")->second;
 		for (std::vector<std::string>::iterator it = index.begin(); it != index.end(); ++it)
 		{
-			if (_fileExist(path + *it) == true)
-				return (path + *it);
+			if (_fileExist(_path + *it) == true)
+			{
+				_path += *it;
+				return ;
+			}
 		}
 	}
-	return path;
 }
 
 bool	ServerBloc::_fileExist(const std::string& name)
 {
 	std::ifstream	f(name.c_str());
 
-	return f.good();
+	if (f.good())
+	{
+		f.close();
+		return true;
+	}
+	f.close();
+	return false;
 }
 
-void	ServerBloc::_fillBody(std::string const &path)
+void	ServerBloc::_fillBody()
 {
-	std::ifstream		file(path.c_str());
+	std::ifstream		file(_path.c_str());
 	std::stringstream	strStream;
 
 	strStream << file.rdbuf();
 	resp.body = strStream.str();
+	file.close();
 }
 
 std::string	ServerBloc::_uriFirstPart()
