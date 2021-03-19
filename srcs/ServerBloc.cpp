@@ -166,14 +166,18 @@ void	ServerBloc::sendResponse(Socket & client)
 
 	/* Fill response msg */
 	std::string msg = _concatenateResponse();
-	/* Clear Map */
-	resp.header_fields.clear();
 
 	CME << "|" << msg << "|" << EME;
 
 	/* Send message to client */
 	write(client.fd, msg.c_str(), msg.length());
 	COUT << "------------------Hello message sent-------------------" << ENDL;
+
+	/* Cleaning Response */
+	resp.status_code.clear();	/* Status Line */
+	resp.reason_phrase.clear();	/* Status Line */
+	resp.header_fields.clear();	/* Header Fields */
+	resp.body.clear();			/* Body */
 }
 
 std::string	ServerBloc::_getSizeOfBody(void)

@@ -28,7 +28,6 @@ class Response
 
 	/* Member Attributes */
 	public:
-		/* Status Line */
 		std::string			status_code;	/* Status Line */
 		std::string			reason_phrase;	/* Status Line */
 
