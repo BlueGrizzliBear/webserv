@@ -128,7 +128,7 @@ void	ServerBloc::processRequest(void)
 	// resp.body = "WebServ says < Hi > !";
 
 	/* Fill Header Fields */
-	resp.header_fields.insert(std::make_pair("Connection", "keep-alive"));
+	resp.header_fields.insert(std::make_pair("Connection", "close"));
 	// resp.header_fields.insert(std::make_pair("Content-Type", "text/plain"));
 	resp.header_fields.insert(std::make_pair("Content-Length", _getSizeOfBody()));
 }

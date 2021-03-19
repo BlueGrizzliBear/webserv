@@ -7,13 +7,16 @@ void	ServerBloc::_applyGet()
 	// resp.header_fields.insert(std::make_pair("Transfer-Encoding", "identity"));
 }
 
-
 void	ServerBloc::_applyHead()
 {
 	_applyGet();
 	resp.body.clear();
 }
 
+// void	ServerBloc::_applyPost()
+// {
+
+// }
 
 void	ServerBloc::_findLocation(void) throw (NotFound)
 {
@@ -23,6 +26,7 @@ void	ServerBloc::_findLocation(void) throw (NotFound)
 		path = "." + dir.find("root")->second[0];
 	for (std::map<std::vector<std::string>, LocationBloc>::iterator it = loc.begin(); it != loc.end(); ++it)
 	{
+		// COUT << "it->first:" << it->first[0] << ", uriFirstPart:" << _uriFirstPart() << ENDL;
 		if (it->first[0] == _uriFirstPart())
 		{
 			if (it->second.loc_dir.find("root") != it->second.loc_dir.end())
@@ -30,31 +34,45 @@ void	ServerBloc::_findLocation(void) throw (NotFound)
 		}
 	}
 	path += req.uri;
+	// COUT << "file path:" << path << ENDL;
 	if ((path.back()) == '/')
 		path = _findIndex(path);
-	// COUT << "file path:" << path << ENDL;
+	// COUT << "file index path:" << path << ENDL;
 	if (_fileExist(path) == false)
 		throw NotFound();
-	resp.header_fields.insert(std::make_pair("Content-Type", _mimeType(path)));
+	// COUT << "file exist path:" << path << ENDL;
+	resp.header_fields.insert(std::make_pair("Content-Type", _parent->getDictionary().mimeDic.find(_pathExtension(path))->second));
 	_fillBody(path);
 }
 
-std::string	ServerBloc::_mimeType(const std::string& )
+std::string	ServerBloc::_pathExtension(const std::string& path)
 {
-	return ("text/html");
+	std::string							ext;
+	std::string::const_reverse_iterator	it = path.rbegin();
+
+	while (it != path.rend())
+	{
+		if (*it == '.')
+		{
+			while(--it != path.rbegin())
+				ext += *it;
+			ext += *it;
+			return ext;
+		}
+		++it;
+	}
+	return ("plain/text");
 }
 
 std::string	ServerBloc::_findIndex(const std::string& path)
 {
 	std::vector<std::string>	index;
-	// std::string					new_path;
 
 	if (dir.find("index") != dir.end())
 	{
 		index = dir.find("index")->second;
 		for (std::vector<std::string>::iterator it = index.begin(); it != index.end(); ++it)
 		{
-			// new_path = path + *it;
 			if (_fileExist(path + *it) == true)
 				return (path + *it);
 		}
@@ -88,7 +106,10 @@ std::string	ServerBloc::_uriFirstPart()
 	for (unsigned long i = 1; req.uri[i]; ++i)
 	{
 		if (req.uri[i] == '/')
+		{
+			tmp += req.uri[i];
 			return (uri_path + tmp);
+		}
 		tmp += req.uri[i];
 	}
 	return uri_path;

@@ -84,12 +84,13 @@ class ServerBloc
 		/* Method functions */
 		void		_applyGet(void);
 		void		_applyHead(void);
+		// void		_applyPost();
 		void		_findLocation(void) throw (NotFound);
-		std::string	_mimeType(std::string const &path);
 		void		_fillBody(std::string const &path);
 		bool		_fileExist(std::string const &path);
 		std::string	_findIndex(const std::string& path);
 		std::string	_uriFirstPart();
+		std::string	_pathExtension(std::string const &path);
 
 		/* Response functions */
 		std::string	_getSizeOfBody(void);
