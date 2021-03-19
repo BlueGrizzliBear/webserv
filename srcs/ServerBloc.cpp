@@ -124,12 +124,8 @@ void	ServerBloc::processRequest(void)
 	resp.status_code = "200";
 	resp.reason_phrase = "OK";
 
-	/* Fill Body */
-	// resp.body = "WebServ says < Hi > !";
-
 	/* Fill Header Fields */
 	resp.header_fields.insert(std::make_pair("Connection", "close"));
-	// resp.header_fields.insert(std::make_pair("Content-Type", "text/plain"));
 	resp.header_fields.insert(std::make_pair("Content-Length", _getSizeOfBody()));
 }
 
@@ -153,6 +149,7 @@ void	ServerBloc::sendResponse(Socket & client)
 	/* Create corresponding header fields */
 	resp.header_fields.insert(std::make_pair("Date", _getDate()));
 	resp.header_fields.insert(std::make_pair("Server", dir.find("server_name")->second[0]));
+	resp.header_fields.insert(std::make_pair("Cache-Control", "no-store"));
 
 	/* specific case header fields */
 		// MAKE SPECIFIC FUNCTION
@@ -166,9 +163,7 @@ void	ServerBloc::sendResponse(Socket & client)
 
 	/* Fill response msg */
 	std::string msg = _concatenateResponse();
-
-	CME << "|" << msg << "|" << EME;
-
+	
 	/* Send message to client */
 	write(client.fd, msg.c_str(), msg.length());
 	COUT << "------------------Hello message sent-------------------" << ENDL;
@@ -205,18 +200,21 @@ std::string	ServerBloc::_concatenateResponse(void)
 	std::string msg;
 
 	/* Status Line */
-	msg = "HTTP/1.1 " + resp.status_code + " " + resp.reason_phrase + "\n";
+	msg = "HTTP/1.1 " + resp.status_code + " " + resp.reason_phrase + "\r\n";
 
 	/* Header Fields */
 	std::map<std::string, std::string>::iterator begin = resp.header_fields.begin();
 	while (begin != resp.header_fields.end())
 	{
-		msg += begin->first + ": " + begin->second + "\n";
+		msg += begin->first + ": " + begin->second + "\r\n";
 		begin++;
 	}
 
 	/* New line */
-	msg += "\n";
+	msg += "\r\n";
+
+	/* Display Temporary msg */
+	CME << "|" << msg << "|" << EME;
 
 	/* Body */
 	if (resp.body.size())

@@ -512,6 +512,9 @@ void	ConfigParser::_initPort(ServerBloc & serv)
 			if ((serv.serv_port.fd = socket(AF_INET, SOCK_STREAM, 0)) == 0)		/* AF_INET: Protocoles Internet IPv4	|	SOCK_STREAM: Virtual Circuit Service */
 				abortServers("Error in socket()", strerror(errno));
 
+			/* Set the socket to non blocking */
+			fcntl(serv.serv_port.fd, F_SETFL, O_NONBLOCK);
+
 			/* Defining address struct */
 			serv.serv_port.address.sin_family = AF_INET;						/* corresponding to IPv4 protocols */
 			serv.serv_port.address.sin_addr.s_addr = htonl(INADDR_ANY);			/* corresponding to 0.0.0.0 */
