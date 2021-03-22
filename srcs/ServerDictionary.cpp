@@ -16,6 +16,7 @@ ServerDictionary::ServerDictionary()
 	/* Dictionary for keys in location blocs */
 	std::string locations[] = {	"root",
 								"index",
+								"rewrite",
 								"autoindex",
 								"limit_except",
 								"upload_store",
@@ -180,13 +181,13 @@ std::map<std::string, std::string>	ServerDictionary::_parseMimeTypes()
 		while (getline(file, line))
 		{
 			std::string::iterator	it = line.begin();
-			for ( ; it != line.end() && *it != ' '; ++it)
+			for ( ; it != line.end() && isspace(*it) == false; ++it)
 				mime_value += *it;
-			while (it != line.end() && *it == ' ')
+			while (it != line.end() && isspace(*it) == true)
 				++it;
 			for ( ; it != line.end(); ++it)
 			{
-				for ( ; it != line.end() && *it != ' ' && *it != ';'; ++it)
+				for ( ; it != line.end() && isspace(*it) == false && *it != ';'; ++it)
 					mime_key += *it;
 				if (mime_value.empty() == false)
 					mime.insert(std::make_pair(mime_key, mime_value));
@@ -196,5 +197,7 @@ std::map<std::string, std::string>	ServerDictionary::_parseMimeTypes()
 			mime_value.clear();
 		}
 	}
+	// for (std::map<std::string, std::string>::iterator it = mime.begin(); it != mime.end(); ++it)
+		// COUT << "mime_key:|" << (*it).first << "|" << ", mime_value:|" << (*it).second << "|" << ENDL;
 	return mime;
 }

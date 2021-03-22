@@ -72,6 +72,16 @@ class ServerBloc
 				virtual const char *	what() const throw() { return ("401"); }
 		};
 
+		class Forbidden : public std::exception {
+			public:
+				virtual const char *	what() const throw() { return ("403"); }
+		};
+
+		class NotFound : public std::exception {
+			public:
+				virtual const char *	what() const throw() { return ("404"); }
+		};
+
 		class MethodNotAllowed : public std::exception {
 			public:
 				virtual const char *	what() const throw() { return ("405"); }
@@ -80,11 +90,6 @@ class ServerBloc
 		class UnsupportedMediaType : public std::exception {
 			public:
 				virtual const char *	what() const throw() { return ("415"); }
-		};
-
-		class NotFound : public std::exception {
-			public:
-				virtual const char *	what() const throw() { return ("404"); }
 		};
 
 	/* Member Functions */
@@ -112,6 +117,7 @@ class ServerBloc
 		bool		_fileExist(std::string const &path);
 		void		_findIndex(void);
 		std::string	_uriFirstPart();
+		std::string	_uriWithoutFirstPart();
 		std::string	_pathExtension(std::string const &path);
 
 		/* Response functions */
