@@ -57,7 +57,7 @@ void	ServerBloc::parseException(const char * code)
 
 		/* Fill Header Fields */
 		resp.header_fields.insert(std::make_pair("Content-Type", "text/plain"));
-		resp.header_fields.insert(std::make_pair("Content-Length", _getSizeOfBody()));
+		// resp.header_fields.insert(std::make_pair("Content-Length", _getSizeOfStr(resp.body)));
 	}
 }
 
@@ -126,7 +126,7 @@ void	ServerBloc::processRequest(void)
 
 	/* Fill Header Fields */
 	resp.header_fields.insert(std::make_pair("Connection", "close"));
-	resp.header_fields.insert(std::make_pair("Content-Length", _getSizeOfBody()));
+	resp.header_fields.insert(std::make_pair("Content-Length", _getSizeOfStr(resp.body)));
 }
 
 void	ServerBloc::executeRequest(void)
@@ -152,7 +152,10 @@ void	ServerBloc::sendResponse(Socket & client)
 	/* Create corresponding header fields */
 	resp.header_fields.insert(std::make_pair("Date", _getDate()));
 	resp.header_fields.insert(std::make_pair("Server", dir.find("server_name")->second[0]));
+
+	/* Cache indications */
 	resp.header_fields.insert(std::make_pair("Cache-Control", "no-store"));
+	// resp.header_fields.insert(std::make_pair("Cache-Control", "max-age=10"));
 
 	/* specific case header fields */
 		// MAKE SPECIFIC FUNCTION
@@ -168,7 +171,17 @@ void	ServerBloc::sendResponse(Socket & client)
 	std::string msg = _concatenateResponse();
 
 	/* Send message to client */
-	write(client.fd, msg.c_str(), msg.length());
+	size_t 		count = 0;
+	std::string	tmp(msg);
+	ssize_t		writtenBytes = 0;
+
+	while (count != msg.length())
+	{
+		if (!(writtenBytes += write(client.fd, tmp.data(), tmp.length())))
+			COUT << "ATTENTION\n";
+		count = static_cast<size_t>(writtenBytes);
+		tmp = msg.substr(count, msg.length() - count);
+	}
 	COUT << "------------------Hello message sent-------------------" << ENDL;
 
 	/* Cleaning Response */
@@ -178,10 +191,10 @@ void	ServerBloc::sendResponse(Socket & client)
 	resp.body.clear();			/* Body */
 }
 
-std::string	ServerBloc::_getSizeOfBody(void)
+std::string	ServerBloc::_getSizeOfStr(std::string const & str)
 {
 	std::stringstream size;
-	size << resp.body.length();
+	size << str.length();
 	return (size.str());
 }
 

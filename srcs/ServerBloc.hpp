@@ -121,7 +121,7 @@ class ServerBloc
 		std::string	_pathExtension(std::string const &path);
 
 		/* Response functions */
-		std::string	_getSizeOfBody(void);
+		std::string	_getSizeOfStr(std::string const & str);
 		std::string	_getDate(void);
 		std::string	_concatenateResponse(void);
 
