@@ -23,7 +23,7 @@ class	ServerDictionary
 	private:
 		void	_createDic(Dic & dic, std::string const * tab, size_t size);
 		void	_createDic(Dic & dic, std::pair<std::string , std::string> const * tab, size_t size);
-		Dic		_parseMimeTypes(void);
+		void	_parseMimeTypes(void);
 
 	/* Member Attributes */
 	public:

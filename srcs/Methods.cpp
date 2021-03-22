@@ -51,6 +51,7 @@ void	ServerBloc::_findPath(void)
 		// COUT << "it->first:" << it->first[0] << ", uriFirstPart:" << _uriFirstPart() << ENDL;
 		if (it->first[0] == _uriFirstPart())
 		{
+			// COUT << "it->first[0] == _uriFirstPart()"<< ENDL;
 			/* take root directory in location block if exist and ingnor the one in server bloc */
 			if (it->second.loc_dir.find("root") != it->second.loc_dir.end())
 				_path = "." + it->second.loc_dir.find("root")->second[0];
@@ -81,6 +82,7 @@ void	ServerBloc::_findPath(void)
 		// std::cout << "path:" << _path << "|" << ENDL;
 		if (_fileExist(_path) == false)
 			throw NotFound();
+
 	}
 }
 
@@ -89,10 +91,7 @@ void		ServerBloc::_checkContentType()
 	if (_path.back() == '/')
 		return ;
 
-	std::string							path_ext = _pathExtension(_path);
-	std::map<std::string, std::string>	mime = _parent->getDictionary().mimeDic;
-	std::string							contentType = mime.find(path_ext)->second;
-	// COUT << "content Type:|" << contentType << "|" << ENDL;
+	std::string	contentType = _parent->getDictionary().mimeDic.find(_pathExtension(_path))->second;
 
 	/* check if content-type exist in the request content-type */
 	if (req.headers.find("Content-Type") != req.headers.end())
@@ -115,7 +114,7 @@ std::string	ServerBloc::_pathExtension(const std::string& path)
 			while(--it != path.rbegin())
 				ext += *it;
 			ext += *it;
-			return ext;
+			return (ext);
 		}
 		++it;
 	}
@@ -140,7 +139,7 @@ void	ServerBloc::_findIndex()
 	}
 }
 
-bool	ServerBloc::_fileExist(const std::string& name)
+bool	ServerBloc::_fileExist(const std::string & name)
 {
 	std::ifstream	f(name.c_str());
 
@@ -179,6 +178,8 @@ std::string	ServerBloc::_uriFirstPart()
 		}
 		tmp += req.uri[i];
 	}
+	if (uri_path.back() != '/')
+		uri_path += '/';
 	return uri_path;
 }
 
@@ -195,6 +196,5 @@ std::string	ServerBloc::_uriWithoutFirstPart()
 		uri_path += req.uri[i];
 		++i;
 	}
-	uri_path += req.uri[i];
 	return uri_path;
 }

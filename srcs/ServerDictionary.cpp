@@ -135,7 +135,7 @@ ServerDictionary::ServerDictionary()
 															std::make_pair("511", "Network Authentication Required") };
 	_createDic(errorDic, error_codes, sizeof(error_codes));
 
-	mimeDic = _parseMimeTypes();
+	_parseMimeTypes();
 }
 
 /*	copy	(2)	*/
@@ -168,9 +168,8 @@ void	ServerDictionary::_createDic(Dic & dic, std::pair<std::string , std::string
 		dic.insert(*(tab + i));
 }
 
-std::map<std::string, std::string>	ServerDictionary::_parseMimeTypes()
+void	ServerDictionary::_parseMimeTypes(void)
 {
-	std::map<std::string, std::string>	mime;
 	std::string							mime_value;
 	std::string							mime_key;
 	std::string							line;
@@ -190,14 +189,15 @@ std::map<std::string, std::string>	ServerDictionary::_parseMimeTypes()
 				for ( ; it != line.end() && isspace(*it) == false && *it != ';'; ++it)
 					mime_key += *it;
 				if (mime_value.empty() == false)
-					mime.insert(std::make_pair(mime_key, mime_value));
+					mimeDic.insert(std::make_pair(mime_key, mime_value));
 				mime_key.clear();
 			}
 			mime_key.clear();
 			mime_value.clear();
 		}
 	}
-	// for (std::map<std::string, std::string>::iterator it = mime.begin(); it != mime.end(); ++it)
-		// COUT << "mime_key:|" << (*it).first << "|" << ", mime_value:|" << (*it).second << "|" << ENDL;
-	return mime;
+
+	/* to optimise if necessary */
+	// for (std::map<std::string, std::string>::iterator it = mimeDic.begin(); it != mimeDic.end(); ++it)
+	// 	COUT << "mime_key:|" << (*it).first << "|" << ", mime_value:|" << (*it).second << "|" << ENDL;
 }
