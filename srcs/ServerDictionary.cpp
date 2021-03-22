@@ -17,6 +17,7 @@ ServerDictionary::ServerDictionary()
 	std::string locations[] = {	"root",
 								"index",
 								"rewrite",
+								"allowed_methods",
 								"autoindex",
 								"limit_except",
 								"upload_store",

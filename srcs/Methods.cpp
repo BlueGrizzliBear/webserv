@@ -16,27 +16,18 @@ void	ServerBloc::_applyGet()
 	if (req.headers.find("If-Modified-Since") != req.headers.end())
 		std::string date = req.headers.find("If-Modified-Since")->second;
 
-	// resp.header_fields.insert(std::make_pair("Transfer-Encoding", "identity"));
+	resp.header_fields.insert(std::make_pair("Transfer-Encoding", "identity"));
 }
 
 void	ServerBloc::_applyHead()
 {
-	/* What the RFC ask to do */
-	// _applyGet();
-	// resp.body.clear();
-	/* What the subject tester want us to do */
-	resp.header_fields.insert(std::make_pair("Allow", "GET, PUT"));
-	throw MethodNotAllowed();
+	_applyGet();
+	resp.body.clear();
 }
 
 void	ServerBloc::_applyPost()
 {
-	// if (req.body.empty())
-	// {
-		// resp.header_fields.insert(std::make_pair("Location", req.uri));
-		resp.header_fields.insert(std::make_pair("Allow", "GET, PUT"));
-		throw MethodNotAllowed();
-	// }
+	_findPath();
 }
 
 void	ServerBloc::_findPath(void)
@@ -51,21 +42,35 @@ void	ServerBloc::_findPath(void)
 		// COUT << "it->first:" << it->first[0] << ", uriFirstPart:" << _uriFirstPart() << ENDL;
 		if (it->first[0] == _uriFirstPart())
 		{
-			// COUT << "it->first[0] == _uriFirstPart()"<< ENDL;
+			/* If allowed methods condition */
+			if (it->second.loc_dir.find("allowed_methods") != it->second.loc_dir.end())
+			{
+				if (req.method != it->second.loc_dir.find("allowed_methods")->second[0])
+				{
+					resp.header_fields.insert(std::make_pair("Allow", it->second.loc_dir.find("allowed_methods")->second[0]));
+					throw MethodNotAllowed();
+				}
+			}
+			// COUT << "it->first[0] == _uriFirstPart()" << ENDL;
 			/* take root directory in location block if exist and ingnor the one in server bloc */
 			if (it->second.loc_dir.find("root") != it->second.loc_dir.end())
 				_path = "." + it->second.loc_dir.find("root")->second[0];
+			// COUT << "_path:|" << _path << "|" << ENDL;
 			/* If rewrite replace the location diretory with rewrite directory */
 			if (it->second.loc_dir.find("rewrite") != it->second.loc_dir.end())
 			{
+				// COUT << "req_uri:|" << req_uri << "|" << ENDL;
 				req_uri = it->second.loc_dir.find("rewrite")->second[0];
+				// COUT << "req_uri:|" << req_uri << "|" << ENDL;
 				if (_path.back() == '/')
 					req_uri.erase(0, 1);	// remove front '/'
 				req_uri += _uriWithoutFirstPart();
 			}
 		}
 	}
+	// std::cout << "befire _path:" << _path << "|" << ENDL;
 	_path += req_uri;
+	// std::cout << "after _path:" << _path << "|" << ENDL;
 	if (dir.find("autoindex") != dir.end() && dir.find("autoindex")->second[0] == "off")
 	{
 		// if ((_path.back()) == '/')
@@ -77,12 +82,12 @@ void	ServerBloc::_findPath(void)
 	{
 		if ((_path.back()) == '/')
 			_findIndex();
+		// COUT << "after index path:" << _path << "|" << ENDL;
 		if ((_path.back()) == '/')
 			throw Forbidden();
-		// std::cout << "path:" << _path << "|" << ENDL;
+		COUT << "path:" << _path << "|" << ENDL;
 		if (_fileExist(_path) == false)
 			throw NotFound();
-
 	}
 }
 
@@ -167,7 +172,7 @@ std::string	ServerBloc::_uriFirstPart()
 	std::string	uri_path;
 	std::string	tmp;
 
-	uri_path += req.uri[0];
+	uri_path = req.uri[0];
 
 	for (unsigned long i = 1; req.uri[i]; ++i)
 	{
@@ -178,8 +183,8 @@ std::string	ServerBloc::_uriFirstPart()
 		}
 		tmp += req.uri[i];
 	}
-	if (uri_path.back() != '/')
-		uri_path += '/';
+	if (tmp.empty() == false && tmp.back() != '/')
+		return  (uri_path + tmp + '/');
 	return uri_path;
 }
 
