@@ -9,11 +9,12 @@ Request::Request(void) {}
 Request::Request(std::stringstream & ss) : _req(ss.str()), _pos(0)
 {
 	_parseRequestLine();
-	CME << "REQUEST LINE OK" << EME;
+	// CME << "REQUEST LINE OK" << RESET;
 	_parseHeaders();
-	CME << "HEADERS OK" << EME;
+	// CME << "HEADERS OK" << RESET;
 	_parseBody();
-	CME << "BODY DONE" << EME;
+	// CME << "BODY DONE" << RESET << ENDL;
+	CME << "> PARSING COMPLETE !" << EME;
 }
 
 /*	copy		(3)	*/
@@ -293,7 +294,6 @@ int	Request::_parseBody(void) throw(BadRequest)
 				_parseChunkedBody(size);
 				COUT << "Transfert-Encoding: INCOMPLETE BODY" << ENDL;
 			}
-			// _pos++;
 		}
 		COUT << "Char|" << _req[_pos] << "|" << ENDL;
 		COUT << "Transfert-Encoding: INCOMPLETE BODY" << ENDL;
@@ -302,7 +302,7 @@ int	Request::_parseBody(void) throw(BadRequest)
 	{
 		/* No body */
 		finished = true;
-		COUT << "NO BODY" << ENDL;
+		COUT << "Request without body" << ENDL;
 	}
 	return (0);
 }

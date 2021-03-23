@@ -20,8 +20,6 @@ void	exitServerOnError(const char * main_err, const char * err, ServerBloc & ser
 
 int	parseClientRequest(ServerBloc & server, int client_socket)
 {
-
-	/* Initialize the Request object of ServerBloc */
 	try
 	{
 		/* Read Client Request with recv */
@@ -32,7 +30,6 @@ int	parseClientRequest(ServerBloc & server, int client_socket)
 
 		/* Parse Client Request first */
 		server.processRequest();
-
 	}
 	catch(const std::exception& e)
 	{
@@ -46,27 +43,23 @@ int	parseClientRequest(ServerBloc & server, int client_socket)
 
 int	parseServerResponse(ServerBloc & server, Socket & client)
 {
-	/* Send Response to Client */
 	try
 	{
-		server.sendResponse(client);
+		if (server.sendResponse(client))
+		{
+			// FD_CLR(client.fd, &server.serv_select.writefds);	/* Removing client socket from write playlist */
+			close(client.fd);	/* Closing client socket, finished processing request */
+			client.fd = -1;
+			server.getParent()->_initSelect(server);
+			server.serv_select.fd_max = server.serv_port.fd > client.fd ? server.serv_port.fd : client.fd;	/* Re-assgning fd_max value for select */
+		}
 	}
 	catch(const std::exception& e)
 	{
-		/* Catching exception from sending repsonse */
-		std::cerr << RED << e.what() << RESET << std::endl;
+		std::cerr << RED << e.what() << RESET << '\n';
+		return (1);
 	}
-
-	/* Removing client socket from write playlist */
-	FD_CLR(client.fd, &server.serv_select.writefds);
-
-	/* Closing client socket, finished processing request */
-	close(client.fd);
-	client.fd = -1;
-
-	/* Re-assgning fd_max value for select */
-	server.serv_select.fd_max = server.serv_port.fd > client.fd ? server.serv_port.fd : client.fd;
-
+	
 	return (0);
 }
 
@@ -149,10 +142,6 @@ int	launchServer(ServerBloc & server)
 					/* Parsing Server Response */
 					if (parseServerResponse(server, new_client))
 						exitServerOnError("Error in parseServerResponse()", "Unknown error occured", server, new_client.fd);
-					// COUT << "Finished writing to client\n";
-
-					/* Reseting server fd in reading list */
-					server.getParent()->_initSelect(server);
 				}
 				/* Someone is talking to the server socket */
 				else if ((new_client.fd == -1) && FD_ISSET(server.serv_port.fd, &server.serv_select.readfds))
@@ -184,7 +173,7 @@ int	launchServer(ServerBloc & server)
 				}
 				else
 				{
-					COUT << "FD weird\n";
+					// COUT << "FD weird\n";
 				}
 				// COUT << "done\n";
 				break ;

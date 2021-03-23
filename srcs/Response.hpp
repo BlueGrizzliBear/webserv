@@ -25,15 +25,24 @@ class Response
 
 	/* Member Functions */
 	public:
+		void	concatenateResponse(void);
+		bool	sendMsg(int client_socket);
+		void	cleanResponse(void);
 
 	/* Member Attributes */
 	public:
-		std::string			status_code;	/* Status Line */
-		std::string			reason_phrase;	/* Status Line */
+		std::string	status_code;	/* Status Line */
+		std::string	reason_phrase;	/* Status Line */
 
-		Headers			header_fields;	/* Header Fields */
+		Headers		header_fields;	/* Header Fields */
 
-		std::string		body;			/* Body */
+		std::string	body;			/* Body */
+
+		/* Write/Send utilities */
+		std::string	msg;
+		// std::string	tmp;
+		// size_t 		count;
+		bool		isComplete;
 };
 
 #endif

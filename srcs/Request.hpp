@@ -84,8 +84,6 @@ class Request
 		ServerDictionary	_dic;
 		std::string 		_req;
 		size_t				_pos;
-
-		// ServerBloc *		_parent;
 };
 
 #endif

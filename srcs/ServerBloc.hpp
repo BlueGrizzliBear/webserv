@@ -103,7 +103,7 @@ class ServerBloc
 
 		void	processRequest(void);
 		void	executeRequest(void);
-		void	sendResponse(Socket & client);
+		bool	sendResponse(Socket & client);
 
 	private:
 		/* Method functions */
@@ -123,7 +123,8 @@ class ServerBloc
 		/* Response functions */
 		std::string	_getSizeOfStr(std::string const & str);
 		std::string	_getDate(void);
-		std::string	_concatenateResponse(void);
+		void		_addHeaderFields(void);
+		// std::string	_concatenateResponse(void);
 
 	/* Member Attributes */
 	public:
@@ -143,7 +144,13 @@ class ServerBloc
 		pid_t	pid;
 
 	private:
+		/* Read/Write | Recv/Send Utilities */
+		// size_t _count;
+
+		/* Method Utilities */
 		std::string		_path;
+
+		/* ConfigFile Parsing Utilities */
 		size_t			_server_no;
 		ConfigParser *	_parent;
 };

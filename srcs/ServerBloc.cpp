@@ -103,15 +103,13 @@ void	ServerBloc::processRequest(void)
 
 	try
 	{
-		/* Parse request */
+		/* Create request with parser */
 		Request new_req(req.ss);
 		req = new_req;
 
-		if (!req.finished)
-			return ;
-
 		/* Execute the parsed request */
-		executeRequest();
+		if (req.finished)
+			executeRequest();
 	}
 	catch(const std::exception& e)
 	{
@@ -119,19 +117,10 @@ void	ServerBloc::processRequest(void)
 		parseException(e.what());
 		throw(e);
 	}
-	/* Depending on Execution */
-	/* Fill Status Line */
-	resp.status_code = "200";
-	resp.reason_phrase = "OK";
-
-	/* Fill Header Fields */
-	resp.header_fields.insert(std::make_pair("Connection", "close"));
-	resp.header_fields.insert(std::make_pair("Content-Length", _getSizeOfStr(resp.body)));
 }
 
 void	ServerBloc::executeRequest(void)
 {
-	COUT << "Executing Request here" << ENDL;
 	if (req.method == "GET")
 		_applyGet();
 	else if (req.method == "HEAD")
@@ -143,11 +132,20 @@ void	ServerBloc::executeRequest(void)
 		// throw UnsupportedMediaType();
 		// throw Unauthorized();
 	}
-	// else
-	// {}
+
+	/* Depending on Execution */
+	/* Fill Status Line */
+	resp.status_code = "200";
+	resp.reason_phrase = "OK";
+
+	/* Fill Header Fields */
+	resp.header_fields.insert(std::make_pair("Connection", "close"));
+	resp.header_fields.insert(std::make_pair("Content-Length", _getSizeOfStr(resp.body)));
+
+	CME << "> EXECUTION DONE !" << EME;
 }
 
-void	ServerBloc::sendResponse(Socket & client)
+void	ServerBloc::_addHeaderFields(void)
 {
 	/* Create corresponding header fields */
 	resp.header_fields.insert(std::make_pair("Date", _getDate()));
@@ -165,30 +163,16 @@ void	ServerBloc::sendResponse(Socket & client)
 	/* If status code 401 Unauthorized, respond with the WWW-authenticate to specify needed format */
 	if (resp.status_code == "401")
 		resp.header_fields.insert(std::make_pair("WWW-Authenticate", "Basic"));
+}
 
-
-	/* Fill response msg */
-	std::string msg = _concatenateResponse();
-
-	/* Send message to client */
-	size_t 		count = 0;
-	std::string	tmp(msg);
-	ssize_t		writtenBytes = 0;
-
-	while (count != msg.length())
+bool	ServerBloc::sendResponse(Socket & client)
+{
+	if (!resp.isComplete)
 	{
-		if (!(writtenBytes += write(client.fd, tmp.data(), tmp.length())))
-			COUT << "ATTENTION\n";
-		count = static_cast<size_t>(writtenBytes);
-		tmp = msg.substr(count, msg.length() - count);
+		_addHeaderFields();	/* Add the right header fields */	
+		resp.concatenateResponse();	/* Fill response msg */
 	}
-	COUT << "------------------Hello message sent-------------------" << ENDL;
-
-	/* Cleaning Response */
-	resp.status_code.clear();	/* Status Line */
-	resp.reason_phrase.clear();	/* Status Line */
-	resp.header_fields.clear();	/* Header Fields */
-	resp.body.clear();			/* Body */
+	return (resp.sendMsg(client.fd));
 }
 
 std::string	ServerBloc::_getSizeOfStr(std::string const & str)
@@ -211,30 +195,36 @@ std::string	ServerBloc::_getDate(void)
 	return (str);
 }
 
-std::string	ServerBloc::_concatenateResponse(void)
-{
-	std::string msg;
+// std::string	ServerBloc::_concatenateResponse(void)
+// {
+// 	std::string msg;
 
-	/* Status Line */
-	msg = "HTTP/1.1 " + resp.status_code + " " + resp.reason_phrase + "\r\n";
+// 	/* Status Line */
+// 	msg = "HTTP/1.1 " + resp.status_code + " " + resp.reason_phrase + "\r\n";
 
-	/* Header Fields */
-	std::map<std::string, std::string>::iterator begin = resp.header_fields.begin();
-	while (begin != resp.header_fields.end())
-	{
-		msg += begin->first + ": " + begin->second + "\r\n";
-		begin++;
-	}
+// 	/* Header Fields */
+// 	std::map<std::string, std::string>::iterator begin = resp.header_fields.begin();
+// 	while (begin != resp.header_fields.end())
+// 	{
+// 		msg += begin->first + ": " + begin->second + "\r\n";
+// 		begin++;
+// 	}
 
-	/* New line */
-	msg += "\r\n";
+// 	/* New line */
+// 	msg += "\r\n";
 
-	/* Display Temporary msg */
-	CME << "|" << msg << "|" << EME;
+// 	/* Display Temporary msg */
+// 	CME << "|" << msg << "|" << EME;
 
-	/* Body */
-	if (resp.body.size())
-		msg += resp.body;
+// 	/* Body */
+// 	if (resp.body.size())
+// 		msg += resp.body;
 
-	return (msg);
-}
+// 	/* Initialisation de count */
+// 	_count = msg.length();
+
+// 	/* Message is complete -> ready to send */
+// 	resp.isComplete = 1;
+
+// 	return (msg);
+// }

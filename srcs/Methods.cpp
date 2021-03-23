@@ -85,7 +85,6 @@ void	ServerBloc::_findPath(void)
 		// COUT << "after index path:" << _path << "|" << ENDL;
 		if ((_path.back()) == '/')
 			throw Forbidden();
-		COUT << "path:" << _path << "|" << ENDL;
 		if (_fileExist(_path) == false)
 			throw NotFound();
 	}
