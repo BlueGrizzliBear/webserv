@@ -16,7 +16,7 @@ class Request
 
 	/* Constructor */
 		/*	default		(1)	*/	Request(void);
-		/*	argument	(2)	*/	Request(std::stringstream & ss);
+		/*	argument	(2)	*/	Request(std::string str);
 		/*	copy		(3)	*/	Request(Request const & cpy);
 
 	/* Destructor */
@@ -38,6 +38,7 @@ class Request
 
 	/* Member Functions */
 	public:
+		bool	isComplete(void);
 
 	private:
 		size_t	_passSpaces(void);
@@ -60,18 +61,17 @@ class Request
 		std::string	_getWord(char const * delimiter_dic);
 		std::string	_getWord(int func(int));
 
-		int		_parseRequestLine(void) throw(NotImplemented, BadRequest);
-		int		_parseHeaders(void) throw(BadRequest);
-		int		_parseBody(void) throw(BadRequest);
+		bool	_parseRequestLine(void) throw(NotImplemented, BadRequest);
+		bool	_parseHeaders(void) throw(BadRequest);
+		bool	_parseBody(void) throw(BadRequest);
 
-		int		_parseChunkedBody(ssize_t & size) throw(BadRequest);
+		void	_parseChunkedBody(ssize_t & size) throw(BadRequest);
 		bool	_checkEndOfChunkedEncoding(ssize_t & size);
 
 	/* Member Attributes */
 	public:
 		/* Parsing Attributes */
-		std::stringstream	ss;
-		bool				finished;
+		std::stringstream	receivedData;
 
 		/* Request Attributes */
 		std::string		method;
@@ -80,10 +80,15 @@ class Request
 		Headers			headers;
 		std::string		body;
 
+		// bool	finishedWriting;
+
 	private:
 		ServerDictionary	_dic;
 		std::string 		_req;
 		size_t				_pos;
+
+
+		// bool				finished;
 };
 
 #endif

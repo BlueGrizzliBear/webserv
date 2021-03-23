@@ -18,55 +18,58 @@ void	exitServerOnError(const char * main_err, const char * err, ServerBloc & ser
 	exit(EXIT_FAILURE);
 }
 
-int	parseClientRequest(ServerBloc & server, int client_socket)
+bool	parseClientRequest(ServerBloc & server, Socket & client)
 {
 	try
 	{
 		/* Read Client Request with recv */
-		server.readClient(client_socket);
+		if (server.readClient(client.fd))
+		{
+			/* Displaying Client request */
+			COUT << "Received Data from client\n";
+			std::cerr << "|" << GREEN << server.req.receivedData.str() << RESET << "|" << std::endl;
 
-		if (server.serv_select.incomplete)
-			return (0);
-
-		/* Parse Client Request first */
-		server.processRequest();
+			/* Parse Client Request first */
+			if (server.processRequest())
+				return (true);
+		}
 	}
 	catch(const std::exception& e)
 	{
 		/* Catching exception from parsing request or execute request */
 		std::cerr << RED << e.what() << RESET << std::endl;
-		/* The request is done for */
-		server.req.finished = 1;
+		server.parseException(e.what());
+		return (true);	/* send true to execute the error msg to Response */
 	}
-	return (0);
+	return (false);
 }
 
-int	parseServerResponse(ServerBloc & server, Socket & client)
+bool	parseServerResponse(ServerBloc & server, Socket & client)
 {
 	try
 	{
 		if (server.sendResponse(client))
 		{
-			// FD_CLR(client.fd, &server.serv_select.writefds);	/* Removing client socket from write playlist */
 			close(client.fd);	/* Closing client socket, finished processing request */
 			client.fd = -1;
 			server.getParent()->_initSelect(server);
 			server.serv_select.fd_max = server.serv_port.fd > client.fd ? server.serv_port.fd : client.fd;	/* Re-assgning fd_max value for select */
+			return (true);
 		}
 	}
 	catch(const std::exception& e)
 	{
 		std::cerr << RED << e.what() << RESET << '\n';
-		return (1);
 	}
-	
-	return (0);
+	return (false);
 }
 
 int	launchServer(ServerBloc & server)
 {
 	Socket new_client;
 	new_client.fd = -1;
+
+	static bool status = 1;
 
 
     while (1)
@@ -90,11 +93,18 @@ int	launchServer(ServerBloc & server)
 					// COUT << "reseting server\n";
 					server.getParent()->_initSelect(server);
 				}
-				else
+				else if (status == 1)
 				{
 					// COUT << "reseting read fds\n";
 					FD_ZERO(&server.serv_select.readfds);
 					FD_SET(new_client.fd, &server.serv_select.readfds);
+				}
+				else
+				{
+					// COUT << "reseting write fds\n";
+					// FD_ZERO(&server.serv_select.readfds);
+					FD_ZERO(&server.serv_select.writefds);
+					FD_SET(new_client.fd, &server.serv_select.writefds);
 				}
 				break ;
 			}
@@ -106,7 +116,7 @@ int	launchServer(ServerBloc & server)
 			default:
 			{
 				/* Keyboard was pressed, exiting server properly */
-				if (FD_ISSET(STDIN_FILENO, &server.serv_select.readfds))
+	/* STOP */	if (FD_ISSET(STDIN_FILENO, &server.serv_select.readfds))
 				{
 					COUT << "Keyboard was pressed, exiting server properly\n";
 					FD_ZERO(&server.serv_select.readfds);
@@ -116,64 +126,51 @@ int	launchServer(ServerBloc & server)
 					close(server.serv_port.fd);
 					exit(EXIT_SUCCESS);
 				}
-				/* Someone is talking through their respective socket */
-				else if ((new_client.fd != -1) && FD_ISSET(new_client.fd, &server.serv_select.readfds))
+	/* READ */	else if ((new_client.fd != -1) && FD_ISSET(new_client.fd, &server.serv_select.readfds))
 				{
 					CMEY << "Respective socket is ready for reading request" << EME;
 
 					/* Parsing Client Request */
-					if (parseClientRequest(server, new_client.fd))
-						exitServerOnError("Error in parseClientRequest()", "Unknown error occured", server, new_client.fd);
-
-					/* Removing client socket from read playlist if finished */
-					if (server.req.finished)
+					if (parseClientRequest(server, new_client))
 					{
-						/* Clearing read list from client socket */
-						FD_CLR(new_client.fd, &server.serv_select.readfds);
-						/* Adding the client socket to the write playlist */
-						FD_SET(new_client.fd, &server.serv_select.writefds);
+						/* Removing client socket from read playlist if finished */
+						FD_CLR(new_client.fd, &server.serv_select.readfds);		/* Clearing read list from client socket */
+						FD_SET(new_client.fd, &server.serv_select.writefds);	/* Adding the client socket to the write playlist */
 					}
 				}
-				/* Respective socket is ready for writing request response */
-				else if ((new_client.fd != -1) && FD_ISSET(new_client.fd, &server.serv_select.writefds))
+	/* WRITE */	else if ((new_client.fd != -1) && FD_ISSET(new_client.fd, &server.serv_select.writefds))
 				{
 					CMEY << "Respective socket is ready for writing request response" << EME;
 
 					/* Parsing Server Response */
-					if (parseServerResponse(server, new_client))
-						exitServerOnError("Error in parseServerResponse()", "Unknown error occured", server, new_client.fd);
+					// if (parseServerResponse(server, new_client))
+					if ((status = parseServerResponse(server, new_client)))
+					{
+						// COUT << "Finished writing to Client\n";
+					}
 				}
-				/* Someone is talking to the server socket */
-				else if ((new_client.fd == -1) && FD_ISSET(server.serv_port.fd, &server.serv_select.readfds))
+	/* NEW */	else if ((new_client.fd == -1) && FD_ISSET(server.serv_port.fd, &server.serv_select.readfds))
 				{
 					CMEY << "Someone is talking to the server socket" << EME;
 
 					/* Opening socket for new client */
 					new_client.fd = accept(server.serv_port.fd, reinterpret_cast<struct sockaddr *>(&new_client.address), reinterpret_cast<socklen_t *>(&new_client.addrlen));
-
-					/* EAGAIN = no connections */
 					if (new_client.fd == -1)
 					{
 						displayError("Error in accept()", strerror(errno));
 						break ;
 					}
-					/* Set the socket to non blocking */
-					fcntl(new_client.fd, F_SETFL, O_NONBLOCK);
+					fcntl(new_client.fd, F_SETFL, O_NONBLOCK);	/* Set the socket to non blocking */
 
-					/* removing server fd from reading list to process request first */
-					FD_CLR(server.serv_port.fd, &server.serv_select.readfds);
+					
+					FD_CLR(server.serv_port.fd, &server.serv_select.readfds);	/* removing server fd from reading list to process request first */					
+					FD_SET(new_client.fd, &server.serv_select.readfds);	/* Adding the respective socket to the read playlist */
 
-					/* Adding the respective socket to the read playlist */
-					FD_SET(new_client.fd, &server.serv_select.readfds);
-
-					/* Re-assgning fd_max value for select */
-					server.serv_select.fd_max = server.serv_select.fd_max > new_client.fd ? server.serv_select.fd_max : new_client.fd;
-
-					// COUT << "Finished creating new client\n";
+					server.serv_select.fd_max = new_client.fd;	/* Re-assgning fd_max value for select */
 				}
 				else
 				{
-					// COUT << "FD weird\n";
+					COUT << "FD weird\n";
 				}
 				// COUT << "done\n";
 				break ;

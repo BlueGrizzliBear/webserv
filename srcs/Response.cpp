@@ -69,7 +69,7 @@ bool	Response::sendMsg(int client_socket)
 	ssize_t writtenBytes = write(client_socket, tmp.data(), tmp.length());		
 	if (writtenBytes < 0)
 	{
-		std::cerr << RED << "Error in write(): " << strerror(errno) << RESET << std::endl;
+		std::cerr << "Error in write(): " << strerror(errno) << ENDL;
 		return (false);
 	}
 	count += static_cast<size_t>(writtenBytes);

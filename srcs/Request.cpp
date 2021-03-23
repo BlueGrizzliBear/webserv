@@ -6,15 +6,13 @@
 Request::Request(void) {}
 
 /*	argument	(2)	*/
-Request::Request(std::stringstream & ss) : _req(ss.str()), _pos(0)
+Request::Request(std::string str) : _req(str), _pos(0)
 {
-	_parseRequestLine();
-	// CME << "REQUEST LINE OK" << RESET;
-	_parseHeaders();
-	// CME << "HEADERS OK" << RESET;
-	_parseBody();
-	// CME << "BODY DONE" << RESET << ENDL;
-	CME << "> PARSING COMPLETE !" << EME;
+	// if (_parseRequestLine() && _parseHeaders() && _parseBody())
+	if (_parseRequestLine())
+		CME << "> Parsed Request-line: COMPLETE !" << EME;
+	if (_parseHeaders())
+		CME << "> Parsed Headers: COMPLETE !" << EME;
 }
 
 /*	copy		(3)	*/
@@ -29,8 +27,6 @@ Request::~Request() {}
 /* Operators */
 Request &	Request::operator=(Request const & rhs)
 {
-	finished = rhs.finished;
-
 	method = rhs.method;
 	uri = rhs.uri;
 	protocol_v = rhs.protocol_v;
@@ -154,7 +150,7 @@ bool	Request::_isLegitPath(std::string const & path)
 	return (true);
 }
 
-int	Request::_parseRequestLine(void) throw(NotImplemented, BadRequest)
+bool	Request::_parseRequestLine(void) throw(NotImplemented, BadRequest)
 {
 	/* Request-Line = Method SP Request-URI SP HTTP-Version CRLF */
 
@@ -186,11 +182,11 @@ int	Request::_parseRequestLine(void) throw(NotImplemented, BadRequest)
 		throw BadRequest();
 	if (!_passStrictOneChar("\n"))
 		throw BadRequest();
-	
-	return (0);
+
+	return (true);
 }
 
-int	Request::_parseHeaders(void) throw(BadRequest)
+bool	Request::_parseHeaders(void) throw(BadRequest)
 {
 	/* Request Header Fields */
 
@@ -225,10 +221,10 @@ int	Request::_parseHeaders(void) throw(BadRequest)
 		_passOneChar("\r");
 		_passOneChar("\n");
 	}
-	return (0);
+	return (true);
 }
 
-int	Request::_parseChunkedBody(ssize_t & size) throw(BadRequest)
+void	Request::_parseChunkedBody(ssize_t & size) throw(BadRequest)
 {
 	std::string tmp;
 
@@ -242,7 +238,6 @@ int	Request::_parseChunkedBody(ssize_t & size) throw(BadRequest)
 	size = std::atoi(tmp.c_str());
 	while (_req[_pos] && size-- > 0)
 		body += _req[_pos++];
-	return (0);
 }
 
 bool	Request::_checkEndOfChunkedEncoding(ssize_t & size)
@@ -259,7 +254,14 @@ bool	Request::_checkEndOfChunkedEncoding(ssize_t & size)
 	return (false);
 }
 
-int	Request::_parseBody(void) throw(BadRequest)
+bool	Request::isComplete(void)
+{
+	if (_parseBody())
+		return (true);
+	return (false);
+}
+
+bool	Request::_parseBody(void) throw(BadRequest)
 {
 	/* Check if new line */
 	if (!(_passStrictOneChar("\r") && _passStrictOneChar("\n")))
@@ -274,7 +276,6 @@ int	Request::_parseBody(void) throw(BadRequest)
 		int size = std::atoi(headers.find("Content-Length")->second.c_str());
 		while (_req[_pos] && size--)
 			_pos++;
-		finished = true;
 		COUT << "Content-Length: BODY IS COMPLETE" << ENDL;
 	}
 	/* Can only be "Transfert-Encoding: chunked" */
@@ -284,10 +285,10 @@ int	Request::_parseBody(void) throw(BadRequest)
 
 		while (_req[_pos])
 		{
-			if ((finished = _checkEndOfChunkedEncoding(size)))
+			if (_checkEndOfChunkedEncoding(size))
 			{
-				COUT << "Transfert-Encoding: complete" << ENDL;
-				return (0);
+				// COUT << "Transfert-Encoding: complete" << ENDL;
+				return (true);
 			}
 			else
 			{
@@ -300,9 +301,8 @@ int	Request::_parseBody(void) throw(BadRequest)
 	}
 	else
 	{
-		/* No body */
-		finished = true;
-		COUT << "Request without body" << ENDL;
+		// COUT << "Request without body" << ENDL;
+		return (true);	/* No body */
 	}
-	return (0);
+	return (false);
 }

@@ -61,62 +61,43 @@ void	ServerBloc::parseException(const char * code)
 	}
 }
 
-void	ServerBloc::readClient(int client_socket)
+bool	ServerBloc::readClient(int client_socket)
 {
-	if (req.finished && !serv_select.incomplete)
-	{
-		req.ss.str("");
-		req.finished = 0;
-		serv_select.incomplete = 1;
-	}
-	serv_select.n = 0;
-	if ((serv_select.n = recv(client_socket, serv_select.buf, (MAX_HEADER_SIZE - 1), 0)) < 0)
+	char	recv_buffer[MAX_HEADER_SIZE];
+
+	ssize_t receivedBytes = recv(client_socket, &recv_buffer, (MAX_HEADER_SIZE - 1), 0); /* No Flag, CAREFUL */
+	if (receivedBytes < 0)
 	{
 		std::cerr << "Error in recv(): " << strerror(errno) << ENDL;
-		serv_select.n = 0;
-		return ;
-	}
-	serv_select.buf[serv_select.n] = '\0';
-	req.ss << serv_select.buf;
+		return (false);
+	}		
 
-	if (req.ss.str().find("\r\n\r\n") == std::string::npos)
-	{
-		// COUT << "Incomplete request|" << req.ss.str() << "|" << ENDL;
-		serv_select.incomplete = 1;
-	}
+	recv_buffer[static_cast<size_t>(receivedBytes)] = '\0';
+	req.receivedData << recv_buffer;
+
+	if ((req.receivedData.str().find("\r\n\r\n") == std::string::npos) || (receivedBytes == 0))
+	/* Found ending sequence | client closed connection */
+		return (false);	/* request is not complete */
 	else
-		/* Found ending sequence */
-		serv_select.incomplete = 0;
-
-	/* If client closed the connection or if we arrived at eof */
-	if (serv_select.n == 0)
-		serv_select.incomplete = 0;
-
-	return ;
+	/* Found ending sequence */
+		return (true);	/* request is complete ! */
 }
 
-void	ServerBloc::processRequest(void)
+bool	ServerBloc::processRequest(void)
 {
-	/* Displaying Client request */
-	COUT << "Received Data from client\n";
-	std::cerr << "|" << GREEN << req.ss.str() << RESET << "|" << std::endl;
+	/* Create request with parser */
+	Request new_req(req.receivedData.str());
+	req = new_req;
 
-	try
+	/* Execute the parsed request */
+	if (req.isComplete())
 	{
-		/* Create request with parser */
-		Request new_req(req.ss);
-		req = new_req;
-
-		/* Execute the parsed request */
-		if (req.finished)
-			executeRequest();
+		CME << "> Parsed Body: COMPLETE !" << EME;
+		req.receivedData.str(""); /* Reseting string stream */
+		executeRequest();
+		return (true);
 	}
-	catch(const std::exception& e)
-	{
-		std::cerr << "Exception caught|" << e.what() << "|" << ENDL;
-		parseException(e.what());
-		throw(e);
-	}
+	return (false);
 }
 
 void	ServerBloc::executeRequest(void)
@@ -194,37 +175,3 @@ std::string	ServerBloc::_getDate(void)
 	std::string	str(buffer);
 	return (str);
 }
-
-// std::string	ServerBloc::_concatenateResponse(void)
-// {
-// 	std::string msg;
-
-// 	/* Status Line */
-// 	msg = "HTTP/1.1 " + resp.status_code + " " + resp.reason_phrase + "\r\n";
-
-// 	/* Header Fields */
-// 	std::map<std::string, std::string>::iterator begin = resp.header_fields.begin();
-// 	while (begin != resp.header_fields.end())
-// 	{
-// 		msg += begin->first + ": " + begin->second + "\r\n";
-// 		begin++;
-// 	}
-
-// 	/* New line */
-// 	msg += "\r\n";
-
-// 	/* Display Temporary msg */
-// 	CME << "|" << msg << "|" << EME;
-
-// 	/* Body */
-// 	if (resp.body.size())
-// 		msg += resp.body;
-
-// 	/* Initialisation de count */
-// 	_count = msg.length();
-
-// 	/* Message is complete -> ready to send */
-// 	resp.isComplete = 1;
-
-// 	return (msg);
-// }
