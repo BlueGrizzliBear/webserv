@@ -52,12 +52,8 @@ void	ServerBloc::parseException(const char * code)
 		resp.status_code = it->first;
 		resp.reason_phrase = it->second;
 
-		/* Fill Body */
-		// resp.body =
-
 		/* Fill Header Fields */
 		resp.header_fields.insert(std::make_pair("Content-Type", "text/plain"));
-		// resp.header_fields.insert(std::make_pair("Content-Length", _getSizeOfStr(resp.body)));
 	}
 }
 

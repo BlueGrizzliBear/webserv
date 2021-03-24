@@ -226,18 +226,22 @@ bool	Request::_parseHeaders(void) throw(BadRequest)
 
 void	Request::_parseChunkedBody(ssize_t & size) throw(BadRequest)
 {
-	std::string tmp;
+	std::string hexa_size;
 
-	while (_req[_pos] && std::isxdigit(_req[_pos]))
+	COUT << "1 _req[pos]|" << _req[_pos] << "|\n";
+	while (_req[_pos] != '\r' && std::isxdigit(_req[_pos]))
 	{
-		tmp += _req[_pos];
+		hexa_size += _req[_pos];
 		body += _req[_pos++];
 	}
-	_passStrictOneChar("\r");
-	_passStrictOneChar("\n");
-	size = std::atoi(tmp.c_str());
-	while (_req[_pos] && size-- > 0)
+	COUT << "2 _req[pos]|" << _req[_pos] << "|\n";
+	if (!_req[_pos] && !_passStrictOneChar("\r") && !_req[_pos] && !_passStrictOneChar("\n"))
+		throw BadRequest();
+	size = std::atoi(hexa_size.c_str());
+	COUT << "size hexa|" << size << "|\n";
+	while (size-- > 0)
 		body += _req[_pos++];
+	COUT << "3 _req[pos]|" << _req[_pos] << "|\n";
 }
 
 bool	Request::_checkEndOfChunkedEncoding(ssize_t & size)
@@ -270,39 +274,35 @@ bool	Request::_parseBody(void) throw(BadRequest)
 		throw BadRequest();
 	}
 
-	/* Parse Body */
-	if (headers.find("Content-Length") != headers.end())
+	if (headers.find("Transfer-Encoding") != headers.end())
 	{
-		int size = std::atoi(headers.find("Content-Length")->second.c_str());
-		while (_req[_pos] && size--)
-			_pos++;
-		COUT << "Content-Length: BODY IS COMPLETE" << ENDL;
-	}
-	/* Can only be "Transfert-Encoding: chunked" */
-	else if (headers.find("Transfer-Encoding") != headers.end())
-	{
-		static ssize_t size = 0;
+		static ssize_t size = -1;
+		COUT << "_req[pos]|" << _req[_pos] << "|\n";
 
-		while (_req[_pos])
+		while (!_checkEndOfChunkedEncoding(size))
 		{
-			if (_checkEndOfChunkedEncoding(size))
-			{
-				// COUT << "Transfert-Encoding: complete" << ENDL;
-				return (true);
-			}
-			else
-			{
-				_parseChunkedBody(size);
-				COUT << "Transfert-Encoding: INCOMPLETE BODY" << ENDL;
-			}
+			_parseChunkedBody(size);
+			COUT << "size|" << size << "|\n";
+			COUT << "Transfert-Encoding: INCOMPLETE BODY" << ENDL;
+			return (false);
 		}
-		COUT << "Char|" << _req[_pos] << "|" << ENDL;
-		COUT << "Transfert-Encoding: INCOMPLETE BODY" << ENDL;
+		size = 0;
+		return (true);
+		COUT << "Transfert-Encoding: BODY" << ENDL;
+	}
+	else if (headers.find("Content-Length") != headers.end())
+	{
+		size_t size = static_cast<size_t>(std::atoi(headers.find("Content-Length")->second.c_str()));
+		
+		if (size > _req.size() - _pos)
+			return (false);
+		while (size--)
+			body += _req[_pos++];
+		
+		COUT << "Content-Length: BODY IS COMPLETE" << ENDL;
+		return (true);
 	}
 	else
-	{
-		// COUT << "Request without body" << ENDL;
 		return (true);	/* No body */
-	}
 	return (false);
 }

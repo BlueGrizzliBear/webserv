@@ -208,7 +208,7 @@ int main(int argc, char const ** argv)
 			std::string path = (argc == 1 ? "./configuration/default.conf" : argv[1]);
 			ConfigParser	config(path.c_str());
 			CME << "Parsing Complete !" << EME;
-			config.display_config();
+			// config.display_config();
 
 			CME << "Launching All Servers . . ." << EME;
 			unsigned long size = config.getServers().size();
