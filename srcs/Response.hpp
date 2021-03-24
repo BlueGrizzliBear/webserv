@@ -1,8 +1,8 @@
 #ifndef RESPONSE_HPP
-#define RESPONSE_HPP
+# define RESPONSE_HPP
 
-#include "./webserv.hpp"
-#include "./ServerDictionary.hpp"
+# include "./webserv.hpp"
+# include "./ServerDictionary.hpp"
 
 /* Response Class Declaration */
 class Response
@@ -20,7 +20,7 @@ class Response
 
 	/* Operators */
 		Response &	operator=(Response const & rhs);
-	
+
 	/* Exceptions */
 
 	/* Member Functions */

@@ -1,10 +1,10 @@
 #ifndef CONFIGPARSER_HPP
-#define CONFIGPARSER_HPP
+# define CONFIGPARSER_HPP
 
-#include "./webserv.hpp"
-#include "./ServerDictionary.hpp"
-#include "./LocationBloc.hpp"
-#include "./ServerBloc.hpp"
+# include "./webserv.hpp"
+# include "./ServerDictionary.hpp"
+# include "./LocationBloc.hpp"
+# include "./ServerBloc.hpp"
 
 class ServerBloc;
 
@@ -28,7 +28,7 @@ class ConfigParser
 
 	/* Operators */
 		ConfigParser &	operator=(ConfigParser const & rhs);
-		
+
 	/* Exceptions */
 		class FileAccess : public std::exception
 		{
@@ -108,7 +108,7 @@ class ConfigParser
 
 		void	_initPort(ServerBloc & serv);
 		void	_initServers(void);
-	
+
 	public:
 		void	_initSelect(ServerBloc & serv);
 
@@ -123,7 +123,7 @@ class ConfigParser
 	/* Member Attributes */
 	private:
 		/* Parsing utilities */
-		ServerDictionary	_dic;		
+		ServerDictionary	_dic;
 		std::string			_path;
 		std::string			_line;
 		size_t				_line_no;

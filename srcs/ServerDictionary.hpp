@@ -1,7 +1,7 @@
 #ifndef SERVERDICTIONARY_HPP
-#define SERVERDICTIONARY_HPP
+# define SERVERDICTIONARY_HPP
 
-#include "./webserv.hpp"
+# include "./webserv.hpp"
 
 class	ServerDictionary
 {

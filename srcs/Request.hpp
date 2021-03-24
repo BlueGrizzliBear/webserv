@@ -1,8 +1,8 @@
 #ifndef REQUEST_HPP
-#define REQUEST_HPP
+# define REQUEST_HPP
 
-#include "./webserv.hpp"
-#include "./ServerDictionary.hpp"
+# include "./webserv.hpp"
+# include "./ServerDictionary.hpp"
 // #include "./ServerBloc.hpp"
 
 class ServerBloc;
@@ -24,7 +24,7 @@ class Request
 
 	/* Operators */
 		Request &	operator=(Request const & rhs);
-	
+
 	/* Exceptions */
 		class BadRequest : public std::exception {
 			public:
