@@ -1,7 +1,46 @@
-#include "./ServerBloc.hpp"
+#include "./Methods.hpp"
+
+/* Methods Class Declaration */
+/* Constructor */
+/*	default		(1)	*/
+Methods::Methods(void) : serv(NULL) {}
+
+/*	default		(1)	*/
+Methods::Methods(ServerBloc & server) : serv(&server) {}
+
+/*	copy		(2)	*/
+Methods::Methods(Methods const & cpy)
+{
+	*this = cpy;
+}
+
+/* Destructor */
+Methods::~Methods() {}
+
+/* Operators */
+Methods &	Methods::operator=(Methods const & rhs)
+{
+	serv = rhs.serv;
+	return (*this);
+}
 
 /* Member Functions */
-void	ServerBloc::_applyGet()
+void	Methods::execute(void)
+{
+	if (serv->req.method == "GET")
+		_applyGet();
+	else if (serv->req.method == "HEAD")
+		_applyHead();
+	else if (serv->req.method == "POST")
+	{
+		_applyPost();
+		// throw BadRequest();
+		// throw UnsupportedMediaType();
+		// throw Unauthorized();
+	}
+}
+
+void	Methods::_applyGet()
 {
 	/* Check if file exist on server */
 	_findPath();
@@ -13,25 +52,25 @@ void	ServerBloc::_applyGet()
 	_fillBody();
 
 	/* if req header is If-Modified-Since, respond with 200 if modified file after the date or respond 304 with empty body */
-	if (req.headers.find("If-Modified-Since") != req.headers.end())
-		std::string date = req.headers.find("If-Modified-Since")->second;
+	if (serv->req.headers.find("If-Modified-Since") != serv->req.headers.end())
+		std::string date = serv->req.headers.find("If-Modified-Since")->second;
 
-	resp.header_fields.insert(std::make_pair("Transfer-Encoding", "identity"));
+	serv->resp.header_fields.insert(std::make_pair("Transfer-Encoding", "identity"));
 }
 
-void	ServerBloc::_applyHead()
+void	Methods::_applyHead()
 {
 	_applyGet();
-	resp.body.clear();
+	serv->resp.body.clear();
 }
 
-void	ServerBloc::_applyPost()
+void	Methods::_applyPost()
 {
 	_findPath();
 }
 
 template< typename T, typename U >
-std::string	ServerBloc::_findRoot(std::map< T, U > dir)
+std::string	Methods::_findRoot(std::map< T, U > dir)
 {
 	if (dir.find("root") != dir.end())
 		return ("." + dir.find("root")->second[0]);
@@ -39,7 +78,7 @@ std::string	ServerBloc::_findRoot(std::map< T, U > dir)
 }
 
 template< typename T, typename U >
-bool		ServerBloc::_findAutoIndex(std::map< T, U > dir, bool autoindex)
+bool		Methods::_findAutoIndex(std::map< T, U > dir, bool autoindex)
 {
 	if (dir.find("autoindex") != dir.end() && dir.find("autoindex")->second[0] == "off")
 		return (false);
@@ -47,21 +86,21 @@ bool		ServerBloc::_findAutoIndex(std::map< T, U > dir, bool autoindex)
 }
 
 template< typename T, typename U >
-std::vector<std::string>	ServerBloc::_findVect(std::map< T, U > dir, std::string to_find, std::vector<std::string> vect)
+std::vector<std::string>	Methods::_findVect(std::map< T, U > dir, std::string to_find, std::vector<std::string> vect)
 {
 	if (dir.find(to_find) != dir.end())
 		return (dir.find(to_find)->second);
 	return vect;
 }
 
-bool	ServerBloc::_isRegex(std::string str)
+bool	Methods::_isRegex(std::string str)
 {
 	if (str == "=" || str == "^~" || str == "~" || str == "~*" || str == "@")
 		return true;
 	return false;
 }
 
-bool			ServerBloc::_compareFromEnd(std::string uri_path, std::vector<std::string> path_set)
+bool	Methods::_compareFromEnd(std::string uri_path, std::vector<std::string> path_set)
 {
 	for (std::vector<std::string>::iterator it = path_set.begin(); it != path_set.end(); ++it)
 	{
@@ -79,7 +118,7 @@ bool			ServerBloc::_compareFromEnd(std::string uri_path, std::vector<std::string
 	return false;
 }
 
-bool			ServerBloc::_compareFromBegin(std::string uri_path, std::vector<std::string> path_set)
+bool	Methods::_compareFromBegin(std::string uri_path, std::vector<std::string> path_set)
 {
 	for (std::vector<std::string>::iterator it = path_set.begin(); it != path_set.end(); ++it)
 	{
@@ -96,7 +135,7 @@ bool			ServerBloc::_compareFromBegin(std::string uri_path, std::vector<std::stri
 	return false;
 }
 
-bool			ServerBloc::_compareCapturingGroup(std::string uri_path, std::string cap_grp)
+bool			Methods::_compareCapturingGroup(std::string uri_path, std::string cap_grp)
 {
 	std::string::iterator		it_cap = cap_grp.begin();
 	std::vector<std::string>	path_set;
@@ -143,7 +182,7 @@ bool			ServerBloc::_compareCapturingGroup(std::string uri_path, std::string cap_
 	return false;
 }
 
-std::string		ServerBloc::_toLowerStr(std::string const &str)
+std::string		Methods::_toLowerStr(std::string const &str)
 {
 	std::string	ret;
 
@@ -152,18 +191,18 @@ std::string		ServerBloc::_toLowerStr(std::string const &str)
 	return ret;
 }
 
-void	ServerBloc::_matchingLocationDir(std::map<std::vector<std::string>, LocationBloc>::iterator it, bool *break_loc, std::map<std::string, std::vector<std::string> > *location_dir)
+void	Methods::_matchingLocationDir(std::map<std::vector<std::string>, LocationBloc>::iterator it, bool *break_loc, std::map<std::string, std::vector<std::string> > *location_dir)
 {
 	if (_isRegex(it->first[0]))
 	{
 		*break_loc = true;
-		if (it->first[0] == "=" && (req.uri == it->first[1]))
+		if (it->first[0] == "=" && (serv->req.uri == it->first[1]))
 			*location_dir = it->second.loc_dir;
-		else if (it->first[0] == "^~" && _compareCapturingGroup(req.uri, it->first[1]))
+		else if (it->first[0] == "^~" && _compareCapturingGroup(serv->req.uri, it->first[1]))
 			*location_dir = it->second.loc_dir;
-		else if (it->first[0] == "~" && _compareCapturingGroup(req.uri, it->first[1]))
+		else if (it->first[0] == "~" && _compareCapturingGroup(serv->req.uri, it->first[1]))
 			*location_dir = it->second.loc_dir;
-		else if (it->first[0] == "~*" && _compareCapturingGroup(_toLowerStr(req.uri), _toLowerStr(it->first[1])))
+		else if (it->first[0] == "~*" && _compareCapturingGroup(_toLowerStr(serv->req.uri), _toLowerStr(it->first[1])))
 			*location_dir = it->second.loc_dir;
 		else
 			*break_loc = false;
@@ -180,9 +219,9 @@ void	ServerBloc::_matchingLocationDir(std::map<std::vector<std::string>, Locatio
 }
 
 template< typename T, typename U >
-std::string	ServerBloc::_findRewrite(std::map< T, U > dir)
+std::string	Methods::_findRewrite(std::map< T, U > dir)
 {
-	std::string		req_uri = req.uri;
+	std::string		req_uri = serv->req.uri;
 
 	if (dir.find("rewrite") != dir.end())
 	{
@@ -194,7 +233,7 @@ std::string	ServerBloc::_findRewrite(std::map< T, U > dir)
 	return req_uri;
 }
 
-void	ServerBloc::_checkAllowedMethods(std::vector<std::string> methods)
+void	Methods::_checkAllowedMethods(std::vector<std::string> methods)
 {
 	std::string	cat_meth;
 
@@ -203,19 +242,19 @@ void	ServerBloc::_checkAllowedMethods(std::vector<std::string> methods)
 		// COUT << "methods not empty false" << ENDL;
 		for (std::vector<std::string>::iterator it = methods.begin(); it != methods.end(); ++it)
 		{
-			if (req.method == *it)
+			if (serv->req.method == *it)
 				return ;
 			if (*it != methods.back())
 				cat_meth += *it + ", ";
 			else
 				cat_meth += *it;
 		}
-		resp.header_fields.insert(std::make_pair("Allow", cat_meth));
-		throw MethodNotAllowed();
+		serv->resp.header_fields.insert(std::make_pair("Allow", cat_meth));
+		throw ServerBloc::MethodNotAllowed();
 	}
 }
 
-void	ServerBloc::_findPath(void)
+void	Methods::_findPath(void)
 {
 	bool						autoindex = true;
 	bool						break_loc = false;
@@ -223,22 +262,22 @@ void	ServerBloc::_findPath(void)
 	std::vector<std::string>	indexes;
 	std::vector<std::string>	error_pages;
 	std::map<std::string, std::vector<std::string> >	locationDir;
-	std::string					req_uri = req.uri;
+	std::string					req_uri = serv->req.uri;
 
 	/* finding all default server conf */
-	_path = _findRoot(dir);
+	_path = _findRoot(serv->dir);
 	// COUT << "find _path:" << _path << ENDL;
-	autoindex = _findAutoIndex(dir, autoindex);
+	autoindex = _findAutoIndex(serv->dir, autoindex);
 	// COUT << "find autoindex:" << autoindex << ENDL;
-	methods = _findVect(dir, "allowed_methods", methods);
+	methods = _findVect(serv->dir, "allowed_methods", methods);
 	// COUT << "find methods ok:" << ENDL;
-	indexes = _findVect(dir, "index", indexes);
+	indexes = _findVect(serv->dir, "index", indexes);
 	// COUT << "find indexes ok:" << ENDL;
-	error_pages = _findVect(dir, "error_pages", error_pages);
+	error_pages = _findVect(serv->dir, "error_pages", error_pages);
 	// COUT << "find error_pages ok:" << ENDL;
 
 	/* iterating location bloc */
-	for (std::map<std::vector<std::string>, LocationBloc>::iterator it = loc.begin(); it != loc.end(); ++it)
+	for (std::map<std::vector<std::string>, LocationBloc>::iterator it = serv->loc.begin(); it != serv->loc.end(); ++it)
 	{
 		// COUT << "loc dir:" << (*it).first[0] << ENDL;
 		_matchingLocationDir(it, &break_loc, &locationDir);
@@ -272,13 +311,13 @@ void	ServerBloc::_findPath(void)
 			_findIndex(indexes);
 		// COUT << "after index path:" << _path << "|" << ENDL;
 		if ((_path.back()) == '/')
-			throw Forbidden();
+			throw ServerBloc::Forbidden();
 		if (_fileExist(_path) == false)
-			throw NotFound();
+			throw ServerBloc::NotFound();
 	}
 }
 
-// void	ServerBloc::_findPath(void)
+// void	Methods::_findPath(void)
 // {
 // 	std::string		req_uri = req.uri;
 
@@ -345,9 +384,9 @@ void	ServerBloc::_findPath(void)
 // 	}
 // }
 
-bool		ServerBloc::_isDirectory(std::string const &path)
+bool	Methods::_isDirectory(std::string const & path)
 {
-	DIR				*dir = NULL;
+	DIR	*	dir = NULL;
 
 	if ((dir = opendir(path.c_str())))
 	{
@@ -358,8 +397,7 @@ bool		ServerBloc::_isDirectory(std::string const &path)
 		return false;
 }
 
-
-// void		ServerBloc::_createIndexHTML()
+// void		Methods::_createIndexHTML()
 // {
 // 	DIR				*dir;
 // 	struct dirent	*list;
@@ -373,7 +411,7 @@ bool		ServerBloc::_isDirectory(std::string const &path)
 // 		throw NotFound();
 // }
 
-void		ServerBloc::_checkContentType()
+void	Methods::_checkContentType(void)
 {
 	/* If directory do nothing */
 	if (_path.back() == '/')
@@ -382,22 +420,22 @@ void		ServerBloc::_checkContentType()
 	std::string	contentType;
 	std::string	pathExt = _pathExtension(_path);
 
-	if (_parent->getDictionary().mimeDic.find(pathExt) != _parent->getDictionary().mimeDic.end())
-		contentType = _parent->getDictionary().mimeDic.find(pathExt)->second;
+	if (serv->getParent()->getDictionary().mimeDic.find(pathExt) != serv->getParent()->getDictionary().mimeDic.end())
+		contentType = serv->getParent()->getDictionary().mimeDic.find(pathExt)->second;
 	else
-		contentType = _parent->getDictionary().mimeDic.find("txt")->second;
+		contentType = serv->getParent()->getDictionary().mimeDic.find("txt")->second;
 	/* check if content-type exist if the request content-type */
-	if (req.headers.find("Content-Type") != req.headers.end())
+	if (serv->req.headers.find("Content-Type") != serv->req.headers.end())
 	{
-		if (req.headers.find("Content-Type")->second != contentType)
-			throw UnsupportedMediaType();
+		if (serv->req.headers.find("Content-Type")->second != contentType)
+			throw ServerBloc::UnsupportedMediaType();
 	}
-	resp.header_fields.insert(std::make_pair("Content-Type", contentType));
+	serv->resp.header_fields.insert(std::make_pair("Content-Type", contentType));
 }
 
-std::string	ServerBloc::_pathExtension(const std::string& path)
+std::string	Methods::_pathExtension(const std::string & path)
 {
-	std::string							ext;
+	std::string	ext;
 	std::string::const_reverse_iterator	it = path.rbegin();
 
 	while (it != path.rend())
@@ -414,7 +452,7 @@ std::string	ServerBloc::_pathExtension(const std::string& path)
 	return ("txt");
 }
 
-void	ServerBloc::_findIndex(std::vector<std::string> indexes)
+void	Methods::_findIndex(std::vector<std::string> indexes)
 {
 	for (std::vector<std::string>::iterator it = indexes.begin(); it != indexes.end(); ++it)
 	{
@@ -427,9 +465,9 @@ void	ServerBloc::_findIndex(std::vector<std::string> indexes)
 	_path += *(indexes.begin());
 }
 
-bool	ServerBloc::_fileExist(const std::string & name)
+bool	Methods::_fileExist(const std::string & name)
 {
-	int		fd;
+	int	fd;
 
 	if ((fd = open(name.c_str(), O_WRONLY)) < 1)
 		return false;
@@ -440,49 +478,49 @@ bool	ServerBloc::_fileExist(const std::string & name)
 	}
 }
 
-void	ServerBloc::_fillBody()
+void	Methods::_fillBody()
 {
 	std::ifstream		file(_path.c_str());
 	std::stringstream	strStream;
 
 	strStream << file.rdbuf();
-	resp.body = strStream.str();
+	serv->resp.body = strStream.str();
 	file.close();
 }
 
-std::string	ServerBloc::_uriFirstPart()
+std::string	Methods::_uriFirstPart()
 {
 	std::string	uri_path;
 	std::string	tmp;
 
-	uri_path = req.uri[0];
+	uri_path = serv->req.uri[0];
 
-	for (unsigned long i = 1; req.uri[i]; ++i)
+	for (unsigned long i = 1; serv->req.uri[i]; ++i)
 	{
-		if (req.uri[i] == '/')
+		if (serv->req.uri[i] == '/')
 		{
-			tmp += req.uri[i];
+			tmp += serv->req.uri[i];
 			return (uri_path + tmp);
 		}
-		tmp += req.uri[i];
+		tmp += serv->req.uri[i];
 	}
 	if (tmp.empty() == false && tmp.back() != '/')
 		return  (uri_path + tmp + '/');
-	return uri_path;
+	return (uri_path);
 }
 
-std::string	ServerBloc::_uriWithoutFirstPart()
+std::string	Methods::_uriWithoutFirstPart()
 {
 	std::string		uri_path;
 	unsigned long	i = 1;
 
-	while (req.uri[i] && req.uri[i] != '/')
+	while (serv->req.uri[i] && serv->req.uri[i] != '/')
 		++i;
 	++i;
-	while (req.uri[i])
+	while (serv->req.uri[i])
 	{
-		uri_path += req.uri[i];
+		uri_path += serv->req.uri[i];
 		++i;
 	}
-	return uri_path;
+	return (uri_path);
 }

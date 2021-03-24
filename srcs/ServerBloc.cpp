@@ -66,7 +66,7 @@ bool	ServerBloc::readClient(int client_socket)
 	{
 		std::cerr << "Error in recv(): " << strerror(errno) << ENDL;
 		return (false);
-	}		
+	}
 
 	recv_buffer[static_cast<size_t>(receivedBytes)] = '\0';
 	req.receivedData << recv_buffer;
@@ -98,17 +98,9 @@ bool	ServerBloc::processRequest(void)
 
 void	ServerBloc::executeRequest(void)
 {
-	if (req.method == "GET")
-		_applyGet();
-	else if (req.method == "HEAD")
-		_applyHead();
-	else if (req.method == "POST")
-	{
-		_applyPost();
-		// throw BadRequest();
-		// throw UnsupportedMediaType();
-		// throw Unauthorized();
-	}
+	Methods	implementedMethods(*this);
+
+	implementedMethods.execute();
 
 	/* Depending on Execution */
 	/* Fill Status Line */
@@ -146,7 +138,7 @@ bool	ServerBloc::sendResponse(Socket & client)
 {
 	if (!resp.isComplete)
 	{
-		_addHeaderFields();	/* Add the right header fields */	
+		_addHeaderFields();	/* Add the right header fields */
 		resp.concatenateResponse();	/* Fill response msg */
 	}
 	return (resp.sendMsg(client.fd));
