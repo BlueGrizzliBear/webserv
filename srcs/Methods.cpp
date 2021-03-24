@@ -250,6 +250,7 @@ void	Methods::_checkAllowedMethods(std::vector<std::string> methods)
 				cat_meth += *it;
 		}
 		serv->resp.header_fields.insert(std::make_pair("Allow", cat_meth));
+		COUT << "here\n";
 		throw ServerBloc::MethodNotAllowed();
 	}
 }

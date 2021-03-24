@@ -228,20 +228,19 @@ void	Request::_parseChunkedBody(ssize_t & size) throw(BadRequest)
 {
 	std::string hexa_size;
 
-	COUT << "1 _req[pos]|" << _req[_pos] << "|\n";
 	while (_req[_pos] != '\r' && std::isxdigit(_req[_pos]))
-	{
-		hexa_size += _req[_pos];
-		body += _req[_pos++];
-	}
-	COUT << "2 _req[pos]|" << _req[_pos] << "|\n";
-	if (!_req[_pos] && !_passStrictOneChar("\r") && !_req[_pos] && !_passStrictOneChar("\n"))
+		hexa_size += _req[_pos++];
+	if (!_req[_pos] || !_passStrictOneChar("\r") || !_req[_pos] || !_passStrictOneChar("\n"))
 		throw BadRequest();
-	size = std::atoi(hexa_size.c_str());
-	COUT << "size hexa|" << size << "|\n";
-	while (size-- > 0)
+	size = std::strtol(hexa_size.c_str(), NULL, 16);
+	while (size > 0)
+	{
 		body += _req[_pos++];
-	COUT << "3 _req[pos]|" << _req[_pos] << "|\n";
+		size--;
+	}
+	if (!_req[_pos] || !_passStrictOneChar("\r") || !_req[_pos] || !_passStrictOneChar("\n"))
+		throw BadRequest();
+	// COUT << "body|" << body << "|\n";
 }
 
 bool	Request::_checkEndOfChunkedEncoding(ssize_t & size)
@@ -276,19 +275,20 @@ bool	Request::_parseBody(void) throw(BadRequest)
 
 	if (headers.find("Transfer-Encoding") != headers.end())
 	{
-		static ssize_t size = -1;
-		COUT << "_req[pos]|" << _req[_pos] << "|\n";
+		static ssize_t size = 0;
 
+		if (_req.find("0\r\n\r\n", _pos) == std::string::npos)
+		{
+			// COUT << "Transfert-Encoding: INCOMPLETE BODY" << ENDL;
+			return (false);
+		}
 		while (!_checkEndOfChunkedEncoding(size))
 		{
 			_parseChunkedBody(size);
-			COUT << "size|" << size << "|\n";
-			COUT << "Transfert-Encoding: INCOMPLETE BODY" << ENDL;
-			return (false);
 		}
 		size = 0;
 		return (true);
-		COUT << "Transfert-Encoding: BODY" << ENDL;
+		// COUT << "Transfert-Encoding: BODY" << ENDL;
 	}
 	else if (headers.find("Content-Length") != headers.end())
 	{
@@ -299,7 +299,7 @@ bool	Request::_parseBody(void) throw(BadRequest)
 		while (size--)
 			body += _req[_pos++];
 		
-		COUT << "Content-Length: BODY IS COMPLETE" << ENDL;
+		// COUT << "Content-Length: BODY IS COMPLETE" << ENDL;
 		return (true);
 	}
 	else
