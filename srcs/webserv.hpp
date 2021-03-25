@@ -31,7 +31,7 @@
 /* Default Config */
 # define PORT 8080
 # define MAX_CLIENTS 1024
-# define MAX_HEADER_SIZE 8192
+# define MAX_HEADER_SIZE 819
 
 /* Debug defines */
 # define COUT std::cout
@@ -45,6 +45,9 @@
 # define CMER std::cerr << RED
 // #define CMEG std::cerr << GREEN
 # define EME RESET << std::endl
+
+static struct timeval mytime1;
+static struct timeval mytime2;
 
 /* Terminal Colors */
 # define RESET		"\033[0m"

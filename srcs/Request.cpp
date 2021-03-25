@@ -276,9 +276,12 @@ bool	Request::_parseBody(void) throw(BadRequest)
 	if (headers.find("Transfer-Encoding") != headers.end())
 	{
 		static ssize_t size = 0;
+		static size_t check_pos = _pos;
 
-		if (_req.find("0\r\n\r\n", _pos) == std::string::npos)
+		if (_req.find("0\r\n\r\n", check_pos) == std::string::npos)
 		{
+			check_pos = _req.size() - 4;
+
 			// COUT << "Transfert-Encoding: INCOMPLETE BODY" << ENDL;
 			return (false);
 		}

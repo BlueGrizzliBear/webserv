@@ -27,7 +27,8 @@ bool	parseClientRequest(ServerBloc & server, Socket & client)
 		{
 			/* Displaying Client request */
 			COUT << "Received Data from client\n";
-			std::cerr << "|" << GREEN << server.req.receivedData.str() << RESET << "|" << std::endl;
+			// std::cerr << "|" << GREEN << server.req.receivedData.str() << RESET << "|" << std::endl;
+			std::cerr << "Displaying length|" << GREEN << server.req.receivedData.str().length() << RESET << "|" << std::endl;
 
 			/* Parse Client Request first */
 			if (server.processRequest())
@@ -50,6 +51,8 @@ bool	parseServerResponse(ServerBloc & server, Socket & client)
 	{
 		if (server.sendResponse(client))
 		{
+			gettimeofday(&mytime2, NULL);
+			COUT << RED << "Time elapsed: " << static_cast<float>((mytime2.tv_sec - mytime1.tv_sec) * 1000 + ((mytime2.tv_usec - mytime1.tv_usec) / 1000)) << " ms." << RESET << ENDL;
 			close(client.fd);	/* Closing client socket, finished processing request */
 			client.fd = -1;
 			server.getParent()->_initSelect(server);
@@ -70,7 +73,6 @@ int	launchServer(ServerBloc & server)
 	new_client.fd = -1;
 
 	static bool status = 1;
-
 
     while (1)
     {
@@ -151,6 +153,9 @@ int	launchServer(ServerBloc & server)
 				}
 	/* NEW */	else if ((new_client.fd == -1) && FD_ISSET(server.serv_port.fd, &server.serv_select.readfds))
 				{
+					gettimeofday(&mytime1, NULL);
+					// time(&mytime);
+
 					CMEY << "Someone is talking to the server socket" << EME;
 
 					/* Opening socket for new client */
