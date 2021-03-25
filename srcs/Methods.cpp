@@ -27,6 +27,9 @@ Methods &	Methods::operator=(Methods const & rhs)
 /* Member Functions */
 void	Methods::execute(void)
 {
+	/* uri resolution process (treat ../ and ./ if exist */
+	_URIResolutionProcess();
+
 	if (serv->req.method == "GET")
 		_applyGet();
 	else if (serv->req.method == "HEAD")
@@ -38,14 +41,55 @@ void	Methods::execute(void)
 		// throw UnsupportedMediaType();
 		// throw Unauthorized();
 	}
+	// else if (serv->req.method == "PUT")
+
+		// _applyPut();
 }
 
-void	Methods::_applyGet()
+void	Methods::_URIResolutionProcess(void)
+{
+	size_t pos = 0;
+	std::string tmp;
+	std::string new_uri;
+
+	while (!serv->req.uri.empty())
+	{
+
+		/* 1st */
+		if (!serv->req.uri.find(tmp = "../") || !serv->req.uri.find(tmp = "./"))
+			serv->req.uri.erase(0, tmp.size());
+		/* 3rd */
+		else if (!serv->req.uri.find(tmp = "/../") || !serv->req.uri.find(tmp = "/.."))
+		{
+			serv->req.uri.replace(0, tmp.size(), "/");
+			if ((pos = new_uri.rfind("/")) != std::string::npos)
+				new_uri.erase(pos, pos - new_uri.size());
+		}
+		/* 2nd */
+		else if (!serv->req.uri.find(tmp = "/./") || !serv->req.uri.find(tmp = "/."))
+			serv->req.uri.replace(0, tmp.size(), "/");
+		/* 4th */
+		else if (!serv->req.uri.find(tmp = ".") || !serv->req.uri.find(tmp = ".."))
+			serv->req.uri.erase(0, tmp.size());
+		/* 5th */
+		else
+		{
+			size_t i = (serv->req.uri.find("/") == 0) ? 1 : 0;
+			if ((pos = serv->req.uri.find("/", i)) == std::string::npos)
+				pos = serv->req.uri.size();
+			new_uri += serv->req.uri.substr(0, pos);
+			serv->req.uri.erase(0, pos);
+		}
+	}
+	serv->req.uri = new_uri;
+}
+
+void	Methods::_applyGet(void)
 {
 	/* Check if file exist on server */
 	_findPath();
-	/* Check access rights to access */
-		// A FAIRE
+	/* execute specific to GET request */
+	_executeGetReq();
 	/* Check if server knows file type */
 	_checkContentType();
 	/* Fill body with file content */
@@ -58,7 +102,7 @@ void	Methods::_applyGet()
 	serv->resp.header_fields.insert(std::make_pair("Transfer-Encoding", "identity"));
 }
 
-void	Methods::_applyHead()
+void	Methods::_applyHead(void)
 {
 	_applyGet();
 	serv->resp.body.clear();
@@ -66,6 +110,32 @@ void	Methods::_applyHead()
 
 void	Methods::_applyPost()
 {
+	_findPath();
+}
+
+void	Methods::_applyPut()
+{
+// If the target resource does not have a current representation and the
+//    PUT successfully creates one, then the origin server MUST inform the
+//    user agent by sending a 201 (Created) response.  If the target
+//    resource does have a current representation and that representation
+//    is successfully modified in accordance with the state of the enclosed
+//    representation, then the origin server MUST send either a 200 (OK) or
+//    a 204 (No Content) response to indicate successful completion of the
+//    request.
+
+// An origin server that allows PUT on a given target resource MUST send
+//    a 400 (Bad Request) response to a PUT request that contains a
+//    Content-Range header field
+
+// An origin server MUST NOT send a validator header field
+//    (Section 7.2), such as an ETag or Last-Modified field, in a
+//    successful response to PUT unless the request's representation data
+//    was saved without any transformation applied to the body (i.e., the
+//    resource's new representation data is identical to the representation
+//    data received in the PUT request) and the validator field value
+//    reflects the new representation.
+
 	_findPath();
 }
 
@@ -191,21 +261,32 @@ std::string		Methods::_toLowerStr(std::string const &str)
 	return ret;
 }
 
-void	Methods::_matchingLocationDir(std::map<std::vector<std::string>, LocationBloc>::iterator it, bool *break_loc, std::map<std::string, std::vector<std::string> > *location_dir)
+bool	Methods::_matchingLocationDir(std::map<std::vector<std::string>, LocationBloc>::iterator it, std::map<std::string, std::vector<std::string> > *location_dir)
 {
 	if (_isRegex(it->first[0]))
 	{
-		*break_loc = true;
 		if (it->first[0] == "=" && (serv->req.uri == it->first[1]))
+		{
 			*location_dir = it->second.loc_dir;
+			return true;
+		}
 		else if (it->first[0] == "^~" && _compareCapturingGroup(serv->req.uri, it->first[1]))
+		{
 			*location_dir = it->second.loc_dir;
+			return true;
+		}
 		else if (it->first[0] == "~" && _compareCapturingGroup(serv->req.uri, it->first[1]))
+		{
 			*location_dir = it->second.loc_dir;
+			return true;
+		}
 		else if (it->first[0] == "~*" && _compareCapturingGroup(_toLowerStr(serv->req.uri), _toLowerStr(it->first[1])))
+		{
 			*location_dir = it->second.loc_dir;
-		else
-			*break_loc = false;
+			return true;
+		}
+		// else
+		// 	return false;
 	}
 	else
 	{
@@ -213,9 +294,10 @@ void	Methods::_matchingLocationDir(std::map<std::vector<std::string>, LocationBl
 		{
 			// COUT << "match found:" << it->first[0] << ENDL;
 			*location_dir = it->second.loc_dir;
+			return false;
 		}
 	}
-	*break_loc = false;
+	return false;
 }
 
 template< typename T, typename U >
@@ -257,59 +339,56 @@ void	Methods::_checkAllowedMethods(std::vector<std::string> methods)
 
 void	Methods::_findPath(void)
 {
-	bool						autoindex = true;
-	bool						break_loc = false;
 	std::vector<std::string>	methods;
-	std::vector<std::string>	indexes;
+	// std::vector<std::string>	indexes;
 	std::vector<std::string>	error_pages;
 	std::map<std::string, std::vector<std::string> >	locationDir;
 	std::string					req_uri = serv->req.uri;
 
+	_autoindex = true;
 	/* finding all default server conf */
 	_path = _findRoot(serv->dir);
-	// COUT << "find _path:" << _path << ENDL;
-	autoindex = _findAutoIndex(serv->dir, autoindex);
-	// COUT << "find autoindex:" << autoindex << ENDL;
+	_autoindex = _findAutoIndex(serv->dir, _autoindex);
 	methods = _findVect(serv->dir, "allowed_methods", methods);
-	// COUT << "find methods ok:" << ENDL;
-	indexes = _findVect(serv->dir, "index", indexes);
-	// COUT << "find indexes ok:" << ENDL;
+	_indexes = _findVect(serv->dir, "index", _indexes);
 	error_pages = _findVect(serv->dir, "error_pages", error_pages);
-	// COUT << "find error_pages ok:" << ENDL;
 
 	/* iterating location bloc */
 	for (std::map<std::vector<std::string>, LocationBloc>::iterator it = serv->loc.begin(); it != serv->loc.end(); ++it)
 	{
-		// COUT << "loc dir:" << (*it).first[0] << ENDL;
-		_matchingLocationDir(it, &break_loc, &locationDir);
-		if (break_loc)
+		if (_matchingLocationDir(it, &locationDir))
 			break;
 	}
 	// COUT << "_path before locationDir is empty:" << _path << "|" << ENDL;
 	if (locationDir.empty() == false)
 	{
 		_path = _findRoot(locationDir);
-		autoindex = _findAutoIndex(locationDir, autoindex);
+		_autoindex = _findAutoIndex(locationDir, _autoindex);
 		methods = _findVect(locationDir, "allowed_methods", methods);
-		indexes = _findVect(locationDir, "index", indexes);
+		_indexes = _findVect(locationDir, "index", _indexes);
 		error_pages = _findVect(locationDir, "error_pages", error_pages);
 		req_uri = _findRewrite(locationDir);
 	}
-	// COUT << "_path before check allowed method:" << _path << "|" << ENDL;
 	_checkAllowedMethods(methods);
 	_path += req_uri;
-	// COUT << "_path:" << _path << "|" << ENDL;
+	COUT << "_path:" << _path << "|" << ENDL;
+}
+
+void	Methods::_executeGetReq(void)
+{
 	if (_path.back() != '/' && _isDirectory(_path) == true)
 		_path.append("/");
-	if (autoindex == false)
+	/* create html list directory if autoindex off and copy to body */
+	if (_autoindex == false)
 	{
 		if ((_path.back()) == '/')
-			COUT << "List directory" << ENDL;
+			// COUT << "List directory" << ENDL;
+			_createIndexHTML();
 	}
-	else
+	else	/* copy asked file to body if exist */
 	{
 		if ((_path.back()) == '/')
-			_findIndex(indexes);
+			_findIndex(_indexes);
 		// COUT << "after index path:" << _path << "|" << ENDL;
 		if ((_path.back()) == '/')
 			throw ServerBloc::Forbidden();
@@ -317,73 +396,6 @@ void	Methods::_findPath(void)
 			throw ServerBloc::NotFound();
 	}
 }
-
-// void	Methods::_findPath(void)
-// {
-// 	std::string		req_uri = req.uri;
-
-// 	/* take default root directory in server bloc */
-// 	if (dir.find("root") != dir.end())
-// 		_path = "." + dir.find("root")->second[0];
-// 	/* Iter on location bloc from first to last one */
-// 	for (std::map<std::vector<std::string>, LocationBloc>::iterator it = loc.begin(); it != loc.end(); ++it)
-// 	{
-// 		COUT << "it->first:" << it->first[0] << ", uriFirstPart:" << _uriFirstPart() << ENDL;
-// 		/* If a location match the uri */
-// 		if (it->first[0] == _uriFirstPart())
-// 		{
-// 			/* If allowed methods condition one location bloc */
-// 			if (it->second.loc_dir.find("allowed_methods") != it->second.loc_dir.end())
-// 			{
-// 				if (req.method != it->second.loc_dir.find("allowed_methods")->second[0])
-// 				{
-// 					resp.header_fields.insert(std::make_pair("Allow", it->second.loc_dir.find("allowed_methods")->second[0]));
-// 					throw MethodNotAllowed();
-// 				}
-// 			}
-// 			// COUT << "it->first[0] == _uriFirstPart()" << ENDL;
-// 			/* take root directory in location block if exist and ingnor the one in server bloc */
-// 			if (it->second.loc_dir.find("root") != it->second.loc_dir.end())
-// 				_path = "." + it->second.loc_dir.find("root")->second[0];
-// 			COUT << "_path:|" << _path << "|" << ENDL;
-// 			/* If rewrite replace the location diretory with rewrite directory */
-// 			if (it->second.loc_dir.find("rewrite") != it->second.loc_dir.end())
-// 			{
-// 				// COUT << "req_uri:|" << req_uri << "|" << ENDL;
-// 				req_uri = it->second.loc_dir.find("rewrite")->second[0];
-// 				if (_path.back() == '/')
-// 					req_uri.erase(0, 1);	// remove front '/'
-// 				COUT << "req_uri:|" << req_uri << "|" << ENDL;
-// 				req_uri += _uriWithoutFirstPart();
-// 				COUT << "req_uri after without first part:|" << req_uri << "|" << ENDL;
-// 			}
-// 		}
-// 	}
-// 	COUT << "before _path:" << _path << "|" << ENDL;
-// 	_path += req_uri;
-// 	COUT << "after _path:" << _path << "|" << ENDL;
-// 	if (_path.back() != '/' && _isDirectory(_path) == true)
-// 		_path.append("/");
-// 	if (dir.find("autoindex") != dir.end() && dir.find("autoindex")->second[0] == "off")
-// 	{
-// 		if ((_path.back()) == '/')
-// 			COUT << "List directory" << ENDL;
-// 			// _createIndexHTML();
-// 			// check if directory exist
-// 			// list directory in html format
-// 			// _path = path to html listing directory
-// 	}
-// 	else
-// 	{
-// 		if ((_path.back()) == '/')
-// 			_findIndex();
-// 		COUT << "after index path:" << _path << "|" << ENDL;
-// 		if ((_path.back()) == '/')
-// 			throw Forbidden();
-// 		if (_fileExist(_path) == false)
-// 			throw NotFound();
-// 	}
-// }
 
 bool	Methods::_isDirectory(std::string const & path)
 {
@@ -398,19 +410,76 @@ bool	Methods::_isDirectory(std::string const & path)
 		return false;
 }
 
-// void		Methods::_createIndexHTML()
-// {
-// 	DIR				*dir;
-// 	struct dirent	*list;
+void		Methods::_createIndexHTML()
+{
+	DIR				*dir;
 
-// 	if ((dir = opendir(_path.c_str())))
-// 	{
-// 		list = readdir(dir);
+	/* check if directory exist */
+	if ((dir = opendir(_path.c_str())))
+	{
+		/* list directory in html format*/
+		_createHTMLListing(dir);
+		_path = "./dir_listing.html";
+	}
+	else
+		throw ServerBloc::NotFound();
+}
 
-// 	}
-// 	else
-// 		throw NotFound();
-// }
+void	Methods::_createHTMLListing(DIR * dir)
+{
+	struct dirent	*dp;
+	struct stat		info;
+	struct tm		*timeinfo;
+	char			date[30];
+	std::string		file_path;
+
+	std::ofstream	dir_list("./dir_listing.html");
+
+	dir_list << "<html>\n<head><title>Index of /</title></head>\n<body bgcolor=\"white\">\n<h1>Index of " << serv->req.uri << "</h1><hr><pre>\n";
+	while ((dp = readdir(dir)) != NULL)
+	{
+		if (strcmp(dp->d_name, "."))
+		{
+			std::string		points(30 - strlen(dp->d_name), '.');
+
+			file_path = _path + dp->d_name;
+			if (!lstat(file_path.c_str(), &info))
+			{
+				time(&info.st_mtime);
+  				timeinfo = localtime (&info.st_mtime);
+				strftime(date, 30, "%d-%b-%Y %H:%M", timeinfo);
+				dir_list << "<a href=\"" << serv->req.uri;
+				if (serv->req.uri.back() != '/')
+					dir_list << '/';
+				dir_list << dp->d_name << "\">" << dp->d_name;
+				if (dp->d_type == DT_DIR)
+					dir_list << '/';
+				dir_list << "</a>";
+				if (strcmp(dp->d_name, ".."))
+					dir_list << points << date << "................" << info.st_size << '\n';
+				else
+					dir_list << '\n';
+			}
+			else
+			{
+				dir_list << "<a href=\"" << serv->req.uri;
+				if (serv->req.uri.back() != '/')
+					dir_list << '/';
+				dir_list << dp->d_name << "\">" << dp->d_name;
+				if (dp->d_type == DT_DIR)
+					dir_list << '/';
+				dir_list << "</a>";
+				if (strcmp(dp->d_name, ".."))
+					dir_list << points << "unauthorized.." << "................" << "unauthorized" << '\n';
+				else
+					dir_list << '\n';
+			}
+		}
+	}
+	dir_list << "</pre><hr></body>\n</html>";
+	dir_list.close();
+	closedir(dir);
+}
 
 void	Methods::_checkContentType(void)
 {
@@ -487,6 +556,8 @@ void	Methods::_fillBody()
 	strStream << file.rdbuf();
 	serv->resp.body = strStream.str();
 	file.close();
+	if (_fileExist("./dir_listing.html"))
+		std::remove("./dir_listing.html");
 }
 
 std::string	Methods::_uriFirstPart()
