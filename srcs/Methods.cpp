@@ -35,15 +35,9 @@ void	Methods::execute(void)
 	else if (serv->req.method == "HEAD")
 		_applyHead();
 	else if (serv->req.method == "POST")
-	{
 		_applyPost();
-		// throw BadRequest();
-		// throw UnsupportedMediaType();
-		// throw Unauthorized();
-	}
-	// else if (serv->req.method == "PUT")
-
-		// _applyPut();
+	else if (serv->req.method == "PUT")
+		_applyPut();
 }
 
 void	Methods::_URIResolutionProcess(void)
@@ -115,6 +109,7 @@ void	Methods::_applyPost()
 
 void	Methods::_applyPut()
 {
+
 // If the target resource does not have a current representation and the
 //    PUT successfully creates one, then the origin server MUST inform the
 //    user agent by sending a 201 (Created) response.  If the target
@@ -137,6 +132,12 @@ void	Methods::_applyPut()
 //    reflects the new representation.
 
 	_findPath();
+
+	std::ofstream	file(_path);
+
+	COUT << "serv->req.body.size():" << serv->req.body.size() << ENDL;
+	file << serv->req.body;
+	file.close();
 }
 
 template< typename T, typename U >
@@ -433,6 +434,7 @@ void	Methods::_createHTMLListing(DIR * dir)
 	char			date[30];
 	std::string		file_path;
 
+// REPLACE STRINSTREAM
 	std::ofstream	dir_list("./dir_listing.html");
 
 	dir_list << "<html>\n<head><title>Index of /</title></head>\n<body bgcolor=\"white\">\n<h1>Index of " << serv->req.uri << "</h1><hr><pre>\n";
