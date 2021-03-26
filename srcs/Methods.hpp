@@ -41,6 +41,26 @@ class Methods
 		void	_applyPost(void);
 		void	_applyPut(void);
 
+
+		/* Execute Get request */
+		void	_executeGetReq(void);
+		bool	_isDirectory(std::string const & path);
+		void	_createIndexHTML(void);
+		void	_createHTMLListing(DIR * dir);
+		void	_findIndex(std::vector<std::string> indexes);
+		bool	_fileExist(std::string const & path);
+
+		/* Execute Put request */
+		void	_executePutReq(void);
+
+		/* Check content type */
+		void		_checkContentType(void);
+		std::string	_pathExtension(std::string const & path);
+
+		/* Fill Body */
+		void	_fillBody(void);
+
+	/* MethodsPath.cpp */
 		/* Find path (_path) */
 			/* (1) find server config */
 		void	_findPath(void);
@@ -68,24 +88,8 @@ class Methods
 			/* (3) allowed method */
 		void		_checkAllowedMethods(std::vector<std::string> methods);
 
-		/* Execute Get request */
-		void	_executeGetReq(void);
-		bool	_isDirectory(std::string const & path);
-		void	_createIndexHTML(void);
-		void	_createHTMLListing(DIR * dir);
-		void	_findIndex(std::vector<std::string> indexes);
-		bool	_fileExist(std::string const & path);
 
-		/* Execute Put request */
-		void	_executePutReq(void);
-
-		/* Check content type */
-		void		_checkContentType(void);
-		std::string	_pathExtension(std::string const & path);
-
-		/* Fill Body */
-		void	_fillBody(void);
-
+	/* MethodsHeader.cpp */
 		/* Header server response */
 		void	_PutHeaderStatusCode(void);
 		void	_GetHeaderStatusCode(void);
