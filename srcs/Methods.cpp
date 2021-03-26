@@ -82,6 +82,7 @@ void	Methods::_applyGet(void)
 {
 	/* Check if path exist on server */
 	_findPath();
+
 	/* execute specific to GET request */
 	_executeGetReq();
 	/* Check if server knows file type */
@@ -140,7 +141,13 @@ void	Methods::_applyPut()
 	resource's new representation data is identical to the representation
 	data received in the PUT request) and the validator field value
 	reflects the new representation.
+
+	if (date(_path) < req(If-Unmodified-Since) && req.body == _path content)
+		send Last-Modified with date
+	else
+		_executePutRequest
 */
+
 
 	/* execute specific to PUT request */
 	_executePutReq();
@@ -148,6 +155,8 @@ void	Methods::_applyPut()
 	/* Fill header informations */
 	/* (1) Fill Status Line */
 	_PutHeaderStatusCode();
+	/* (2) Fill Content-Location */
+		// return the path to the newly or modified file
 }
 
 /* Execute Get request */
