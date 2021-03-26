@@ -76,6 +76,9 @@ class Methods
 		void	_findIndex(std::vector<std::string> indexes);
 		bool	_fileExist(std::string const & path);
 
+		/* Execute Put request */
+		void	_executePutReq(void);
+
 		/* Check content type */
 		void		_checkContentType(void);
 		std::string	_pathExtension(std::string const & path);
@@ -84,7 +87,10 @@ class Methods
 		void	_fillBody(void);
 
 		/* Header server response */
+		void	_PutHeaderStatusCode(void);
+		void	_GetHeaderStatusCode(void);
 		void	_lastModifiedHeader(void);
+		std::string	_getSizeOfStr(std::string const & str);
 
 
 	/* Member Attributes */

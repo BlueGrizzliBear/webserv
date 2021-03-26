@@ -102,7 +102,6 @@ class ServerBloc
 
 	private:
 		/* Response functions */
-		std::string	_getSizeOfStr(std::string const & str);
 		std::string	_getDate(void);
 		void		_addHeaderFields(void);
 

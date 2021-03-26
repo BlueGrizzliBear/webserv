@@ -27,7 +27,7 @@ Methods &	Methods::operator=(Methods const & rhs)
 /* Member Functions */
 void	Methods::execute(void)
 {
-	/* uri resolution process (treat ../ and ./ if exist */
+	/* uri resolution process (treat ../ and ./) */
 	_URIResolutionProcess();
 
 	if (serv->req.method == "GET")
@@ -46,9 +46,9 @@ void	Methods::_URIResolutionProcess(void)
 	std::string tmp;
 	std::string new_uri;
 
+	/* Alorithm from RFC */
 	while (!serv->req.uri.empty())
 	{
-
 		/* 1st */
 		if (!serv->req.uri.find(tmp = "../") || !serv->req.uri.find(tmp = "./"))
 			serv->req.uri.erase(0, tmp.size());
@@ -80,7 +80,7 @@ void	Methods::_URIResolutionProcess(void)
 
 void	Methods::_applyGet(void)
 {
-	/* Check if file exist on server */
+	/* Check if path exist on server */
 	_findPath();
 	/* execute specific to GET request */
 	_executeGetReq();
@@ -89,59 +89,65 @@ void	Methods::_applyGet(void)
 	/* Fill body with file content */
 	if (_path != "./dir_listing.html")
 		_fillBody();
+	/* Fill header informations */
+	/* (1) Fill Status Line */
+	_GetHeaderStatusCode();
 
-	// _lastModifiedHeader();
-	/* if req header is If-Modified-Since, respond with 200 if modified file after the date or respond 304 with empty body */
-	// if (serv->req.headers.find("If-Modified-Since") != serv->req.headers.end())
-	// 	std::string date = serv->req.headers.find("If-Modified-Since")->second;
+	/* (2) Fill Content-lenght */
+	serv->resp.header_fields.insert(std::make_pair("Content-Length", _getSizeOfStr(serv->resp.body)));
 
+	/* (3) Fill Last-Modified */
+	if (_path != "./dir_listing.html")
+		_lastModifiedHeader();
+
+	/* (4) Fill Transfer-Encoding */
 	serv->resp.header_fields.insert(std::make_pair("Transfer-Encoding", "identity"));
 }
 
 void	Methods::_applyHead(void)
 {
+	/* Same as GET method but don't send body part */
 	_applyGet();
 	serv->resp.body.clear();
 }
 
 void	Methods::_applyPost()
 {
+	/* Check if path exist on server */
 	_findPath();
+
+	/* execute specific to POST request */
+
+	/* Fill header informations */
+	/* (1) Fill Status Line */
+	_GetHeaderStatusCode();
 }
 
 void	Methods::_applyPut()
 {
-
+	/* Check if path exist on server */
 	_findPath();
-
-// If the target resource does not have a current representation and the
-//    PUT successfully creates one, then the origin server MUST inform the
-//    user agent by sending a 201 (Created) response.  If the target
-//    resource does have a current representation and that representation
-//    is successfully modified in accordance with the state of the enclosed
-//    representation, then the origin server MUST send either a 200 (OK) or
-//    a 204 (No Content) response to indicate successful completion of the
-//    request.
 
 /* MUST send a 400 (Bad Request) response to a PUT request that contains a Content-Range header field */
 	if (serv->req.headers.find("Content-Range") != serv->req.headers.end())
 		throw ServerBloc::BadRequest();
 
-// An origin server MUST NOT send a validator header field
-//    (Section 7.2), such as an ETag or Last-Modified field, in a
-//    successful response to PUT unless the request's representation data
-//    was saved without any transformation applied to the body (i.e., the
-//    resource's new representation data is identical to the representation
-//    data received in the PUT request) and the validator field value
-//    reflects the new representation.
+/*
+	An origin server MUST NOT send a validator header field
+	(Section 7.2), such as an ETag or Last-Modified field, in a
+	successful response to PUT unless the request's representation data
+	was saved without any transformation applied to the body (i.e., the
+	resource's new representation data is identical to the representation
+	data received in the PUT request) and the validator field value
+	reflects the new representation.
+*/
 
+	/* execute specific to PUT request */
+	_executePutReq();
 
-
-	std::ofstream	file(_path);
-
-	// COUT << "serv->req.body.size():" << serv->req.body.size() << ENDL;
-	file << serv->req.body;
-	file.close();
+	/* Fill header informations */
+	/* (1) Fill Status Line */
+	_PutHeaderStatusCode();
 }
 
 /* Find path (_path) */
@@ -494,9 +500,8 @@ void	Methods::_createHTMLListing(DIR * dir)
 			dir_list << "</a>";
 			if (!lstat(file_path.c_str(), &info))
 			{
-				time(&info.st_mtime);
-  				timeinfo = localtime (&info.st_mtime);
-				strftime(date, 30, "%d-%b-%Y %H:%M", timeinfo);
+  				timeinfo = localtime(&info.st_mtime);
+				strftime(date, 20, "%d-%b-%Y %H:%M", timeinfo);
 				if (strcmp(dp->d_name, ".."))
 					dir_list << points << date << "................" << info.st_size;
 				dir_list << '\n';
@@ -514,6 +519,42 @@ void	Methods::_createHTMLListing(DIR * dir)
 	serv->resp.body = dir_list.str();
 }
 
+void	Methods::_findIndex(std::vector<std::string> indexes)
+{
+	for (std::vector<std::string>::iterator it = indexes.begin(); it != indexes.end(); ++it)
+	{
+		if (_fileExist(_path + *it) == true)
+		{
+			_path += *it;
+			return ;
+		}
+	}
+	_path += *(indexes.begin());
+}
+
+bool	Methods::_fileExist(const std::string & name)
+{
+	int	fd;
+
+	if ((fd = open(name.c_str(), O_WRONLY)) < 1)
+		return false;
+	else
+	{
+		close(fd);
+		return true;
+	}
+}
+
+/* Execute Put request */
+void	Methods::_executePutReq(void)
+{
+	std::ofstream	file(_path);
+
+	file << serv->req.body;
+	file.close();
+}
+
+/* Check content type */
 void	Methods::_checkContentType(void)
 {
 	/* If directory do nothing */
@@ -555,36 +596,73 @@ std::string	Methods::_pathExtension(const std::string & path)
 	return ("txt");
 }
 
-void	Methods::_findIndex(std::vector<std::string> indexes)
-{
-	for (std::vector<std::string>::iterator it = indexes.begin(); it != indexes.end(); ++it)
-	{
-		if (_fileExist(_path + *it) == true)
-		{
-			_path += *it;
-			return ;
-		}
-	}
-	_path += *(indexes.begin());
-}
-
-bool	Methods::_fileExist(const std::string & name)
-{
-	int	fd;
-
-	if ((fd = open(name.c_str(), O_WRONLY)) < 1)
-		return false;
-	else
-	{
-		close(fd);
-		return true;
-	}
-}
-
+/* Fill Body */
 void	Methods::_fillBody()
 {
 	std::ifstream		file(_path.c_str());
 
 	serv->resp.body.assign(std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>());
 	file.close();
+}
+
+/* Header server response */
+
+void	Methods::_PutHeaderStatusCode(void)
+{
+/*	If the target resource does not have a current representation and the
+	PUT successfully creates one, then the origin server MUST inform the
+	user agent by sending a 201 (Created) response.  If the target
+	resource does have a current representation and that representation
+	is successfully modified in accordance with the state of the enclosed
+	representation, then the origin server MUST send either a 200 (OK) or
+	a 204 (No Content) response to indicate successful completion of the
+	request. */
+	if (_fileExist(_path))
+	{
+		/* Fill Status Line */
+		serv->resp.status_code = "201";
+		serv->resp.reason_phrase = "Created";
+	}
+	else
+	{
+		if (serv->req.body.empty())
+		{
+			/* Fill Status Line */
+			serv->resp.status_code = "204";
+			serv->resp.reason_phrase = "No Content";
+		}
+		else
+		{
+			/* Fill Status Line */
+			serv->resp.status_code = "200";
+			serv->resp.reason_phrase = "OK";
+		}
+	}
+}
+
+void	Methods::_GetHeaderStatusCode(void)
+{
+	serv->resp.status_code = "200";
+	serv->resp.reason_phrase = "OK";
+}
+
+void	Methods::_lastModifiedHeader(void)
+{
+	struct stat			info;
+	struct tm			*timeinfo;
+	char				date[30];
+
+	if (!lstat(_path.c_str(), &info))
+	{
+		timeinfo = gmtime(&info.st_mtime);
+		strftime(date, 30, "%a, %d %b %Y %H:%M:%S GMT", timeinfo);
+		serv->resp.header_fields.insert(std::make_pair("Last-Modified", date));
+	}
+}
+
+std::string	Methods::_getSizeOfStr(std::string const & str)
+{
+	std::stringstream size;
+	size << str.length();
+	return (size.str());
 }

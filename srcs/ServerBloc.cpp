@@ -52,6 +52,7 @@ void	ServerBloc::parseException(const char * code)
 		resp.status_code = it->first;
 		resp.reason_phrase = it->second;
 
+		// HTML DEFAULT exeption and Search for custome one if exists */
 		/* Fill Header Fields */
 		resp.header_fields.insert(std::make_pair("Content-Type", "text/plain"));
 	}
@@ -102,14 +103,8 @@ void	ServerBloc::executeRequest(void)
 
 	implementedMethods.execute();
 
-	/* Depending on Execution */
-	/* Fill Status Line */
-	resp.status_code = "200";
-	resp.reason_phrase = "OK";
-
 	/* Fill Header Fields */
 	resp.header_fields.insert(std::make_pair("Connection", "close"));
-	resp.header_fields.insert(std::make_pair("Content-Length", _getSizeOfStr(resp.body)));
 
 	CME << "> EXECUTION DONE !" << EME;
 }
@@ -142,13 +137,6 @@ bool	ServerBloc::sendResponse(Socket & client)
 		resp.concatenateResponse();	/* Fill response msg */
 	}
 	return (resp.sendMsg(client.fd));
-}
-
-std::string	ServerBloc::_getSizeOfStr(std::string const & str)
-{
-	std::stringstream size;
-	size << str.length();
-	return (size.str());
 }
 
 std::string	ServerBloc::_getDate(void)
