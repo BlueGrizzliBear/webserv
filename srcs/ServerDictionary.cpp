@@ -21,6 +21,8 @@ ServerDictionary::ServerDictionary()
 								"autoindex",
 								"limit_except",
 								"upload_store",
+								"auth_basic",
+								"auth_basic_user_file",
 								"expires",
 								"proxy_pass",
 								"cgi"			};
@@ -31,6 +33,8 @@ ServerDictionary::ServerDictionary()
 								"server_name",
 								"error_page",
 								"location",
+								"auth_basic",
+								"auth_basic_user_file",
 								"root",
 								"index",
 								"autoindex"		};

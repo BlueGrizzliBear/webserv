@@ -11,6 +11,7 @@ void	Methods::_findPath(void)
 
 	_autoindex = true;
 	/* finding all default server conf */
+	_findAuthenticate(serv->dir);
 	_findRoot(serv->dir);
 	_findAutoIndex(serv->dir);
 	methods = _findVect(serv->dir, "allowed_methods", methods);
@@ -26,6 +27,7 @@ void	Methods::_findPath(void)
 	/* if location bloc found applying corresponding config */
 	if (locationDir.empty() == false)
 	{
+		_findAuthenticate(locationDir);
 		_findRoot(locationDir);
 		_findAutoIndex(locationDir);
 		methods = _findVect(locationDir, "allowed_methods", methods);
@@ -33,10 +35,66 @@ void	Methods::_findPath(void)
 		// error_pages = _findVect(locationDir, "error_pages", error_pages);
 		req_uri = _findRewrite(locationDir);
 	}
+	/* check authenticate */
+	_checkRequiredAuthentication();
 	/* return exeption if method not allowed */
 	_checkAllowedMethods(methods);
 	_path += req_uri;
 	// COUT << "_path:" << _path << "|" << ENDL;
+}
+
+void		Methods::_checkRequiredAuthentication()
+{
+	if (!_authenticate.empty())
+	{
+		if (serv->req.headers.find("Authorization") != serv->req.headers.end())
+		{
+			// if (_checkUserExist(serv->req.headers.find("Authorization")->second, _authenticate[1]))
+				return ;
+		}
+		serv->resp.header_fields.insert(std::make_pair("WWW-Authenticate", "Basic realm=\"" + _authenticate[0] + "\", charset=\"UTF-8\""));
+		throw ServerBloc::Unauthorized();
+	}
+}
+
+bool		Methods::_checkUserExist(std::string user, std::string auth_path)
+{
+	std::vector<std::string>	users;
+	std::string	line;
+
+	if (user.find("basic ") != std::string::npos)
+		user.erase(user.find("basic "), 6);
+	else
+		return false;
+	COUT << "user:" << user << ENDL;
+	// user = _decodeUser(user);
+
+	std::fstream	user_file(auth_path);
+
+	if (user_file.good())
+	{
+		while (std::getline(user_file, line))
+			users.push_back(line);
+	}
+	else
+		return false;
+
+	for (std::vector< std::string >::iterator it = users.begin(); it != users.end(); ++it)
+	{
+		if (*it == user)
+			return true;
+	}
+	return false;
+}
+
+template< typename T, typename U >
+void		Methods::_findAuthenticate(std::map< T, U > dir)
+{
+	if (dir.find("auth_basic") != dir.end())
+	{
+		_authenticate.push_back((dir.find("auth_basic")->second[0]));
+		_authenticate.push_back(("." + dir.find("auth_basic_use_file")->second[0]));
+	}
 }
 
 template< typename T, typename U >

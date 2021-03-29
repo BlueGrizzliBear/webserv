@@ -69,7 +69,10 @@ class Methods
 		void	_findPath(void);
 
 		template< typename T, typename U >
-		void	_findRoot(std::map< T, U > root);
+		void	_findAuthenticate(std::map< T, U > dir);
+
+		template< typename T, typename U >
+		void	_findRoot(std::map< T, U > dir);
 
 		template< typename T, typename U >
 		void	_findAutoIndex(std::map< T, U > dir);
@@ -88,7 +91,9 @@ class Methods
 		bool		_compareFromBegin(std::string uri_path, std::vector<std::string> path_set);
 		std::string	_toLowerStr(std::string const & str);
 		std::string	_uriFirstPart();
-			/* (3) allowed method */
+			/* (3) authentication/allowed method */
+		void		_checkRequiredAuthentication();
+		bool		_checkUserExist(std::string user, std::string auth_path);
 		void		_checkAllowedMethods(std::vector<std::string> methods);
 
 
@@ -110,6 +115,7 @@ class Methods
 	private:
 		/* Method Utilities */
 		std::string					_path;
+		std::vector<std::string>	_authenticate;
 		std::vector<std::string>	_indexes;
 		bool						_autoindex;
 };
