@@ -5,7 +5,7 @@
 void	Methods::_findPath(void)
 {
 	std::vector<std::string>	methods;
-	std::vector<std::string>	error_pages;
+	// std::vector<std::string>	error_pages;
 	std::map<std::string, std::vector<std::string> >	locationDir;
 	std::string					req_uri = serv->req.uri;
 
@@ -15,7 +15,7 @@ void	Methods::_findPath(void)
 	_findAutoIndex(serv->dir);
 	methods = _findVect(serv->dir, "allowed_methods", methods);
 	_indexes = _findVect(serv->dir, "index", _indexes);
-	error_pages = _findVect(serv->dir, "error_pages", error_pages);
+	// error_pages = _findVect(serv->dir, "error_pages", error_pages);
 
 	/* iterating location bloc */
 	for (std::map<std::vector<std::string>, LocationBloc>::iterator it = serv->loc.begin(); it != serv->loc.end(); ++it)
@@ -30,7 +30,7 @@ void	Methods::_findPath(void)
 		_findAutoIndex(locationDir);
 		methods = _findVect(locationDir, "allowed_methods", methods);
 		_indexes = _findVect(locationDir, "index", _indexes);
-		error_pages = _findVect(locationDir, "error_pages", error_pages);
+		// error_pages = _findVect(locationDir, "error_pages", error_pages);
 		req_uri = _findRewrite(locationDir);
 	}
 	/* return exeption if method not allowed */

@@ -32,16 +32,18 @@ class Methods
 	/* Member Functions */
 	public:
 		void	execute(void);
+		void	customError(std::string status_code, std::string reason_phrase);
 
 	private:
+		bool	_ErrorNbInErrorPageList(std::vector<std::string> list, std::string status);
+		void	_fillDefaultExceptionBody(std::string status, std::string reason);
+
 		/* Method functions */
 		void	_URIResolutionProcess(void);
 		void	_applyGet(void);
 		void	_applyHead(void);
 		void	_applyPost(void);
 		void	_applyPut(void);
-
-
 		/* Execute Get request */
 		void	_executeGetReq(void);
 		bool	_isDirectory(std::string const & path);

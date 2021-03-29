@@ -40,6 +40,54 @@ void	Methods::execute(void)
 		_applyPut();
 }
 
+void	Methods::customError(std::string status_code, std::string reason_phrase)
+{
+	std::vector<std::string>	error_pages;
+
+	error_pages = _findVect(serv->dir, "error_page", error_pages);
+	if (!error_pages.empty() && _ErrorNbInErrorPageList(error_pages, status_code))
+	{
+		serv->req.uri = error_pages.back();
+		COUT << "req.uri:" << serv->req.uri << ENDL;
+		_findPath();
+		if (_fileExist(_path) == true)
+		{
+			_checkContentType();
+			_fillBody();
+		}
+		else
+		{
+			_fillDefaultExceptionBody(status_code, reason_phrase);
+			serv->resp.header_fields.insert(std::make_pair("Content-Type", "text/html"));
+		}
+	}
+	else
+	{
+		_fillDefaultExceptionBody(status_code, reason_phrase);
+		serv->resp.header_fields.insert(std::make_pair("Content-Type", "text/html"));
+	}
+	serv->resp.header_fields.insert(std::make_pair("Content-Length", _getSizeOfStr(serv->resp.body)));
+	serv->resp.header_fields.insert(std::make_pair("Transfer-Encoding", "identity"));
+}
+
+bool		Methods::_ErrorNbInErrorPageList(std::vector<std::string> list, std::string status)
+{
+	for (std::vector<std::string>::iterator it = list.begin(); it != list.end(); ++it)
+	{
+		if (*it == status)
+			return true;
+	}
+	return false;
+}
+
+void	Methods::_fillDefaultExceptionBody(std::string status, std::string reason)
+{
+	serv->resp.body = "<html>\n";
+	serv->resp.body += "<head><title>" + status + " " + reason + "</title></head>\n";
+	serv->resp.body += "<body>\n";
+	serv->resp.body += "<center><h1>" + status + " " + reason + "</h1></center>\n";
+}
+
 void	Methods::_URIResolutionProcess(void)
 {
 	size_t pos = 0;
@@ -133,13 +181,10 @@ void	Methods::_applyPut()
 		throw ServerBloc::BadRequest();
 
 	/* Indepotent method check (execute request only if changes are made */
-	/* An origin server MUST NOT send a validator header field
-	(Section 7.2), such as an ETag or Last-Modified field, in a
+	/* An origin server MUST NOT send a Last-Modified field, in a
 	successful response to PUT unless the request's representation data
-	was saved without any transformation applied to the body (i.e., the
-	resource's new representation data is identical to the representation
-	data received in the PUT request) and the validator field value
-	reflects the new representation. */
+	was saved without any transformation applied to the body and the Last-Modified
+	value reflects the new representation. */
 	if (_cmpTimeInfo(_getHeaderIfUnmodifiedSinceTime(), _getFileTime()) == 0)
 		throw ServerBloc::PreconditionFailed();
 	else if (serv->req.body == _readFileToStr() && _cmpTimeInfo(_getHeaderIfUnmodifiedSinceTime(), _getFileTime()) == 1)
@@ -163,14 +208,12 @@ void	Methods::_executeGetReq(void)
 	if (_autoindex == false)
 	{
 		if (!_path.empty() && *(_path.rbegin()) == '/')
-			// COUT << "List directory" << ENDL;
 			_createIndexHTML();
 	}
 	else	/* copy asked file to body if exist */
 	{
 		if (!_path.empty() && *(_path.rbegin()) == '/')
 			_findIndex(_indexes);
-		// COUT << "after index path:" << _path << "|" << ENDL;
 		if (!_path.empty() && *(_path.rbegin()) == '/')
 			throw ServerBloc::Forbidden();
 		if (_fileExist(_path) == false)

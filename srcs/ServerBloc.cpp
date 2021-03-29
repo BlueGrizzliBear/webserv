@@ -52,9 +52,8 @@ void	ServerBloc::parseException(const char * code)
 		resp.status_code = it->first;
 		resp.reason_phrase = it->second;
 
-		// HTML DEFAULT exeption and Search for custome one if exists */
-		/* Fill Header Fields */
-		resp.header_fields.insert(std::make_pair("Content-Type", "text/plain"));
+		Methods	implementedMethods(*this);
+		implementedMethods.customError(it->first, it->second);
 	}
 }
 
