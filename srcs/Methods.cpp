@@ -99,8 +99,7 @@ void	Methods::_applyGet(void)
 
 	/* (3) Fill Last-Modified */
 	if (_path != "./dir_listing.html")
-		_lastModifiedHeader();
-
+		_lastModifiedHeader(_getFileTime());
 	/* (4) Fill Transfer-Encoding */
 	serv->resp.header_fields.insert(std::make_pair("Transfer-Encoding", "identity"));
 }
@@ -129,28 +128,24 @@ void	Methods::_applyPut()
 	/* Check if path exist on server */
 	_findPath();
 
-/* MUST send a 400 (Bad Request) response to a PUT request that contains a Content-Range header field */
+	/* MUST send a 400 (Bad Request) response to a PUT request that contains a Content-Range header field */
 	if (serv->req.headers.find("Content-Range") != serv->req.headers.end())
 		throw ServerBloc::BadRequest();
 
-/*
-	An origin server MUST NOT send a validator header field
+	/* Indepotent method check (execute request only if changes are made */
+	/* An origin server MUST NOT send a validator header field
 	(Section 7.2), such as an ETag or Last-Modified field, in a
 	successful response to PUT unless the request's representation data
 	was saved without any transformation applied to the body (i.e., the
 	resource's new representation data is identical to the representation
 	data received in the PUT request) and the validator field value
-	reflects the new representation.
-
-	if (date(_path) < req(If-Unmodified-Since) && req.body == _path content)
-		send Last-Modified with date
-	else
-		_executePutRequest
-*/
-
-
-	/* execute specific to PUT request */
-	_executePutReq();
+	reflects the new representation. */
+	if (_cmpTimeInfo(_getHeaderIfUnmodifiedSinceTime(), _getFileTime()) == 0)
+		throw ServerBloc::PreconditionFailed();
+	else if (serv->req.body == _readFileToStr() && _cmpTimeInfo(_getHeaderIfUnmodifiedSinceTime(), _getFileTime()) == 1)
+		_lastModifiedHeader(_getFileTime());
+	else	/* execute specific to PUT request */
+		_executePutReq();
 
 	/* Fill header informations */
 	/* (1) Fill Status Line */

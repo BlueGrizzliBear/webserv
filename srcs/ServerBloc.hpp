@@ -82,6 +82,11 @@ class ServerBloc
 				virtual const char *	what() const throw() { return ("405"); }
 		};
 
+		class PreconditionFailed : public std::exception {
+			public:
+				virtual const char *	what() const throw() { return ("412"); }
+		};
+
 		class UnsupportedMediaType : public std::exception {
 			public:
 				virtual const char *	what() const throw() { return ("415"); }

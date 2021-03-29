@@ -59,6 +59,7 @@ class Methods
 
 		/* Fill Body */
 		void	_fillBody(void);
+		std::string	_getSizeOfStr(std::string const & str);
 
 	/* MethodsPath.cpp */
 		/* Find path (_path) */
@@ -93,8 +94,11 @@ class Methods
 		/* Header server response */
 		void	_PutHeaderStatusCode(void);
 		void	_GetHeaderStatusCode(void);
-		void	_lastModifiedHeader(void);
-		std::string	_getSizeOfStr(std::string const & str);
+		void	_lastModifiedHeader(struct tm *timeinfo);
+		struct tm	*_getFileTime(void);
+		struct tm	*_getHeaderIfUnmodifiedSinceTime(void);
+		int			_cmpTimeInfo(struct tm *t1, struct tm *t2);
+		std::string	_readFileToStr(void);
 
 
 	/* Member Attributes */

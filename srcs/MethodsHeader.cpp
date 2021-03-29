@@ -40,16 +40,61 @@ void	Methods::_GetHeaderStatusCode(void)
 	serv->resp.reason_phrase = "OK";
 }
 
-void	Methods::_lastModifiedHeader(void)
+struct tm	*Methods::_getFileTime(void)
 {
 	struct stat			info;
-	struct tm			*timeinfo;
-	char				date[30];
+	struct tm			*timeinfo = NULL;
 
 	if (!lstat(_path.c_str(), &info))
-	{
 		timeinfo = gmtime(&info.st_mtime);
+	return timeinfo;
+}
+
+void	Methods::_lastModifiedHeader(struct tm *timeinfo)
+{
+	char				date[30];
+
+	if (timeinfo)
+	{
 		strftime(date, 30, "%a, %d %b %Y %H:%M:%S GMT", timeinfo);
-		serv->resp.header_fields.insert(std::make_pair("Last-Modified", date));
+			serv->resp.header_fields.insert(std::make_pair("Last-Modified", date));
 	}
+}
+
+struct tm	*Methods::_getHeaderIfUnmodifiedSinceTime(void)
+{
+	std::string		date;
+	struct tm		*timeinfo = NULL;
+
+	if (serv->req.headers.find("If-Unmodified-Since") != serv->req.headers.end())
+		date = serv->req.headers.find("If-Unmodified-Since")->second;
+	else
+		return timeinfo;
+	strptime(date.c_str(), "%a, %d %b %Y %H:%M:%S GMT", timeinfo);
+	return timeinfo;
+}
+
+int			Methods::_cmpTimeInfo(struct tm *t1, struct tm *t2)
+{
+	if (!t1 || !t2)
+		return -1;
+	time_t	time1;
+	time_t	time2;
+
+	time1 = mktime(t1);
+	time2 = mktime(t2);
+
+	if (time1 < time2)
+		return 0;
+	return 1;
+}
+
+std::string	Methods::_readFileToStr(void)
+{
+	std::string		str;
+	std::ifstream	file(_path.c_str());
+
+	str.assign(std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>());
+	file.close();
+	return str;
 }
