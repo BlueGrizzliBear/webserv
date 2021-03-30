@@ -8,11 +8,10 @@ Request::Request(void) {}
 /*	argument	(2)	*/
 Request::Request(std::string str) : _req(str), _pos(0)
 {
-	// if (_parseRequestLine() && _parseHeaders() && _parseBody())
-	if (_parseRequestLine())
-		CME << "> Parsed Request-line: COMPLETE !" << EME;
-	if (_parseHeaders())
-		CME << "> Parsed Headers: COMPLETE !" << EME;
+	// if (_parseRequestLine())
+	// 	CME << "> Parsed Request-line: COMPLETE !" << EME;
+	// if (_parseHeaders())
+	// 	CME << "> Parsed Headers: COMPLETE !" << EME;
 }
 
 /*	copy		(3)	*/
@@ -39,7 +38,29 @@ Request &	Request::operator=(Request const & rhs)
 	return (*this);
 }
 
+/* Gets and Sets */
+std::string &	Request::getData(void)
+{
+	return (_req);
+}
+
 /* Member Functions */
+void	Request::clear(void)
+{
+	receivedData.clear();
+	// headerComplete = 0;
+
+	method.clear();
+	uri.clear();
+	protocol_v.clear();
+	headers.clear();
+	body.clear();
+	
+	_req.clear();
+	_pos = 0;
+}
+
+
 /* A conditional function which returns a bool if the needle is in the dictionary dic */
 bool	Request::_isinDic(char needle, char const * dic)
 {
@@ -150,7 +171,7 @@ bool	Request::_isLegitPath(std::string const & path)
 	return (true);
 }
 
-bool	Request::_parseRequestLine(void) throw(NotImplemented, BadRequest)
+bool	Request::parseRequestLine(void) throw(NotImplemented, BadRequest)
 {
 	/* Request-Line = Method SP Request-URI SP HTTP-Version CRLF */
 
@@ -186,7 +207,7 @@ bool	Request::_parseRequestLine(void) throw(NotImplemented, BadRequest)
 	return (true);
 }
 
-bool	Request::_parseHeaders(void) throw(BadRequest)
+bool	Request::parseHeaders(void) throw(BadRequest)
 {
 	/* Request Header Fields */
 
@@ -220,6 +241,13 @@ bool	Request::_parseHeaders(void) throw(BadRequest)
 		}
 		_passOneChar("\r");
 		_passOneChar("\n");
+	}
+
+	/* Check if new line */
+	if (_req.find("\r\n", _pos) == std::string::npos || !(_pos += 2))
+	{
+		COUT << "ici\n";
+		throw BadRequest();
 	}
 	return (true);
 }
@@ -257,22 +285,8 @@ bool	Request::_checkEndOfChunkedEncoding(ssize_t & size)
 	return (false);
 }
 
-bool	Request::isComplete(void)
+bool	Request::parseBody(void) throw(BadRequest)
 {
-	if (_parseBody())
-		return (true);
-	return (false);
-}
-
-bool	Request::_parseBody(void) throw(BadRequest)
-{
-	/* Check if new line */
-	if (!(_passStrictOneChar("\r") && _passStrictOneChar("\n")))
-	{
-		/* in the mean time */
-		throw BadRequest();
-	}
-
 	if (headers.find("Transfer-Encoding") != headers.end())
 	{
 		static ssize_t size = 0;
@@ -308,9 +322,4 @@ bool	Request::_parseBody(void) throw(BadRequest)
 	else
 		return (true);	/* No body */
 	return (false);
-}
-
-void	Request::clean(void)
-{
-	body.clear();
 }

@@ -121,7 +121,7 @@ class ServerBloc
 		Select		serv_select;
 
 		/* Attributes from RequestParsing */
-		Request 	req;
+		Request		req;
 		Response 	resp;
 
 		/* Process Attributes */

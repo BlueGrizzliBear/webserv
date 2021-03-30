@@ -38,7 +38,6 @@ void	Methods::execute(void)
 		_applyPost();
 	else if (serv->req.method == "PUT")
 		_applyPut();
-	serv->req.clean();
 }
 
 void	Methods::customError(std::string status_code, std::string reason_phrase)
@@ -69,7 +68,7 @@ void	Methods::customError(std::string status_code, std::string reason_phrase)
 	}
 	serv->resp.header_fields.insert(std::make_pair("Content-Length", _getSizeOfStr(serv->resp.body)));
 	serv->resp.header_fields.insert(std::make_pair("Transfer-Encoding", "identity"));
-	serv->req.clean();
+	serv->req.clear();
 }
 
 bool		Methods::_ErrorNbInErrorPageList(std::vector<std::string> list, std::string status)

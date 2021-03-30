@@ -36,10 +36,17 @@ class Request
 				virtual const char *	what() const throw() { return ("501"); }
 		};
 
-	/* Member Functions */
 	public:
-		bool	isComplete(void);
-		void	clean(void);
+
+	/* Gets and Sets */
+		std::string &	getData(void);
+
+	/* Member Functions */
+		bool	parseRequestLine(void) throw(NotImplemented, BadRequest);
+		bool	parseHeaders(void) throw(BadRequest);
+		bool	parseBody(void) throw(BadRequest);
+
+		void	clear(void);
 
 	private:
 		size_t	_passSpaces(void);
@@ -62,10 +69,6 @@ class Request
 		std::string	_getWord(char const * delimiter_dic);
 		std::string	_getWord(int func(int));
 
-		bool	_parseRequestLine(void) throw(NotImplemented, BadRequest);
-		bool	_parseHeaders(void) throw(BadRequest);
-		bool	_parseBody(void) throw(BadRequest);
-
 		void	_parseChunkedBody(ssize_t & size) throw(BadRequest);
 		bool	_checkEndOfChunkedEncoding(ssize_t & size);
 
@@ -73,6 +76,7 @@ class Request
 	public:
 		/* Parsing Attributes */
 		std::stringstream	receivedData;
+		bool				headerComplete;
 
 		/* Request Attributes */
 		std::string		method;
@@ -81,15 +85,11 @@ class Request
 		Headers			headers;
 		std::string		body;
 
-		// bool	finishedWriting;
-
 	private:
 		ServerDictionary	_dic;
 		std::string 		_req;
 		size_t				_pos;
 
-
-		// bool				finished;
 };
 
 #endif

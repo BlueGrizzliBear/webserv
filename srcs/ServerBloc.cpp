@@ -59,7 +59,8 @@ void	ServerBloc::parseException(const char * code)
 
 bool	ServerBloc::readClient(int client_socket)
 {
-	char	recv_buffer[MAX_HEADER_SIZE];
+	char		recv_buffer[MAX_HEADER_SIZE];
+	// static bool	headerComplete = 0;
 
 	ssize_t receivedBytes = recv(client_socket, &recv_buffer, (MAX_HEADER_SIZE - 1), 0); /* No Flag, CAREFUL */
 	if (receivedBytes < 0)
@@ -71,28 +72,54 @@ bool	ServerBloc::readClient(int client_socket)
 	recv_buffer[static_cast<size_t>(receivedBytes)] = '\0';
 	req.receivedData << recv_buffer;
 
-	if ((req.receivedData.str().find("\r\n\r\n") == std::string::npos) || (receivedBytes == 0))
+	std::string	str_buffer(recv_buffer);
+	
+	if (req.headerComplete)
+		return (true);	/* request is already complete ! */
+	else if ((str_buffer.find("\r\n\r\n") == std::string::npos) || (receivedBytes == 0))
 	/* Found ending sequence | client closed connection */
-		return (false);	/* request is not complete */
-	else
-	/* Found ending sequence */
-		return (true);	/* request is complete ! */
+	{
+		
+		if ((req.receivedData.str().find("\r\n\r\n") == std::string::npos) || (receivedBytes == 0))
+			return (false);	/* request is not complete */
+	}
+	req.headerComplete = 1;
+	return (true);	/* request is complete ! */
 }
 
 bool	ServerBloc::processRequest(void)
 {
-	/* Create request with parser */
-	Request new_req(req.receivedData.str());
-	req = new_req;
+	static bool	headerParsed = 0;
 
-	/* Execute the parsed request */
-	if (req.isComplete())
+	/* Create request with parser */
+	req.getData() = req.receivedData.str();
+
+	if (!headerParsed)
+	{
+		if (req.parseRequestLine())
+			CME << "> Parsed Request-line: COMPLETE !" << EME;
+		if (req.parseHeaders())
+			CME << "> Parsed Headers: COMPLETE !" << EME;
+		headerParsed = 1;
+	}
+	if (req.parseBody())
 	{
 		CME << "> Parsed Body: COMPLETE !" << EME;
-		req.receivedData.str(""); /* Reseting string stream */
+		
+		/* Cleaning */
+		req.receivedData.str("");	/* Reseting string stream */
+		headerParsed = 0;			/* Reseting bool indicator if header is parsed or not */
+		req.headerComplete = 0;		/* Reseting bool indicator if header is complete or not */
+
+		/* Execute the parsed request */
 		executeRequest();
+
+		/* Clean Request */
+		req.clear();
+
 		return (true);
 	}
+
 	return (false);
 }
 
