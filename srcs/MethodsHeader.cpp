@@ -11,7 +11,7 @@ void	Methods::_PutHeaderStatusCode(void)
 	representation, then the origin server MUST send either a 200 (OK) or
 	a 204 (No Content) response to indicate successful completion of the
 	request. */
-	if (_fileExist(_path))
+	if (!_fileExist(_path))
 	{
 		/* Fill Status Line */
 		serv->resp.status_code = "201";

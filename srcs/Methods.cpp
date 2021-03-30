@@ -48,7 +48,6 @@ void	Methods::customError(std::string status_code, std::string reason_phrase)
 	if (!error_pages.empty() && _ErrorNbInErrorPageList(error_pages, status_code))
 	{
 		serv->req.uri = error_pages.back();
-		COUT << "req.uri:" << serv->req.uri << ENDL;
 		_findPath();
 		if (_fileExist(_path) == true)
 		{
@@ -191,11 +190,14 @@ void	Methods::_applyPut()
 	else if (serv->req.body == _readFileToStr() && _cmpTimeInfo(_getHeaderIfUnmodifiedSinceTime(), _getFileTime()) == 1)
 		_lastModifiedHeader(_getFileTime());
 	else	/* execute specific to PUT request */
+	{
+		/* (1) Fill Status Line header */
+		_PutHeaderStatusCode();
+		/* Execute request */
 		_executePutReq();
+	}
 
 	/* Fill header informations */
-	/* (1) Fill Status Line */
-	_PutHeaderStatusCode();
 	/* (2) Fill Content-Location */
 		// return the path to the newly or modified file
 }
@@ -218,10 +220,7 @@ void	Methods::_executeGetReq(void)
 		if (!_path.empty() && *(_path.rbegin()) == '/')
 			throw ServerBloc::Forbidden();
 		if (_fileExist(_path) == false)
-		{
-			COUT << "Pas trouve fichier|" << _path << "|\n";
 			throw ServerBloc::NotFound();
-		}
 	}
 }
 

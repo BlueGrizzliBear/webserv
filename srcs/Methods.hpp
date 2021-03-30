@@ -94,6 +94,8 @@ class Methods
 			/* (3) authentication/allowed method */
 		void		_checkRequiredAuthentication();
 		bool		_checkUserExist(std::string user, std::string auth_path);
+		std::string	_decodeUser(std::string user);
+		// bool		_decodeUser(const char * in, size_t inlen, char * out, size_t * outlen);
 		void		_checkAllowedMethods(std::vector<std::string> methods);
 
 

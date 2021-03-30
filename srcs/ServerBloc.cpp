@@ -77,7 +77,7 @@ bool	ServerBloc::readClient(int client_socket)
 	else if ((req.getData().find("\r\n\r\n", old_pos) == std::string::npos) || (receivedBytes == 0))
 	/* Found ending sequence | client closed connection */
 		return (false);	/* request is not complete */
-	
+
 	/* Request is complete */
 	req.headerComplete = 1;
 	return (true);
@@ -98,7 +98,7 @@ bool	ServerBloc::processRequest(void)
 	if (req.parseBody())
 	{
 		CME << "> Parsed Body: COMPLETE !" << EME;
-		
+
 		/* Cleaning */
 		req.getData().clear();			/* Clearing _req buffer */
 		headerParsed = false;			/* Reseting bool indicator if header is parsed or not */
@@ -137,15 +137,6 @@ void	ServerBloc::_addHeaderFields(void)
 	/* Cache indications */
 	resp.header_fields.insert(std::make_pair("Cache-Control", "no-store"));
 	// resp.header_fields.insert(std::make_pair("Cache-Control", "max-age=10"));
-
-	/* specific case header fields */
-		// MAKE SPECIFIC FUNCTION
-	/* If status code 405 Method not allowed, repond with the server allowed method */
-	if (resp.status_code == "405")
-		resp.header_fields.insert(std::make_pair("Allow", "GET, HEAD, POST, PUT, DELETE, CONNECT, OPTIONS, TRACE, WHAT, PATCH"));
-	/* If status code 401 Unauthorized, respond with the WWW-authenticate to specify needed format */
-	if (resp.status_code == "401")
-		resp.header_fields.insert(std::make_pair("WWW-Authenticate", "Basic"));
 }
 
 bool	ServerBloc::sendResponse(Socket & client)
