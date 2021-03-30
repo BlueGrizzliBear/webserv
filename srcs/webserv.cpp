@@ -27,15 +27,21 @@ bool	parseClientRequest(ServerBloc & server, Socket & client)
 		{
 			/* Displaying Client request */
 			// COUT << "Received Data from client\n";
-			// std::cerr << "|" << GREEN << server.req.receivedData.str() << RESET << "|" << std::endl;
-			std::cerr << "Displaying length|" << GREEN << server.req.receivedData.str().length() << RESET << "|" << std::endl;
+			// std::cerr << "Displaying length|" << GREEN << server.req.getData().length() << RESET << "|" << std::endl;
+			
+			// std::cerr << "Displaying header|" << GREEN;
+			// for (size_t i = 0; i != server.req.getData().find("\r\n\r\n") + 4; i++)
+			// 	std::cerr << server.req.getData()[i];
+			// std::cerr << RESET << "|" << std::endl;
+
+			// std::cerr << "Displaying all data|" << GREEN << server.req.getData() << RESET << "|" << std::endl;
 
 			/* Parse Client Request first */
 			if (server.processRequest())
 				return (true);
 		}
 	}
-	catch(const std::exception& e)
+	catch(const std::exception & e)
 	{
 		/* Catching exception from parsing request or execute request */
 		std::cerr << RED << e.what() << RESET << std::endl;

@@ -16,8 +16,7 @@ class Request
 
 	/* Constructor */
 		/*	default		(1)	*/	Request(void);
-		/*	argument	(2)	*/	Request(std::string str);
-		/*	copy		(3)	*/	Request(Request const & cpy);
+		/*	copy		(2)	*/	Request(Request const & cpy);
 
 	/* Destructor */
 		~Request();
@@ -75,8 +74,7 @@ class Request
 	/* Member Attributes */
 	public:
 		/* Parsing Attributes */
-		std::stringstream	receivedData;
-		bool				headerComplete;
+		bool	headerComplete;
 
 		/* Request Attributes */
 		std::string		method;

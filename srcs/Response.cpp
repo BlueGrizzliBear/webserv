@@ -62,8 +62,8 @@ bool	Response::sendMsg(int client_socket)
 {
 	// et en profiter pour ne pas couper la connection si le read lit \0
 
-	static size_t		count = 0;
-	std::string	tmp(msg.substr(count, msg.length() - count));
+	static size_t	count = 0;
+	std::string		tmp(msg.substr(count, msg.length() - count));
 
 	/* try to send */
 	ssize_t writtenBytes = write(client_socket, tmp.data(), tmp.length());		

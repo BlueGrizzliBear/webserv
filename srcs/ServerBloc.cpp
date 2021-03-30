@@ -59,40 +59,33 @@ void	ServerBloc::parseException(const char * code)
 
 bool	ServerBloc::readClient(int client_socket)
 {
-	char		recv_buffer[MAX_HEADER_SIZE];
-	// static bool	headerComplete = 0;
+	char	recv_buffer[MAX_HEADER_SIZE];
 
-	ssize_t receivedBytes = recv(client_socket, &recv_buffer, (MAX_HEADER_SIZE - 1), 0); /* No Flag, CAREFUL */
+	ssize_t receivedBytes = recv(client_socket, &recv_buffer, MAX_HEADER_SIZE, 0); /* No Flag, CAREFUL */
 	if (receivedBytes < 0)
 	{
 		std::cerr << "Error in recv(): " << strerror(errno) << ENDL;
 		return (false);
 	}
 
-	recv_buffer[static_cast<size_t>(receivedBytes)] = '\0';
-	req.receivedData << recv_buffer;
+	size_t old_pos = req.getData().size() > 4 ? req.getData().size() - 4 : 0;
 
-	std::string	str_buffer(recv_buffer);
-	
+	req.getData().append(recv_buffer, static_cast<size_t>(receivedBytes));
+
 	if (req.headerComplete)
 		return (true);	/* request is already complete ! */
-	else if ((str_buffer.find("\r\n\r\n") == std::string::npos) || (receivedBytes == 0))
+	else if ((req.getData().find("\r\n\r\n", old_pos) == std::string::npos) || (receivedBytes == 0))
 	/* Found ending sequence | client closed connection */
-	{
-		
-		if ((req.receivedData.str().find("\r\n\r\n") == std::string::npos) || (receivedBytes == 0))
-			return (false);	/* request is not complete */
-	}
+		return (false);	/* request is not complete */
+	
+	/* Request is complete */
 	req.headerComplete = 1;
-	return (true);	/* request is complete ! */
+	return (true);
 }
 
 bool	ServerBloc::processRequest(void)
 {
-	static bool	headerParsed = 0;
-
-	/* Create request with parser */
-	req.getData() = req.receivedData.str();
+	static bool	headerParsed = false;
 
 	if (!headerParsed)
 	{
@@ -100,16 +93,16 @@ bool	ServerBloc::processRequest(void)
 			CME << "> Parsed Request-line: COMPLETE !" << EME;
 		if (req.parseHeaders())
 			CME << "> Parsed Headers: COMPLETE !" << EME;
-		headerParsed = 1;
+		headerParsed = true;
 	}
 	if (req.parseBody())
 	{
 		CME << "> Parsed Body: COMPLETE !" << EME;
 		
 		/* Cleaning */
-		req.receivedData.str("");	/* Reseting string stream */
-		headerParsed = 0;			/* Reseting bool indicator if header is parsed or not */
-		req.headerComplete = 0;		/* Reseting bool indicator if header is complete or not */
+		req.getData().clear();			/* Clearing _req buffer */
+		headerParsed = false;			/* Reseting bool indicator if header is parsed or not */
+		req.headerComplete = false;		/* Reseting bool indicator if header is complete or not */
 
 		/* Execute the parsed request */
 		executeRequest();

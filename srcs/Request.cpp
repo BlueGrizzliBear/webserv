@@ -3,18 +3,9 @@
 /* Request Class Declaration */
 /* Constructor */
 /*	default		(1)	*/
-Request::Request(void) {}
+Request::Request(void) : _req(""), _pos(0) {}
 
-/*	argument	(2)	*/
-Request::Request(std::string str) : _req(str), _pos(0)
-{
-	// if (_parseRequestLine())
-	// 	CME << "> Parsed Request-line: COMPLETE !" << EME;
-	// if (_parseHeaders())
-	// 	CME << "> Parsed Headers: COMPLETE !" << EME;
-}
-
-/*	copy		(3)	*/
+/*	copy		(2)	*/
 Request::Request(Request const & cpy)
 {
 	*this = cpy;
@@ -47,9 +38,6 @@ std::string &	Request::getData(void)
 /* Member Functions */
 void	Request::clear(void)
 {
-	receivedData.clear();
-	// headerComplete = 0;
-
 	method.clear();
 	uri.clear();
 	protocol_v.clear();
@@ -59,7 +47,6 @@ void	Request::clear(void)
 	_req.clear();
 	_pos = 0;
 }
-
 
 /* A conditional function which returns a bool if the needle is in the dictionary dic */
 bool	Request::_isinDic(char needle, char const * dic)
@@ -76,14 +63,14 @@ bool	Request::_isinDic(char needle, char const * dic)
 /* A function which passes until char is found */
 void	Request::_passUntilChar(int c)
 {
-	while (_req[_pos] && _req[_pos] != c)
+	while (_req[_pos] != c)
 		_pos++;
 }
 
 /* . . . and an overload with a conditional function (usage with isspace() for example) */
 void	Request::_passUntilChar(int func(int))
 {
-	while (_req[_pos] && !func(_req[_pos]))
+	while (!func(_req[_pos]))
 		_pos++;
 }
 
@@ -91,24 +78,33 @@ void	Request::_passUntilChar(int func(int))
 bool	Request::_passStrictOneChar(char const * dic)
 {
 	if (_isinDic(_req[_pos], dic))
+	{
 		_pos++;
-	else if (!_req[_pos])
 		return (true);
-	else
-		return (false);
-	return (true);
+	}
+	return (false);
+	// 	_pos++;
+	// else if (!_req[_pos])
+	// 	return (true);
+	// else
+	// 	return (false);
+	// return (true);
 }
 
 /* . . . and an overload with a conditional function (usage with isspace() for example) */
 bool	Request::_passStrictOneChar(int func(int))
 {
-	if (_req[_pos] && func(_req[_pos]))
+	if (func(_req[_pos]))
+	{
 		_pos++;
-	else if (!_req[_pos])
 		return (true);
-	else
-		return (false);
-	return (true);
+	}
+	return (false);
+	// else if (!_req[_pos])
+	// 	return (true);
+	// else
+	// 	return (false);
+	// return (true);
 }
 
 /* A function which passes 1 char from the dictionary dic */
@@ -121,21 +117,22 @@ void	Request::_passOneChar(char const * dic)
 /* . . . and an overload with a conditional function (usage with isspace() for example) */
 void	Request::_passOneChar(int func(int))
 {
-	if (_req[_pos] && func(_req[_pos]))
+	if (func(_req[_pos]))
 		_pos++;
 }
 
 /* A function which passes 1 or more Chars from the dictionary dic */
 void	Request::_passOptionalChars(char const * dic)
 {
-	while (_isinDic(_req[_pos], dic))
-		_pos++;
+	size_t ret = 0;
+	if ((ret = _req.find_first_of(dic)) != std::string::npos)
+		_pos += ret;
 }
 
 /* . . . and an overload with a conditional function (usage with isspace() for example) */
 void	Request::_passOptionalChars(int func(int))
 {
-	while (_req[_pos] && func(_req[_pos]))
+	while (func(_req[_pos]))
 		_pos++;
 }
 
@@ -144,7 +141,7 @@ std::string	Request::_getWord(char const * delimiter_dic)
 {
 	std::string word;
 
-	while (_req[_pos] && !_isinDic(_req[_pos], delimiter_dic))
+	while (!_isinDic(_req[_pos], delimiter_dic))
 		word += _req[_pos++];
 	return (word);
 }
@@ -154,7 +151,7 @@ std::string	Request::_getWord(int func(int))
 {
 	std::string word;
 
-	while (_req[_pos] && !func(_req[_pos]))
+	while (!func(_req[_pos]))
 		word += _req[_pos++];
 	return (word);
 }
@@ -177,8 +174,9 @@ bool	Request::parseRequestLine(void) throw(NotImplemented, BadRequest)
 
 	/* Check Method */
 	method = _getWord(&isspace);
+	// COUT << "here\n";
 	if (_dic.methodDic.find(method) == _dic.methodDic.end())
-		throw NotImplemented(); 								/* Or 405 (Method Not Allowed), if it doesnt have the rights */
+		throw NotImplemented();		/* Or 405 (Method Not Allowed), if it doesnt have the rights */
 
 	/* Pass 1 Space */
 	if (!_passStrictOneChar(" "))
@@ -245,10 +243,7 @@ bool	Request::parseHeaders(void) throw(BadRequest)
 
 	/* Check if new line */
 	if (_req.find("\r\n", _pos) == std::string::npos || !(_pos += 2))
-	{
-		COUT << "ici\n";
 		throw BadRequest();
-	}
 	return (true);
 }
 
