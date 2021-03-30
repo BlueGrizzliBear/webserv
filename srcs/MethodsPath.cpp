@@ -135,19 +135,15 @@ std::string	Methods::_findRewrite(std::map< T, U > dir)
 	return req_uri;
 }
 
-std::string	Methods::_uriWithoutFirstPart()
+std::string	Methods::_uriWithoutFirstPart(void)
 {
-	std::string		uri_path;
-	unsigned long	i = 1;
+	std::string	uri_path;
+	size_t		i = 0;
 
-	while (serv->req.uri[i] && serv->req.uri[i] != '/')
-		++i;
-	++i;
-	while (serv->req.uri[i])
-	{
-		uri_path += serv->req.uri[i];
-		++i;
-	}
+	if ((i = serv->req.uri.find("/", 1)) == std::string::npos)
+		return ("");
+	i++;
+	uri_path = serv->req.uri.substr(i, serv->req.uri.size() - i);
 	return (uri_path);
 }
 
@@ -287,6 +283,15 @@ std::string		Methods::_toLowerStr(std::string const &str)
 
 std::string	Methods::_uriFirstPart()
 {
+	// std::string	uri_path;
+	// size_t		i = 0;
+
+	// if ((i = serv->req.uri.find("/", 1)) == std::string::npos)
+	// 	return ("");
+	// i++;
+	// uri_path = serv->req.uri.substr(i, serv->req.uri.size() - i);
+	// return (uri_path);
+
 	std::string	uri_path;
 	std::string	tmp;
 

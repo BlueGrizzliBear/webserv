@@ -230,17 +230,18 @@ void	Request::_parseChunkedBody(ssize_t & size) throw(BadRequest)
 
 	while (_req[_pos] != '\r' && std::isxdigit(_req[_pos]))
 		hexa_size += _req[_pos++];
-	if (!_req[_pos] || !_passStrictOneChar("\r") || !_req[_pos] || !_passStrictOneChar("\n"))
+	
+	if (_req.find("\r\n", _pos) == std::string::npos || !(_pos += 2))
 		throw BadRequest();
+
 	size = std::strtol(hexa_size.c_str(), NULL, 16);
-	while (size > 0)
-	{
-		body += _req[_pos++];
-		size--;
-	}
-	if (!_req[_pos] || !_passStrictOneChar("\r") || !_req[_pos] || !_passStrictOneChar("\n"))
+	
+	body.insert(body.size(), _req, _pos, static_cast<size_t>(size));
+	_pos += static_cast<size_t>(size);
+	size = 0;
+
+	if (_req.find("\r\n", _pos) == std::string::npos || !(_pos += 2))
 		throw BadRequest();
-	// COUT << "body|" << body << "|\n";
 }
 
 bool	Request::_checkEndOfChunkedEncoding(ssize_t & size)
@@ -249,7 +250,6 @@ bool	Request::_checkEndOfChunkedEncoding(ssize_t & size)
 	{
 		if (size == 0)
 		{
-			body += _req[_pos] + _req[_pos + 1] + _req[_pos + 2] + _req[_pos + 3] + _req[_pos + 4];;
 			_pos += 5;
 			return (true);
 		}
@@ -308,4 +308,9 @@ bool	Request::_parseBody(void) throw(BadRequest)
 	else
 		return (true);	/* No body */
 	return (false);
+}
+
+void	Request::clean(void)
+{
+	body.clear();
 }

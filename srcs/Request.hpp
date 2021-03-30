@@ -39,6 +39,7 @@ class Request
 	/* Member Functions */
 	public:
 		bool	isComplete(void);
+		void	clean(void);
 
 	private:
 		size_t	_passSpaces(void);

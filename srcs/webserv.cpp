@@ -26,7 +26,7 @@ bool	parseClientRequest(ServerBloc & server, Socket & client)
 		if (server.readClient(client.fd))
 		{
 			/* Displaying Client request */
-			COUT << "Received Data from client\n";
+			// COUT << "Received Data from client\n";
 			// std::cerr << "|" << GREEN << server.req.receivedData.str() << RESET << "|" << std::endl;
 			std::cerr << "Displaying length|" << GREEN << server.req.receivedData.str().length() << RESET << "|" << std::endl;
 
