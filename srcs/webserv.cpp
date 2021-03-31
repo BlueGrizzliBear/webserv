@@ -28,7 +28,7 @@ bool	parseClientRequest(ServerBloc & server, Socket & client)
 			/* Displaying Client request */
 			// COUT << "Received Data from client\n";
 			// std::cerr << "Displaying length|" << GREEN << server.req.getData().length() << RESET << "|" << std::endl;
-			
+
 			// std::cerr << "Displaying header|" << GREEN;
 			// for (size_t i = 0; i != server.req.getData().find("\r\n\r\n") + 4; i++)
 			// 	std::cerr << server.req.getData()[i];
@@ -173,8 +173,8 @@ int	launchServer(ServerBloc & server)
 					}
 					fcntl(new_client.fd, F_SETFL, O_NONBLOCK);	/* Set the socket to non blocking */
 
-					
-					FD_CLR(server.serv_port.fd, &server.serv_select.readfds);	/* removing server fd from reading list to process request first */					
+
+					FD_CLR(server.serv_port.fd, &server.serv_select.readfds);	/* removing server fd from reading list to process request first */
 					FD_SET(new_client.fd, &server.serv_select.readfds);	/* Adding the respective socket to the read playlist */
 
 					server.serv_select.fd_max = new_client.fd;	/* Re-assgning fd_max value for select */

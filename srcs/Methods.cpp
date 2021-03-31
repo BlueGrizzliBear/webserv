@@ -165,6 +165,7 @@ void	Methods::_applyPost()
 	_findPath();
 
 	/* execute specific to POST request */
+	_executePostReq();
 
 	/* Fill header informations */
 	/* (1) Fill Status Line */
@@ -330,6 +331,16 @@ bool	Methods::_fileExist(const std::string & name)
 void	Methods::_executePutReq(void)
 {
 	std::ofstream	file(_path);
+
+	file << serv->req.body;
+	file.close();
+	serv->req.body.clear();
+}
+
+/* Execute Post request */
+void	Methods::_executePostReq(void)
+{
+	std::ofstream	file(_path, std::ios_base::app);
 
 	file << serv->req.body;
 	file.close();

@@ -55,6 +55,9 @@ class Methods
 		/* Execute Put request */
 		void	_executePutReq(void);
 
+		/* Execute Post request */
+		void	_executePostReq(void);
+
 		/* Check content type */
 		void		_checkContentType(void);
 		std::string	_pathExtension(std::string const & path);
@@ -76,6 +79,9 @@ class Methods
 
 		template< typename T, typename U >
 		void	_findAutoIndex(std::map< T, U > dir);
+
+		template< typename T, typename U >
+		void	_findCGIPath(std::map< T, U > dir);
 
 		template< typename T, typename U >
 		std::vector<std::string>	_findVect(std::map< T, U > dir, std::string to_find, std::vector<std::string> vect);
@@ -117,6 +123,7 @@ class Methods
 	private:
 		/* Method Utilities */
 		std::string					_path;
+		std::string					_cgi_path;
 		std::vector<std::string>	_authenticate;
 		std::vector<std::string>	_indexes;
 		bool						_autoindex;

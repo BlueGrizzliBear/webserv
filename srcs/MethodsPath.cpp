@@ -13,6 +13,7 @@ void	Methods::_findPath(void)
 	_findAuthenticate(serv->dir);
 	_findRoot(serv->dir);
 	_findAutoIndex(serv->dir);
+	_findCGIPath(serv->dir);
 	methods = _findVect(serv->dir, "allowed_methods", methods);
 	_indexes = _findVect(serv->dir, "index", _indexes);
 
@@ -28,6 +29,7 @@ void	Methods::_findPath(void)
 		_findAuthenticate(locationDir);
 		_findRoot(locationDir);
 		_findAutoIndex(locationDir);
+		_findCGIPath(locationDir);
 		methods = _findVect(locationDir, "allowed_methods", methods);
 		_indexes = _findVect(locationDir, "index", _indexes);
 		req_uri = _findRewrite(locationDir);
@@ -156,6 +158,13 @@ void		Methods::_findAutoIndex(std::map< T, U > dir)
 }
 
 template< typename T, typename U >
+void		Methods::_findCGIPath(std::map< T, U > dir)
+{
+	if (dir.find("cgi") != dir.end())
+		_cgi_path = dir.find("cgi")->second[0];
+}
+
+template< typename T, typename U >
 std::vector<std::string>	Methods::_findVect(std::map< T, U > dir, std::string to_find, std::vector<std::string> vect)
 {
 	if (dir.find(to_find) != dir.end())
@@ -196,7 +205,7 @@ bool	Methods::_matchingLocationDir(std::map<std::vector<std::string>, LocationBl
 {
 	if (_isRegex(it->first[0]))
 	{
-		if (it->first[0] == "=" && (serv->req.uri == it->first[1]))
+		if (it->first[0] == "=" && ((_uriFirstPart() == it->first[1]) || (serv->req.uri == it->first[1])))
 		{
 			*location_dir = it->second.loc_dir;
 			return true;
