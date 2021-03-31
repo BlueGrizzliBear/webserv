@@ -165,8 +165,10 @@ void	Methods::_applyPost()
 	_findPath();
 
 	/* execute specific to POST request */
-	_executePostReq();
-
+	// if (_cgi_path.empty())
+		_executePostReq();
+	// else
+		// _executeCGI();
 	/* Fill header informations */
 	/* (1) Fill Status Line */
 	_GetHeaderStatusCode();

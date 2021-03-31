@@ -44,6 +44,8 @@ void	Methods::_findPath(void)
 
 void		Methods::_checkRequiredAuthentication()
 {
+	_envp["AUTH_TYPE"] = "";
+	_envp["REMOTE_USER"] = "";
 	if (!_authenticate.empty())
 	{
 		if (serv->req.headers.find("Authorization") != serv->req.headers.end())
@@ -52,6 +54,7 @@ void		Methods::_checkRequiredAuthentication()
 				return ;
 		}
 		serv->resp.header_fields.insert(std::make_pair("WWW-Authenticate", "Basic realm=" + _authenticate[0] + ", charset=\"UTF-8\""));
+		_envp["AUTH_TYPE"] = "Basic";
 		throw ServerBloc::Unauthorized();
 	}
 }
@@ -61,6 +64,8 @@ bool		Methods::_checkUserExist(std::string user, std::string auth_path)
 	std::vector<std::string>	users;
 	std::string					line;
 	std::fstream				user_file(auth_path);
+
+	_envp["AUTH_TYPE"] = user.substr(0, user.find(' ') - 1);
 
 	if (user.find("Basic ") != std::string::npos && user_file.good())
 	{
@@ -72,7 +77,10 @@ bool		Methods::_checkUserExist(std::string user, std::string auth_path)
 		for (std::vector<std::string>::iterator it = users.begin(); it != users.end(); ++it)
 		{
 			if (*it == user)
+			{
+				_envp["REMOTE_USER"] = user.substr(0, user.find(':') - 1);
 				return true;
+			}
 		}
 	}
 	return false;

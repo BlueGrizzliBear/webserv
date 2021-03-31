@@ -109,12 +109,15 @@ class Methods
 		/* Header server response */
 		void	_PutHeaderStatusCode(void);
 		void	_GetHeaderStatusCode(void);
-		void	_lastModifiedHeader(struct tm *timeinfo);
-		struct tm	*_getFileTime(void);
-		struct tm	*_getHeaderIfUnmodifiedSinceTime(void);
-		int			_cmpTimeInfo(struct tm *t1, struct tm *t2);
+		void	_lastModifiedHeader(struct tm * timeinfo);
+		struct tm	* _getFileTime(void);
+		struct tm	* _getHeaderIfUnmodifiedSinceTime(void);
+		int			_cmpTimeInfo(struct tm * t1, struct tm * t2);
 		std::string	_readFileToStr(void);
 
+	/* MethodsCGI.cpp */
+		void	_executeCGI(void);
+		char 	** _createCGIEnv(void);
 
 	/* Member Attributes */
 	public:
@@ -127,6 +130,8 @@ class Methods
 		std::vector<std::string>	_authenticate;
 		std::vector<std::string>	_indexes;
 		bool						_autoindex;
+		std::map<std::string, std::string>	_envp;
+
 };
 
 #endif
