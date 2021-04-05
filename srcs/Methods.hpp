@@ -40,10 +40,12 @@ class Methods
 
 		/* Method functions */
 		void	_URIResolutionProcess(void);
+		void	_queryResolutionProcess(void);
 		void	_applyGet(void);
 		void	_applyHead(void);
 		void	_applyPost(void);
 		void	_applyPut(void);
+
 		/* Execute Get request */
 		void	_executeGetReq(void);
 		bool	_isDirectory(std::string const & path);
@@ -116,8 +118,27 @@ class Methods
 		std::string	_readFileToStr(void);
 
 	/* MethodsCGI.cpp */
-		void	_executeCGI(void);
-		char 	** _createCGIEnv(void);
+		void		_executeCGI(void);
+
+		void 		_createEnvpMap(void);
+		void		_createArgvMap(void);
+		char **		_createEnvpArray(void);
+		char **		_createArgvArray(void);
+
+		void		_freeArray(char ** array);
+		
+		std::string	_createQueryStringEnvp(void);
+
+		void		_communicateWithCGI(int fd_in, int fd_out, pid_t pid);
+
+		/* Utitilies */
+		bool		_str_is(std::string str, int func(int));
+
+		bool		_parseCGIField(std::string & receivedMessage);
+		bool		_parseGenericField(std::string & receivedMessage);
+		bool		_parseBody(std::string & receivedMessage);
+
+		void		_parseCGIResponse(std::string & receivedMessage);
 
 	/* Member Attributes */
 	public:
@@ -126,11 +147,16 @@ class Methods
 	private:
 		/* Method Utilities */
 		std::string					_path;
+		std::string					_query;
 		std::string					_cgi_path;
 		std::vector<std::string>	_authenticate;
 		std::vector<std::string>	_indexes;
 		bool						_autoindex;
+
 		std::map<std::string, std::string>	_envp;
+		std::vector<std::string>	_argv;
+
+
 
 };
 

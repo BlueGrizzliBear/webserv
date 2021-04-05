@@ -58,30 +58,33 @@ void	Response::concatenateResponse(void)
 	isComplete = 1;
 }
 
-bool	Response::sendMsg(int client_socket)
+bool	Response::sendMsg(int client_socket, std::string & message)
 {
-	// et en profiter pour ne pas couper la connection si le read lit \0
-
 	static size_t	count = 0;
-	std::string		tmp(msg.substr(count, msg.length() - count));
+	std::string		tmp(message.substr(count, message.length() - count));
+
+	// COUT << "count|" << count << "|\n";
+	// COUT << "message.length()|" << message.length() << "|\n";
+	// COUT << "tmp.length()|" << tmp.length() << "|\n";
 
 	/* try to send */
-	ssize_t writtenBytes = write(client_socket, tmp.data(), tmp.length());		
+	ssize_t writtenBytes = write(client_socket, tmp.data(), tmp.length());
+	// COUT << "After write\n";
+
 	if (writtenBytes < 0)
 	{
-		std::cerr << "Error in write(): " << strerror(errno) << ENDL;
+		CERR << "Error in write(): " << strerror(errno) << ENDL;
 		return (false);
 	}
 	count += static_cast<size_t>(writtenBytes);
 	
-	if (count == msg.length())
+	if (count == message.length())
 	{
-		cleanResponse();
 		count = 0;
 		COUT << "------------------Complete message sent-------------------" << ENDL;
 		return (true);
 	}
-	COUT << "Message not send, only sent|" << count << "/" << msg.length() << "|bytes" << ENDL;
+	COUT << "Sent|" << count << "/" << message.length() << "|bytes" << ENDL;
 	return (false);
 }
 

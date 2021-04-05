@@ -67,6 +67,7 @@ bool	ServerBloc::readClient(int client_socket)
 		std::cerr << "Error in recv(): " << strerror(errno) << ENDL;
 		return (false);
 	}
+	// A TESTER // else if (receivedBytes == EWOULDBLOCK)
 
 	size_t old_pos = req.getData().size() > 4 ? req.getData().size() - 4 : 0;
 
@@ -121,10 +122,6 @@ void	ServerBloc::executeRequest(void)
 	Methods	implementedMethods(*this);
 
 	implementedMethods.execute();
-
-	/* Fill Header Fields */
-	resp.header_fields.insert(std::make_pair("Connection", "close"));
-
 	CME << "> EXECUTION DONE !" << EME;
 }
 
@@ -137,6 +134,8 @@ void	ServerBloc::_addHeaderFields(void)
 	/* Cache indications */
 	resp.header_fields.insert(std::make_pair("Cache-Control", "no-store"));
 	// resp.header_fields.insert(std::make_pair("Cache-Control", "max-age=10"));
+
+	resp.header_fields.insert(std::make_pair("Connection", "close"));
 }
 
 bool	ServerBloc::sendResponse(Socket & client)
@@ -146,7 +145,13 @@ bool	ServerBloc::sendResponse(Socket & client)
 		_addHeaderFields();	/* Add the right header fields */
 		resp.concatenateResponse();	/* Fill response msg */
 	}
-	return (resp.sendMsg(client.fd));
+	if (resp.sendMsg(client.fd, resp.msg) == true)
+	{
+		resp.cleanResponse();
+		return (true);
+	}
+	return (false);
+	// return (resp.sendMsg(client.fd));
 }
 
 std::string	ServerBloc::_getDate(void)

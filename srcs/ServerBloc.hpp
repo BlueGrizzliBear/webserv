@@ -120,6 +120,8 @@ class ServerBloc
 		Socket		serv_port;
 		Select		serv_select;
 
+		Socket 		client;
+
 		/* Attributes from RequestParsing */
 		Request		req;
 		Response 	resp;

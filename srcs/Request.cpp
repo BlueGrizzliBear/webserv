@@ -243,7 +243,10 @@ bool	Request::parseHeaders(void) throw(BadRequest)
 
 	/* Check if new line */
 	if (_req.find("\r\n", _pos) == std::string::npos || !(_pos += 2))
+	{
+		COUT << "ICI \n";
 		throw BadRequest();
+	}
 	return (true);
 }
 

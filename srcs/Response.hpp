@@ -26,7 +26,7 @@ class Response
 	/* Member Functions */
 	public:
 		void	concatenateResponse(void);
-		bool	sendMsg(int client_socket);
+		bool	sendMsg(int client_socket, std::string & message);
 		void	cleanResponse(void);
 
 	/* Member Attributes */
@@ -40,8 +40,6 @@ class Response
 
 		/* Write/Send utilities */
 		std::string	msg;
-		// std::string	tmp;
-		// size_t 		count;
 		bool		isComplete;
 };
 

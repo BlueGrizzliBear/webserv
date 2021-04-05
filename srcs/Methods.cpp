@@ -29,6 +29,7 @@ void	Methods::execute(void)
 {
 	/* uri resolution process (treat ../ and ./) */
 	_URIResolutionProcess();
+	_queryResolutionProcess();
 
 	if (serv->req.method == "GET")
 		_applyGet();
@@ -126,6 +127,11 @@ void	Methods::_URIResolutionProcess(void)
 	serv->req.uri = new_uri;
 }
 
+void	Methods::_queryResolutionProcess(void)
+{
+	// to implement
+}
+
 void	Methods::_applyGet(void)
 {
 	/* Check if path exist on server */
@@ -165,13 +171,15 @@ void	Methods::_applyPost()
 	_findPath();
 
 	/* execute specific to POST request */
-	// if (_cgi_path.empty())
+	if (_cgi_path.empty())
+	{
 		_executePostReq();
-	// else
-		// _executeCGI();
-	/* Fill header informations */
-	/* (1) Fill Status Line */
-	_GetHeaderStatusCode();
+		/* Fill header informations */
+		/* (1) Fill Status Line */
+		_GetHeaderStatusCode();
+	}
+	else
+		_executeCGI();
 }
 
 void	Methods::_applyPut()

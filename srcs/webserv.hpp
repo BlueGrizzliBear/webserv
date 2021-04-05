@@ -12,6 +12,7 @@
 # include <fcntl.h>
 # include <sys/time.h>
 # include <dirent.h>
+# include <arpa/inet.h>
 
 /* C++ libraries */
 # include <cstdlib>

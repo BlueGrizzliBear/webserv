@@ -18,16 +18,16 @@ void	exitServerOnError(const char * main_err, const char * err, ServerBloc & ser
 	exit(EXIT_FAILURE);
 }
 
-bool	parseClientRequest(ServerBloc & server, Socket & client)
+bool	parseClientRequest(ServerBloc & server)
 {
 	try
 	{
 		/* Read Client Request with recv */
-		if (server.readClient(client.fd))
+		if (server.readClient(server.client.fd))
 		{
 			/* Displaying Client request */
 			// COUT << "Received Data from client\n";
-			// std::cerr << "Displaying length|" << GREEN << server.req.getData().length() << RESET << "|" << std::endl;
+			std::cerr << "Displaying length|" << GREEN << server.req.getData().length() << RESET << "|" << std::endl;
 
 			// std::cerr << "Displaying header|" << GREEN;
 			// for (size_t i = 0; i != server.req.getData().find("\r\n\r\n") + 4; i++)
@@ -51,18 +51,18 @@ bool	parseClientRequest(ServerBloc & server, Socket & client)
 	return (false);
 }
 
-bool	parseServerResponse(ServerBloc & server, Socket & client)
+bool	parseServerResponse(ServerBloc & server)
 {
 	try
 	{
-		if (server.sendResponse(client))
+		if (server.sendResponse(server.client))
 		{
 			gettimeofday(&mytime2, NULL);
 			COUT << RED << "Time elapsed: " << static_cast<float>((mytime2.tv_sec - mytime1.tv_sec) * 1000 + ((mytime2.tv_usec - mytime1.tv_usec) / 1000)) << " ms." << RESET << ENDL;
-			close(client.fd);	/* Closing client socket, finished processing request */
-			client.fd = -1;
+			close(server.client.fd);	/* Closing client socket, finished processing request */
+			server.client.fd = -1;
 			server.getParent()->_initSelect(server);
-			server.serv_select.fd_max = server.serv_port.fd > client.fd ? server.serv_port.fd : client.fd;	/* Re-assgning fd_max value for select */
+			server.serv_select.fd_max = server.serv_port.fd;	/* Re-assgning fd_max value for select */
 			return (true);
 		}
 	}
@@ -75,8 +75,7 @@ bool	parseServerResponse(ServerBloc & server, Socket & client)
 
 int	launchServer(ServerBloc & server)
 {
-	Socket new_client;
-	new_client.fd = -1;
+	server.client.fd = -1;
 
 	static bool status = 1;
 
@@ -96,7 +95,7 @@ int	launchServer(ServerBloc & server)
 			case 0:
 			{
 				// displayError("Error in Select()", "select timed out");
-				if (new_client.fd == -1)
+				if (server.client.fd == -1)
 				{
 					// COUT << "reseting server\n";
 					server.getParent()->_initSelect(server);
@@ -105,14 +104,14 @@ int	launchServer(ServerBloc & server)
 				{
 					// COUT << "reseting read fds\n";
 					FD_ZERO(&server.serv_select.readfds);
-					FD_SET(new_client.fd, &server.serv_select.readfds);
+					FD_SET(server.client.fd, &server.serv_select.readfds);
 				}
 				else
 				{
 					// COUT << "reseting write fds\n";
 					// FD_ZERO(&server.serv_select.readfds);
 					FD_ZERO(&server.serv_select.writefds);
-					FD_SET(new_client.fd, &server.serv_select.writefds);
+					FD_SET(server.client.fd, &server.serv_select.writefds);
 				}
 				break ;
 			}
@@ -130,34 +129,34 @@ int	launchServer(ServerBloc & server)
 					FD_ZERO(&server.serv_select.readfds);
 					FD_ZERO(&server.serv_select.writefds);
 					FD_ZERO(&server.serv_select.exceptfds);
-					close(new_client.fd);
+					close(server.client.fd);
 					close(server.serv_port.fd);
 					exit(EXIT_SUCCESS);
 				}
-	/* READ */	else if ((new_client.fd != -1) && FD_ISSET(new_client.fd, &server.serv_select.readfds))
+	/* READ */	else if ((server.client.fd != -1) && FD_ISSET(server.client.fd, &server.serv_select.readfds))
 				{
 					CMEY << "Respective socket is ready for reading request" << EME;
 
 					/* Parsing Client Request */
-					if (parseClientRequest(server, new_client))
+					if (parseClientRequest(server))
 					{
 						/* Removing client socket from read playlist if finished */
-						FD_CLR(new_client.fd, &server.serv_select.readfds);		/* Clearing read list from client socket */
-						FD_SET(new_client.fd, &server.serv_select.writefds);	/* Adding the client socket to the write playlist */
+						FD_CLR(server.client.fd, &server.serv_select.readfds);		/* Clearing read list from client socket */
+						FD_SET(server.client.fd, &server.serv_select.writefds);	/* Adding the client socket to the write playlist */
 					}
 				}
-	/* WRITE */	else if ((new_client.fd != -1) && FD_ISSET(new_client.fd, &server.serv_select.writefds))
+	/* WRITE */	else if ((server.client.fd != -1) && FD_ISSET(server.client.fd, &server.serv_select.writefds))
 				{
 					CMEY << "Respective socket is ready for writing request response" << EME;
 
 					/* Parsing Server Response */
-					// if (parseServerResponse(server, new_client))
-					if ((status = parseServerResponse(server, new_client)))
+					// if (parseServerResponse(server, server.client))
+					if ((status = parseServerResponse(server)))
 					{
 						// COUT << "Finished writing to Client\n";
 					}
 				}
-	/* NEW */	else if ((new_client.fd == -1) && FD_ISSET(server.serv_port.fd, &server.serv_select.readfds))
+	/* NEW */	else if ((server.client.fd == -1) && FD_ISSET(server.serv_port.fd, &server.serv_select.readfds))
 				{
 					gettimeofday(&mytime1, NULL);
 					// time(&mytime);
@@ -165,19 +164,19 @@ int	launchServer(ServerBloc & server)
 					CMEY << "Someone is talking to the server socket" << EME;
 
 					/* Opening socket for new client */
-					new_client.fd = accept(server.serv_port.fd, reinterpret_cast<struct sockaddr *>(&new_client.address), reinterpret_cast<socklen_t *>(&new_client.addrlen));
-					if (new_client.fd == -1)
+					server.client.fd = accept(server.serv_port.fd, reinterpret_cast<struct sockaddr *>(&server.client.address), reinterpret_cast<socklen_t *>(&server.client.addrlen));
+					if (server.client.fd == -1)
 					{
 						displayError("Error in accept()", strerror(errno));
 						break ;
 					}
-					fcntl(new_client.fd, F_SETFL, O_NONBLOCK);	/* Set the socket to non blocking */
+					fcntl(server.client.fd, F_SETFL, O_NONBLOCK);	/* Set the socket to non blocking */
 
 
 					FD_CLR(server.serv_port.fd, &server.serv_select.readfds);	/* removing server fd from reading list to process request first */
-					FD_SET(new_client.fd, &server.serv_select.readfds);	/* Adding the respective socket to the read playlist */
+					FD_SET(server.client.fd, &server.serv_select.readfds);	/* Adding the respective socket to the read playlist */
 
-					server.serv_select.fd_max = new_client.fd;	/* Re-assgning fd_max value for select */
+					server.serv_select.fd_max = server.client.fd;	/* Re-assgning fd_max value for select */
 				}
 				else
 				{
@@ -230,6 +229,7 @@ int main(int argc, char const ** argv)
 				CME << "Waiting for Servers . . ." << EME;
 				waitpid(-1, &config.getStatus(), 0);
 				CME << "One server came back . . ." << EME;
+				CME << "Status of return|" << config.getStatus() << "|" << EME;
 			}
 			CME << "All servers came back . . ." << EME;
 		}

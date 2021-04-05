@@ -9,7 +9,8 @@ SRCS_NAME		=		webserv.cpp	\
 						ServerBloc.cpp \
 						Methods.cpp \
 						MethodsPath.cpp \
-						MethodsHeader.cpp
+						MethodsHeader.cpp \
+						MethodsCGI.cpp
 
 OBJS			= 		${SRCS:.cpp=.o}
 
@@ -17,8 +18,8 @@ NAME			=		./webserv
 
 COMPIL			=		clang++
 
-# FLAGS			+=		-Wall -Wextra -Werror -Wconversion -std=c++98 -fsanitize=address
-FLAGS			+=		-Wall -Wextra -Werror -Wconversion -std=c++98
+FLAGS			+=		-Wall -Wextra -Werror -Wconversion -std=c++98 -fsanitize=address -g3
+# FLAGS			+=		-Wall -Wextra -Werror -Wconversion -std=c++98
 
 SRCS			=		$(addprefix $(SRC_PATH),$(SRCS_NAME))
 
