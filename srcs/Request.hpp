@@ -47,6 +47,11 @@ class Request
 
 		void	clear(void);
 
+		void	display(void);
+
+		static int			toUnderscore(int c);
+		static std::string	transform(std::string str, int func(int));
+
 	private:
 		size_t	_passSpaces(void);
 

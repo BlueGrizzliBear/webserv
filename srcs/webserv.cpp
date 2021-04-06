@@ -27,7 +27,7 @@ bool	parseClientRequest(ServerBloc & server)
 		{
 			/* Displaying Client request */
 			// COUT << "Received Data from client\n";
-			std::cerr << "Displaying length|" << GREEN << server.req.getData().length() << RESET << "|" << std::endl;
+			// std::cerr << "Displaying length|" << GREEN << server.req.getData().length() << RESET << "|" << std::endl;
 
 			// std::cerr << "Displaying header|" << GREEN;
 			// for (size_t i = 0; i != server.req.getData().find("\r\n\r\n") + 4; i++)
@@ -135,7 +135,7 @@ int	launchServer(ServerBloc & server)
 				}
 	/* READ */	else if ((server.client.fd != -1) && FD_ISSET(server.client.fd, &server.serv_select.readfds))
 				{
-					CMEY << "Respective socket is ready for reading request" << EME;
+					// CMEY << "Respective socket is ready for reading request" << EME;
 
 					/* Parsing Client Request */
 					if (parseClientRequest(server))
@@ -147,7 +147,7 @@ int	launchServer(ServerBloc & server)
 				}
 	/* WRITE */	else if ((server.client.fd != -1) && FD_ISSET(server.client.fd, &server.serv_select.writefds))
 				{
-					CMEY << "Respective socket is ready for writing request response" << EME;
+					// CMEY << "Respective socket is ready for writing request response" << EME;
 
 					/* Parsing Server Response */
 					// if (parseServerResponse(server, server.client))

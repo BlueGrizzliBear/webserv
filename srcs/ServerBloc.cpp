@@ -91,14 +91,14 @@ bool	ServerBloc::processRequest(void)
 	if (!headerParsed)
 	{
 		if (req.parseRequestLine())
-			CME << "> Parsed Request-line: COMPLETE !" << EME;
+			// CME << "> Parsed Request-line: COMPLETE !" << EME;
 		if (req.parseHeaders())
-			CME << "> Parsed Headers: COMPLETE !" << EME;
+			// CME << "> Parsed Headers: COMPLETE !" << EME;
 		headerParsed = true;
 	}
 	if (req.parseBody())
 	{
-		CME << "> Parsed Body: COMPLETE !" << EME;
+		// CME << "> Parsed Body: COMPLETE !" << EME;
 
 		/* Cleaning */
 		req.getData().clear();			/* Clearing _req buffer */

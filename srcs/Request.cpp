@@ -36,6 +36,23 @@ std::string &	Request::getData(void)
 }
 
 /* Member Functions */
+void	Request::display(void)
+{
+	COUT << GREEN << "Displaying Request" << ENDL;
+	COUT << method << " " << uri << " " << protocol_v << ENDL;
+	
+	Headers::iterator begin = headers.begin();
+	while (begin != headers.end())
+	{
+		COUT << begin->first << ":" << begin->second << ENDL;
+		++begin;
+	}
+
+	// COUT << body << ENDL;
+
+	COUT << RESET;
+}
+
 void	Request::clear(void)
 {
 	method.clear();
@@ -46,6 +63,26 @@ void	Request::clear(void)
 	
 	_req.clear();
 	_pos = 0;
+}
+
+int		Request::toUnderscore(int c)
+{
+	if (c == '-')
+		return ('_');
+	return (c);
+}
+
+std::string Request::transform(std::string str, int func(int))
+{
+	std::string::iterator begin = str.begin();
+	std::string result;
+
+	while (begin != str.end())
+	{
+		result.append(1, func(*begin));
+		++begin;
+	}
+	return (result);
 }
 
 /* A conditional function which returns a bool if the needle is in the dictionary dic */
@@ -215,12 +252,7 @@ bool	Request::parseHeaders(void) throw(BadRequest)
 		std::string header_key = _getWord("(),/:;<=>?@[\\]{}\" \t\r\f\n\v");
 		if (header_key == "")
 			break ;
-		else if (_dic.headerDic.find(header_key) == _dic.headerDic.end())
-		{
-			/* Header is not implemented: pass until the end of line */
-			_passUntilChar('\r');
-		}
-		else
+		else if (_dic.headerDic.find(header_key) != _dic.headerDic.end() || (header_key.substr(0, 2).find("X-") != std::string::npos))
 		{
 			/* Header is implemented: get values and insert into Headers */
 			// COUT << "Header IS implemented |" << header_key << "|" << ENDL;
@@ -236,6 +268,11 @@ bool	Request::parseHeaders(void) throw(BadRequest)
 			// CME << "Values|" << header_val << "|" << EME;
 			headers.insert(std::make_pair(header_key, header_val));
 
+		}
+		else
+		{
+			/* Header is not implemented: pass until the end of line */
+			_passUntilChar('\r');
 		}
 		_passOneChar("\r");
 		_passOneChar("\n");

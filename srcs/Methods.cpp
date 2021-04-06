@@ -39,6 +39,8 @@ void	Methods::execute(void)
 		_applyPost();
 	else if (serv->req.method == "PUT")
 		_applyPut();
+
+	serv->req.display();
 }
 
 void	Methods::customError(std::string status_code, std::string reason_phrase)
@@ -180,6 +182,9 @@ void	Methods::_applyPost()
 	}
 	else
 		_executeCGI();
+
+	// /* (2) Fill Content-length */
+	serv->resp.header_fields.insert(std::make_pair("Content-Length", _getSizeOfStr(serv->resp.body)));
 }
 
 void	Methods::_applyPut()

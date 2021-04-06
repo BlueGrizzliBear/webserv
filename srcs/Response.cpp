@@ -74,7 +74,7 @@ bool	Response::sendMsg(int client_socket, std::string & message)
 	if (writtenBytes < 0)
 	{
 		CERR << "Error in write(): " << strerror(errno) << ENDL;
-		return (false);
+		return (true);
 	}
 	count += static_cast<size_t>(writtenBytes);
 	
@@ -82,9 +82,10 @@ bool	Response::sendMsg(int client_socket, std::string & message)
 	{
 		count = 0;
 		COUT << "------------------Complete message sent-------------------" << ENDL;
+
 		return (true);
 	}
-	COUT << "Sent|" << count << "/" << message.length() << "|bytes" << ENDL;
+	// COUT << "Sent|" << count << "/" << message.length() << "|bytes" << ENDL;
 	return (false);
 }
 

@@ -2,7 +2,7 @@
 
 void	Methods::_executeCGI(void)
 {
-	COUT << "Creating Pipes\n";
+	// COUT << "Creating Pipes\n";
 	/* Pipe creation to communicate with the CGI program */
 	int pipefd_in[2];
 	int pipefd_out[2];
@@ -16,7 +16,7 @@ void	Methods::_executeCGI(void)
 	fcntl(pipefd_out[1], F_SETFL, O_NONBLOCK);
 
 
-	COUT << "Forking\n";
+	// COUT << "Forking\n";
 	/* Fork() the program for the CGI */
 	pid_t pid;
 	if ((pid = fork()) == -1)
@@ -27,7 +27,7 @@ void	Methods::_executeCGI(void)
 		close(pipefd_in[1]);
 		close(pipefd_out[0]);
 
-		COUT << "Inside CHild\n";
+		// COUT << "Inside CHild\n";
 
 		/* Array for execve env */
 		_createEnvpMap();
@@ -35,7 +35,7 @@ void	Methods::_executeCGI(void)
 		if (envp == NULL)
 			exit(EXIT_FAILURE);
 
-		COUT << "Creating Arguments\n";
+		// COUT << "Creating Arguments\n";
 		/* Array for execve arguments */
 		_createArgvMap();
 		char ** argv = _createArgvArray();
@@ -45,14 +45,7 @@ void	Methods::_executeCGI(void)
 			exit(EXIT_FAILURE);
 		}
 
-		// int j = 0;
-		// while (envp[j])
-		// {
-		// 	COUT << "lign #" << j << "|" << envp[j] << "|" << ENDL;
-		// 	j++;
-		// }
-
-		COUT << "Duping\n";
+		// COUT << "Duping\n";
 		/* Duplicating Fd for STDIN and STDOUT */
 		if (dup2(pipefd_in[0], STDIN_FILENO) < 0 || close(pipefd_in[0])		/* Lecture par le CGI dans fd_in[0] */
 		|| dup2(pipefd_out[1], STDOUT_FILENO) < 0 || close(pipefd_out[1]))	/* Ecriture par le CGI dans fd_out[1] */
@@ -63,7 +56,7 @@ void	Methods::_executeCGI(void)
 			exit(EXIT_FAILURE);
 		}
 
-		CERR << "Execveing\n";
+		CERR << "Execve-ing\n";
 		execve(_cgi_path.c_str(), argv, envp);
 		CERR << "Error in execve(): " << strerror(errno) << ENDL;
 		_freeArray(envp);
@@ -73,7 +66,7 @@ void	Methods::_executeCGI(void)
 	/* Parent program */
 	else
 	{
-		COUT << "Inside Parent\n";
+		// COUT << "Inside Parent\n";
 		close(pipefd_in[0]);
 		close(pipefd_out[1]);
 
@@ -87,6 +80,7 @@ void	Methods::_communicateWithCGI(int fd_in, int fd_out, pid_t pid)
 	std::string receivedMessage;
 	bool unfinished = 1;
 	bool finishedWriting = 0;
+	bool finishedReading = 0;
 
 	int status = 0;
 	Select	cgi;
@@ -117,8 +111,12 @@ void	Methods::_communicateWithCGI(int fd_in, int fd_out, pid_t pid)
 				if (waitpid(pid, &status, WNOHANG) == pid)
 				{
 					COUT << "Child has returned\n";
-					unfinished = 0;
-					break;
+					if (WIFEXITED(status))
+						COUT << "Chid termninated normally with signal |" << WEXITSTATUS(status) << "|\n";
+					else if (WIFSIGNALED(status))
+						COUT << "Chid termninated ab-normally with signal |" << WTERMSIG(status) << "|\n";
+					if (finishedReading)
+						unfinished = 0;
 				}
 				if (finishedWriting)
 				{
@@ -185,14 +183,29 @@ void	Methods::_communicateWithCGI(int fd_in, int fd_out, pid_t pid)
 					}
 					else if (receivedBytes == 0)
 					{
+						COUT << "Read 0 chars\n";
 						_parseCGIResponse(receivedMessage);
-						COUT << "THe body is |" << serv->resp.body.length() << "|\n";
+
+						COUT << RED;
+						COUT << "Status: " << serv->resp.status_code << " " << serv->resp.reason_phrase << ENDL;
+						std::map<std::string, std::string>::iterator begin = serv->resp.header_fields.begin();
+						while (begin != serv->resp.header_fields.end())
+						{
+							COUT << begin->first + ": " + begin->second + "\r\n";
+							begin++;
+						}
+						COUT << "Body first line|" << serv->resp.body.substr(0, 100) << "|\n";
+						COUT << "Body Length |" << serv->resp.body.length() << "|\n";
+						COUT << RESET;
+
 						FD_CLR(fd_in, &cgi.readfds);
 						close(fd_in);
-						unfinished = 0;
+						finishedReading = 1;
+						// unfinished = 0;
 					}
 					else
 					{
+						// COUT << "Appending\n";
 						receivedMessage.append(recv_buffer, static_cast<size_t>(receivedBytes));
 						// COUT << "Total Length Read|" << receivedMessage.length() << "|\n";
 
@@ -213,8 +226,6 @@ void	Methods::_communicateWithCGI(int fd_in, int fd_out, pid_t pid)
 	}
 	// COUT << "ReceivedMEssage\n|" << receivedMessage << "|" << ENDL;
 	COUT << "CGI finished\n";
-	// serv->resp.isComplete = 1;
-	// serv->resp.msg = receivedMessage;
 	return ;
 }
 
@@ -233,22 +244,30 @@ bool	Methods::_str_is(std::string str, int func(int))
 
 bool	Methods::_parseCGIField(std::string & receivedMessage)
 {
-	size_t size;
+	size_t size = receivedMessage.find("\r\n");
 
-	if ((size = receivedMessage.find("\r\n")) == std::string::npos)
-		return (false);
-
-	if (receivedMessage.find("Status:", 0, 7) != std::string::npos)
+	if (receivedMessage.find("Status:", 0) == 0)
 	{
 		if (!_str_is((serv->resp.status_code = receivedMessage.substr(8, 3)), isdigit))
 			return (true); // Error
+		// COUT << "Status Code |" << serv->resp.status_code << "|" << ENDL;
 		if (!_str_is((serv->resp.reason_phrase = receivedMessage.substr(12, size - 12)), isprint))
 			return (true); // Error
-}
-	if (receivedMessage.find("Location:", 0, 9) != std::string::npos)
-	{}
-	if (receivedMessage.find("Content-Type:", 0, 13) != std::string::npos)
-	{}
+		// COUT << "Reason Phrase |" << serv->resp.reason_phrase << "|" << ENDL;
+	}
+	else if (receivedMessage.find("Location:", 0) == 0)
+	{
+		// A CORRIGER PLUS TARD
+		serv->resp.status_code = "301";
+		serv->resp.reason_phrase = "Found";
+	}
+	else if (receivedMessage.find("Content-Type:", 0) == 0)
+	{
+		COUT << "We have Content-Type here actually \n";
+		serv->resp.status_code = "200";
+		serv->resp.reason_phrase = "OK";
+		return (true);
+	}
 	else
 		return (true); // Error
 
@@ -258,15 +277,11 @@ bool	Methods::_parseCGIField(std::string & receivedMessage)
 
 bool	Methods::_parseGenericField(std::string & receivedMessage)
 {
-	size_t size;
-	if ((size = receivedMessage.find("\r\n")) == std::string::npos)
-		return (false);
+	size_t size = receivedMessage.find("\r\n");
 
 	if (size == 0)
 	{
 		receivedMessage.erase(0, 2);
-		COUT << GREEN << "FINISHED WRITING THE HEADERS" << RESET << ENDL;
-		COUT << "Body here |" << serv->resp.body.length() << "|" << ENDL;
 		return (true);
 	}
 
@@ -276,58 +291,56 @@ bool	Methods::_parseGenericField(std::string & receivedMessage)
 		std::string key = receivedMessage.substr(0, pos);
 		// COUT << "Key to be inserted|" << key << "|" << ENDL;
 		if (serv->getParent()->getDictionary().headerDic.find(key) == serv->getParent()->getDictionary().headerDic.end())
+		{
+			COUT << "Error \n";
 			return (false); // Error
-		serv->resp.header_fields.insert(std::make_pair(key, receivedMessage.substr(pos + 1, size - pos - 2))	);
+		}
+		serv->resp.header_fields.insert(std::make_pair(key, receivedMessage.substr(pos + 2, size - pos - 2)));
+		// COUT << "Value inserted|" << serv->resp.header_fields.find(key)->second << "|" << ENDL;
 	}
 	else
 		return (false); // Error
 
-	// COUT << "ReceivedMEssage|" << receivedMessage << "|" << ENDL;
 	receivedMessage.erase(0, size + 2);
-	// COUT << "ReceivedMEssage|" << receivedMessage << "|" << ENDL;
 	return (false);
 }
 
-bool	Methods::_parseBody(std::string & receivedMessage)
-{
-	if (receivedMessage == "")
-		return (true);
-	// COUT << "Body len  before|" << serv->resp.body.length() << "|" << ENDL;
-	// COUT << "ReceivedMessage len|" << receivedMessage.length() << "|" << ENDL;
-	serv->resp.body += receivedMessage;
-	// COUT << "Body len  after|" << serv->resp.body.length() << "|" << ENDL;
-	receivedMessage.clear();
-	return (false);
-}
+// bool	Methods::_parseBody(std::string & receivedMessage)
+// {
+// 	if (receivedMessage == "")
+// 		return (true);
+// 	serv->resp.body += receivedMessage;
+// 	static int i = 0;
+// 	if (!i++)
+// 		COUT << "DIsplaying Body here |" << serv->resp.body << "|" << ENDL;
+// 	receivedMessage.clear();
+// 	return (false);
+// }
 
 void	Methods::_parseCGIResponse(std::string & receivedMessage)
 {
+	size_t size = receivedMessage.size();
 	static bool CGIField = 0;
 	static bool genericField = 0;
-	static bool body = 0;
 
-	if (!CGIField || !genericField)
+	while ((!CGIField || !genericField) && receivedMessage.find("\r\n") != std::string::npos)
 	{
-		while (receivedMessage.find("\r\n") != std::string::npos)
-		{
-			if (!CGIField)
-				CGIField = _parseCGIField(receivedMessage);
-			else if (!genericField)
-				genericField = _parseGenericField(receivedMessage);
-		}
+		if (!CGIField)
+			CGIField = _parseCGIField(receivedMessage);
+		else if (!genericField)
+			genericField = _parseGenericField(receivedMessage);
 	}
-	else
+
+	if (!receivedMessage.empty())
 	{
-		if (!body)
-		{
-			body = _parseBody(receivedMessage);
-			if (body)
-			{
-				CGIField = 0;
-				genericField = 0;
-				body = 0;
-			}
-		}
+		serv->resp.body += receivedMessage;
+		receivedMessage.clear();
+	}
+	else if (!size)
+	{
+		// COUT << GREEN << "Reinitilizing static shits" << RESET << ENDL;
+		CGIField = 0;
+		genericField = 0;
 	}
 }
 
@@ -390,6 +403,22 @@ void	Methods::_createEnvpMap(void)
 	_envp["SERVER_PROTOCOL"] = "HTTP/1.1";
 // SERVER_SOFTWARE
 	_envp["SERVER_SOFTWARE"] = "HuntGaming/1.0";
+
+// ADDITIONAL IMPLEMENTATION-DEFINED CGI HEADER FIELDS
+	for (std::map<std::string, std::string>::iterator it = serv->req.headers.begin(); it != serv->req.headers.end(); ++it)
+	{
+        if (it->first.substr(0, 2).find("X-") != std::string::npos)
+        {
+			// std::string result(serv->req.transform(it->first, toupper));
+			std::string result = "HTTP_" + it->first;
+			result = serv->req.transform(result, toupper);
+			// result.replace(1, 1, "_");
+			result = serv->req.transform(result, serv->req.toUnderscore);
+
+			_envp[result] = it->second;
+			COUT << "_ENVP|" << result << ":" << it->second << "|" << ENDL;
+		}
+	}
 }
 
 char **	Methods::_createEnvpArray(void)
