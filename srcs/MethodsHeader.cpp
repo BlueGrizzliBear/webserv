@@ -46,11 +46,11 @@ struct tm	*Methods::_getFileTime(void)
 	struct tm			*timeinfo = NULL;
 
 	if (!lstat(_path.c_str(), &info))
-		timeinfo = gmtime(&info.st_mtime);
+		timeinfo = gmtime(&info.st_mtime); // to check
 	return timeinfo;
 }
 
-void	Methods::_lastModifiedHeader(struct tm *timeinfo)
+void	Methods::_lastModifiedHeader(struct tm * timeinfo)
 {
 	char				date[30];
 
@@ -61,7 +61,7 @@ void	Methods::_lastModifiedHeader(struct tm *timeinfo)
 	}
 }
 
-struct tm	*Methods::_getHeaderIfUnmodifiedSinceTime(void)
+struct tm *	Methods::_getHeaderIfUnmodifiedSinceTime(void)
 {
 	std::string		date;
 	struct tm		*timeinfo = NULL;
@@ -74,15 +74,15 @@ struct tm	*Methods::_getHeaderIfUnmodifiedSinceTime(void)
 	return timeinfo;
 }
 
-int			Methods::_cmpTimeInfo(struct tm *t1, struct tm *t2)
+int	Methods::_cmpTimeInfo(struct tm * t1, struct tm * t2)
 {
 	if (!t1 || !t2)
 		return -1;
 	time_t	time1;
 	time_t	time2;
 
-	time1 = mktime(t1);
-	time2 = mktime(t2);
+	time1 = mktime(t1); // to check
+	time2 = mktime(t2); // to check
 
 	if (time1 < time2)
 		return 0;

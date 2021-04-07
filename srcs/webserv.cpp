@@ -73,7 +73,7 @@ int	launchServer(ServerBloc & server)
 {
 	server.client.fd = -1;
 
-	static bool status = 1;
+	static bool status = true;
 
     while (1)
     {
@@ -91,17 +91,27 @@ int	launchServer(ServerBloc & server)
 			{
 				// displayError("Error in Select()", "select timed out");
 				if (server.client.fd == -1)
-					server.initSelect();	/* Re-initializing select for server */
-				else if (status == 1)
 				{
-					// COUT << "reseting read fds\n";
+					// CERR << "\rI";
+					// CERR << "I\n";
+					FD_SET(server.serv_port.fd, &server.serv_select.readfds);
+					// server.initSelect();	/* Re-initializing select for server */
+				}
+				else if (status == true)
+				{
+					// CERR << "\rR";
+					// CERR << "R\n";
 					FD_ZERO(&server.serv_select.readfds);
 					FD_SET(server.client.fd, &server.serv_select.readfds);
+					server.serv_select.fd_max = server.client.fd;
 				}
 				else
 				{
+					// CERR << "\rW";
+					// CERR << "W\n";
 					FD_ZERO(&server.serv_select.writefds);
 					FD_SET(server.client.fd, &server.serv_select.writefds);
+					server.serv_select.fd_max = server.client.fd;
 				}
 				break ;
 			}
@@ -121,6 +131,7 @@ int	launchServer(ServerBloc & server)
 					FD_ZERO(&server.serv_select.exceptfds);
 					close(server.client.fd);
 					close(server.serv_port.fd);
+					server.getParent()->abortServers("Aborting", "");
 					exit(EXIT_SUCCESS);
 				}
 	/* READ */	else if ((server.client.fd != -1) && FD_ISSET(server.client.fd, &server.serv_select.readfds))
@@ -130,6 +141,7 @@ int	launchServer(ServerBloc & server)
 					{
 						FD_CLR(server.client.fd, &server.serv_select.readfds);		/* Clearing read list from client socket */
 						FD_SET(server.client.fd, &server.serv_select.writefds);		/* Adding the client socket to the write playlist */
+						status = 0;
 					}
 				}
 	/* WRITE */	else if ((server.client.fd != -1) && FD_ISSET(server.client.fd, &server.serv_select.writefds))
@@ -137,7 +149,10 @@ int	launchServer(ServerBloc & server)
 					// CMEY << "Respective socket is ready for writing request response" << EME;
 					if ((status = parseServerResponse(server)))	/* Parsing Server Response */
 					{
-						server.initSelect();
+						FD_ZERO(&server.serv_select.writefds);
+						FD_SET(server.serv_port.fd, &server.serv_select.readfds);
+						server.serv_select.fd_max = server.serv_port.fd;
+
 						server.initClient();
 					}
 				}
@@ -158,6 +173,8 @@ int	launchServer(ServerBloc & server)
 
 					FD_CLR(server.serv_port.fd, &server.serv_select.readfds);	/* removing server fd from reading list to process request first */
 					FD_SET(server.client.fd, &server.serv_select.readfds);		/* Adding the respective socket to the read playlist */
+
+					status = true;
 
 					server.serv_select.fd_max = server.client.fd;	/* Re-assgning fd_max value for select */
 				}

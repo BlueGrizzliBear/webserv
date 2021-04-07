@@ -79,7 +79,7 @@ void	ServerBloc::parseException(const char * code)
 		resp.reason_phrase = it->second;
 
 		Methods	implementedMethods(*this);
-		implementedMethods.customError(it->first, it->second);
+		implementedMethods.customError(resp.status_code, resp.reason_phrase);
 	}
 }
 
@@ -91,6 +91,7 @@ bool	ServerBloc::readClient(int client_socket)
 	if (receivedBytes < 0)
 	{
 		std::cerr << "Error in read(): " << strerror(errno) << ENDL;
+		COUT << MAGENTA << "WTF" << RESET << ENDL;
 		return (false);
 	}
 
@@ -98,10 +99,19 @@ bool	ServerBloc::readClient(int client_socket)
 
 	req.getData().append(recv_buffer, static_cast<size_t>(receivedBytes));
 
-	if (req.headerComplete || receivedBytes == 0)	/* Headers seems complete || client connection closed or EOF ! */
+	// if (req.headerComplete || receivedBytes == 0)	/* Headers seems complete || client connection closed or EOF ! */
+	if (req.headerComplete)	/* Headers seems complete */
 		return (true);	
+	else if (receivedBytes == 0)	/* client connection closed or EOF ! */
+	{
+		// COUT << MAGENTA << "Client connection closed or EOF" << RESET << ENDL;
+		return (true);	
+	}
 	else if ((req.getData().find("\r\n\r\n", old_pos) == std::string::npos))
+	{
+		// COUT << MAGENTA << "Not Found ending sequence" << RESET << ENDL;
 		return (false); /* Not found ending sequence */
+	}
 
 	/* Request is complete */
 	req.headerComplete = 1;
@@ -128,6 +138,8 @@ bool	ServerBloc::processRequest(void)
 		req.getData().clear();			/* Clearing _req buffer */
 		headerParsed = false;			/* Reseting bool indicator if header is parsed or not */
 		req.headerComplete = false;		/* Reseting bool indicator if header is complete or not */
+
+		COUT << MAGENTA << "Avant Exec" << RESET << ENDL;
 
 		/* Execute the parsed request */
 		Methods	implementedMethods(*this);

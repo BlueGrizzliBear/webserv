@@ -40,14 +40,14 @@ void	Methods::execute(void)
 	else if (serv->req.method == "PUT")
 		_applyPut();
 
-	serv->req.display();
+	// serv->req.display(); 
 }
 
-void	Methods::customError(std::string status_code, std::string reason_phrase)
+void	Methods::customError(std::string & status_code, std::string & reason_phrase)
 {
 	std::vector<std::string>	error_pages;
 
-	error_pages = _findVect(serv->dir, "error_page", error_pages);
+	_findVect(serv->dir, "error_page", &error_pages);
 	if (!error_pages.empty() && _ErrorNbInErrorPageList(error_pages, status_code))
 	{
 		serv->req.uri = error_pages.back();
@@ -73,7 +73,7 @@ void	Methods::customError(std::string status_code, std::string reason_phrase)
 	serv->req.clear();
 }
 
-bool		Methods::_ErrorNbInErrorPageList(std::vector<std::string> list, std::string status)
+bool		Methods::_ErrorNbInErrorPageList(std::vector<std::string> & list, std::string & status)
 {
 	for (std::vector<std::string>::iterator it = list.begin(); it != list.end(); ++it)
 	{
@@ -83,7 +83,7 @@ bool		Methods::_ErrorNbInErrorPageList(std::vector<std::string> list, std::strin
 	return false;
 }
 
-void	Methods::_fillDefaultExceptionBody(std::string status, std::string reason)
+void	Methods::_fillDefaultExceptionBody(std::string & status, std::string & reason)
 {
 	serv->resp.body = "<html>\n";
 	serv->resp.body += "<head><title>" + status + " " + reason + "</title></head>\n";
@@ -187,7 +187,7 @@ void	Methods::_applyPost()
 	serv->resp.header_fields.insert(std::make_pair("Content-Length", _getSizeOfStr(serv->resp.body)));
 }
 
-void	Methods::_applyPut()
+void	Methods::_applyPut(void)
 {
 	/* Check if path exist on server */
 	_findPath();
@@ -316,7 +316,7 @@ void	Methods::_createHTMLListing(DIR * dir)
 	serv->resp.body = dir_list.str();
 }
 
-void	Methods::_findIndex(std::vector<std::string> indexes)
+void	Methods::_findIndex(std::vector<std::string> & indexes)
 {
 	for (std::vector<std::string>::iterator it = indexes.begin(); it != indexes.end(); ++it)
 	{

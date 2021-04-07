@@ -300,14 +300,15 @@ bool	Request::_checkEndOfChunkedEncoding(ssize_t & size)
 
 bool	Request::parseBody(void) throw(BadRequest)
 {
-	if (headers.find("Transfer-Encoding") != headers.end())
+	if (headers.find("Transfer-Encoding") != headers.end()) // attention, peut etre pas chunked
 	{
 		static ssize_t size = 0;
-		static size_t check_pos = _pos;
 
-		if (_req.find("0\r\n\r\n", check_pos) == std::string::npos)
+		// if (_req.find("0\r\n\r\n", _pos - 5) == std::string::npos)
+		if (_req.find("0\r\n\r\n", _req.size() - 5) == std::string::npos)
 		{
-			check_pos = _req.size() - 4;
+			
+			// COUT << MAGENTA << _req.substr(_pos, 10) << RESET << ENDL;
 
 			// COUT << "Transfert-Encoding: INCOMPLETE BODY" << ENDL;
 			return (false);

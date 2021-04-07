@@ -32,11 +32,11 @@ class Methods
 	/* Member Functions */
 	public:
 		void	execute(void);
-		void	customError(std::string status_code, std::string reason_phrase);
+		void	customError(std::string & status_code, std::string & reason_phrase);
 
 	private:
-		bool	_ErrorNbInErrorPageList(std::vector<std::string> list, std::string status);
-		void	_fillDefaultExceptionBody(std::string status, std::string reason);
+		bool	_ErrorNbInErrorPageList(std::vector<std::string> & list, std::string & status);
+		void	_fillDefaultExceptionBody(std::string & status, std::string & reason);
 
 		/* Method functions */
 		void	_URIResolutionProcess(void);
@@ -51,7 +51,7 @@ class Methods
 		bool	_isDirectory(std::string const & path);
 		void	_createIndexHTML(void);
 		void	_createHTMLListing(DIR * dir);
-		void	_findIndex(std::vector<std::string> indexes);
+		void	_findIndex(std::vector<std::string> & indexes);
 		bool	_fileExist(std::string const & path);
 
 		/* Execute Put request */
@@ -65,7 +65,7 @@ class Methods
 		std::string	_pathExtension(std::string const & path);
 
 		/* Fill Body */
-		void	_fillBody(void);
+		void		_fillBody(void);
 		std::string	_getSizeOfStr(std::string const & str);
 
 	/* MethodsPath.cpp */
@@ -74,45 +74,46 @@ class Methods
 		void	_findPath(void);
 
 		template< typename T, typename U >
-		void	_findAuthenticate(std::map< T, U > dir);
+		void	_findAuthenticate(std::map< T, U > & dir);
 
 		template< typename T, typename U >
-		void	_findRoot(std::map< T, U > dir);
+		void	_findRoot(std::map< T, U > & dir);
 
 		template< typename T, typename U >
-		void	_findAutoIndex(std::map< T, U > dir);
+		void	_findAutoIndex(std::map< T, U > & dir);
 
 		template< typename T, typename U >
-		void	_findCGIPath(std::map< T, U > dir);
+		void	_findCGIPath(std::map< T, U > & dir);
 
 		template< typename T, typename U >
-		void	_findClientMaxBodySize(std::map< T, U > dir, size_t * max_size);
+		void	_findClientMaxBodySize(std::map< T, U > & dir, size_t * max_size);
 
 		template< typename T, typename U >
-		std::vector<std::string>	_findVect(std::map< T, U > dir, std::string to_find, std::vector<std::string> vect);
+		void	_findVect(std::map< T, U > & dir, std::string to_find, std::vector<std::string> * vect);
 
 		template< typename T, typename U >
-		std::string	_findRewrite(std::map< T, U > dir);
+		std::string	_findRewrite(std::map< T, U > & dir);
+	
 		std::string	_uriWithoutFirstPart();
 			/* (2) find location bloc config */
-		bool		_matchingLocationDir(std::map<std::vector<std::string>, LocationBloc>::iterator it, std::map<std::string, std::vector<std::string> > * location_dir);
-		bool		_isRegex(std::string str);
-		bool		_compareCapturingGroup(std::string uri_path, std::string capturing_group);
-		bool		_compareFromEnd(std::string uri_path, std::vector<std::string> path_set);
-		bool		_compareFromBegin(std::string uri_path, std::vector<std::string> path_set);
-		std::string	_toLowerStr(std::string const & str);
-		std::string	_uriFirstPart();
+		bool		_matchingLocationDir(std::map<std::vector<std::string>, LocationBloc>::iterator & it, std::map<std::string, std::vector<std::string> > * location_dir);
+
+		bool		_compareCapturingGroup(std::string uri_path, std::string cap_grp);
+		bool		_compareFromEnd(std::string & uri_path, std::vector<std::string> & path_set);
+		bool		_compareFromBegin(std::string & uri_path, std::vector<std::string> & path_set);
+		
+		std::string	_uriFirstPart(void);
 
 			/* (3) authentication */
 		void		_checkRequiredAuthentication(void);
-		bool		_checkUserExist(std::string user, std::string auth_path);
-		std::string	_decodeUser(std::string user);
+		bool		_checkUserExist(std::string & user, std::string & auth_path);
+		std::string	_decodeUser(std::string & user);
 
 			/* (4) allowed method */
-		void		_checkAllowedMethods(std::vector<std::string> methods);
+		void		_checkAllowedMethods(std::vector<std::string> & methods);
 
 			/* (5) max_body_size */
-		void		_checkMaxBodySize(size_t max_size);
+		void		_checkMaxBodySize(size_t & max_size);
 
 	/* MethodsHeader.cpp */
 		/* Header server response */
