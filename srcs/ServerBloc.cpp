@@ -30,7 +30,7 @@ ServerBloc &	ServerBloc::operator=(ServerBloc const & rhs)
 	return (*this);
 }
 
-/* Member Functions */
+/* Getters and Setters */
 size_t &	ServerBloc::getNo(void)
 {
 	return (_server_no);
@@ -39,6 +39,32 @@ size_t &	ServerBloc::getNo(void)
 ConfigParser *	ServerBloc::getParent(void)
 {
 	return (_parent);
+}
+
+/* Member Functions */
+void	ServerBloc::initSelect(void)	/* Reseting select for server */
+{
+	FD_ZERO(&serv_select.readfds);
+	FD_SET(serv_port.fd, &serv_select.readfds);
+
+	FD_ZERO(&serv_select.writefds);
+	// FD_SET(serv.serv_port.fd, &serv.serv_select.writefds);
+
+	FD_ZERO(&serv_select.exceptfds);
+	// FD_SET(serv.serv_port.fd, &serv.serv_select.exceptfds);
+
+	/* Setting time-out */
+	serv_select.timeout.tv_sec = 0.0;
+	serv_select.timeout.tv_usec = 0.0;
+
+	/* Setting max */
+	serv_select.fd_max = serv_port.fd;
+}
+
+void	ServerBloc::initClient(void)	/* Reseting client struct for server */
+{
+	close(client.fd);	/* Closing client socket */
+	client.fd = -1;		/* Reset fd value */
 }
 
 void	ServerBloc::parseException(const char * code)
@@ -61,23 +87,21 @@ bool	ServerBloc::readClient(int client_socket)
 {
 	char	recv_buffer[MAX_HEADER_SIZE];
 
-	ssize_t receivedBytes = recv(client_socket, &recv_buffer, MAX_HEADER_SIZE, 0); /* No Flag, CAREFUL */
+	ssize_t receivedBytes = read(client_socket, &recv_buffer, MAX_HEADER_SIZE);
 	if (receivedBytes < 0)
 	{
-		std::cerr << "Error in recv(): " << strerror(errno) << ENDL;
+		std::cerr << "Error in read(): " << strerror(errno) << ENDL;
 		return (false);
 	}
-	// A TESTER // else if (receivedBytes == EWOULDBLOCK)
 
 	size_t old_pos = req.getData().size() > 4 ? req.getData().size() - 4 : 0;
 
 	req.getData().append(recv_buffer, static_cast<size_t>(receivedBytes));
 
-	if (req.headerComplete)
-		return (true);	/* request is already complete ! */
-	else if ((req.getData().find("\r\n\r\n", old_pos) == std::string::npos) || (receivedBytes == 0))
-	/* Found ending sequence | client closed connection */
-		return (false);	/* request is not complete */
+	if (req.headerComplete || receivedBytes == 0)	/* Headers seems complete || client connection closed or EOF ! */
+		return (true);	
+	else if ((req.getData().find("\r\n\r\n", old_pos) == std::string::npos))
+		return (false); /* Not found ending sequence */
 
 	/* Request is complete */
 	req.headerComplete = 1;
@@ -106,23 +130,15 @@ bool	ServerBloc::processRequest(void)
 		req.headerComplete = false;		/* Reseting bool indicator if header is complete or not */
 
 		/* Execute the parsed request */
-		executeRequest();
+		Methods	implementedMethods(*this);
+		implementedMethods.execute();
 
 		/* Clean Request */
 		req.clear();
 
 		return (true);
 	}
-
 	return (false);
-}
-
-void	ServerBloc::executeRequest(void)
-{
-	Methods	implementedMethods(*this);
-
-	implementedMethods.execute();
-	CME << "> EXECUTION DONE !" << EME;
 }
 
 void	ServerBloc::_addHeaderFields(void)
@@ -151,7 +167,6 @@ bool	ServerBloc::sendResponse(Socket & client)
 		return (true);
 	}
 	return (false);
-	// return (resp.sendMsg(client.fd));
 }
 
 std::string	ServerBloc::_getDate(void)

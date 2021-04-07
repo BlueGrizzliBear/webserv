@@ -86,6 +86,9 @@ class Methods
 		void	_findCGIPath(std::map< T, U > dir);
 
 		template< typename T, typename U >
+		void	_findClientMaxBodySize(std::map< T, U > dir, size_t * max_size);
+
+		template< typename T, typename U >
 		std::vector<std::string>	_findVect(std::map< T, U > dir, std::string to_find, std::vector<std::string> vect);
 
 		template< typename T, typename U >
@@ -99,13 +102,17 @@ class Methods
 		bool		_compareFromBegin(std::string uri_path, std::vector<std::string> path_set);
 		std::string	_toLowerStr(std::string const & str);
 		std::string	_uriFirstPart();
-			/* (3) authentication/allowed method */
-		void		_checkRequiredAuthentication();
+
+			/* (3) authentication */
+		void		_checkRequiredAuthentication(void);
 		bool		_checkUserExist(std::string user, std::string auth_path);
 		std::string	_decodeUser(std::string user);
-		// bool		_decodeUser(const char * in, size_t inlen, char * out, size_t * outlen);
+
+			/* (4) allowed method */
 		void		_checkAllowedMethods(std::vector<std::string> methods);
 
+			/* (5) max_body_size */
+		void		_checkMaxBodySize(size_t max_size);
 
 	/* MethodsHeader.cpp */
 		/* Header server response */

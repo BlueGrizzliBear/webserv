@@ -44,7 +44,7 @@ bool	parseClientRequest(ServerBloc & server)
 	catch(const std::exception & e)
 	{
 		/* Catching exception from parsing request or execute request */
-		std::cerr << RED << e.what() << RESET << std::endl;
+		std::cerr << RED << e.what() << RESET << std::endl; // Display Exception what() for debug
 		server.parseException(e.what());
 		return (true);	/* send true to execute the error msg to Response */
 	}
@@ -59,10 +59,6 @@ bool	parseServerResponse(ServerBloc & server)
 		{
 			gettimeofday(&mytime2, NULL);
 			COUT << RED << "Time elapsed: " << static_cast<float>((mytime2.tv_sec - mytime1.tv_sec) * 1000 + ((mytime2.tv_usec - mytime1.tv_usec) / 1000)) << " ms." << RESET << ENDL;
-			close(server.client.fd);	/* Closing client socket, finished processing request */
-			server.client.fd = -1;
-			server.getParent()->_initSelect(server);
-			server.serv_select.fd_max = server.serv_port.fd;	/* Re-assgning fd_max value for select */
 			return (true);
 		}
 	}
@@ -88,7 +84,6 @@ int	launchServer(ServerBloc & server)
 		/* ------ Listening to sockets . . . ----------------------- */
 		int recVal = 0;
 
-		// CME << "Listening to sockets" << EME;
 		recVal = select(server.serv_select.fd_max + 1, &server.serv_select.readfds, &server.serv_select.writefds, NULL, &server.serv_select.timeout);
 		switch (recVal)
 		{
@@ -96,10 +91,7 @@ int	launchServer(ServerBloc & server)
 			{
 				// displayError("Error in Select()", "select timed out");
 				if (server.client.fd == -1)
-				{
-					// COUT << "reseting server\n";
-					server.getParent()->_initSelect(server);
-				}
+					server.initSelect();	/* Re-initializing select for server */
 				else if (status == 1)
 				{
 					// COUT << "reseting read fds\n";
@@ -108,8 +100,6 @@ int	launchServer(ServerBloc & server)
 				}
 				else
 				{
-					// COUT << "reseting write fds\n";
-					// FD_ZERO(&server.serv_select.readfds);
 					FD_ZERO(&server.serv_select.writefds);
 					FD_SET(server.client.fd, &server.serv_select.writefds);
 				}
@@ -136,30 +126,24 @@ int	launchServer(ServerBloc & server)
 	/* READ */	else if ((server.client.fd != -1) && FD_ISSET(server.client.fd, &server.serv_select.readfds))
 				{
 					// CMEY << "Respective socket is ready for reading request" << EME;
-
-					/* Parsing Client Request */
-					if (parseClientRequest(server))
+					if (parseClientRequest(server))	/* Parsing Client Request */
 					{
-						/* Removing client socket from read playlist if finished */
 						FD_CLR(server.client.fd, &server.serv_select.readfds);		/* Clearing read list from client socket */
-						FD_SET(server.client.fd, &server.serv_select.writefds);	/* Adding the client socket to the write playlist */
+						FD_SET(server.client.fd, &server.serv_select.writefds);		/* Adding the client socket to the write playlist */
 					}
 				}
 	/* WRITE */	else if ((server.client.fd != -1) && FD_ISSET(server.client.fd, &server.serv_select.writefds))
 				{
 					// CMEY << "Respective socket is ready for writing request response" << EME;
-
-					/* Parsing Server Response */
-					// if (parseServerResponse(server, server.client))
-					if ((status = parseServerResponse(server)))
+					if ((status = parseServerResponse(server)))	/* Parsing Server Response */
 					{
-						// COUT << "Finished writing to Client\n";
+						server.initSelect();
+						server.initClient();
 					}
 				}
 	/* NEW */	else if ((server.client.fd == -1) && FD_ISSET(server.serv_port.fd, &server.serv_select.readfds))
 				{
-					gettimeofday(&mytime1, NULL);
-					// time(&mytime);
+					gettimeofday(&mytime1, NULL); // to display the time consumption of request
 
 					CMEY << "Someone is talking to the server socket" << EME;
 
@@ -172,17 +156,11 @@ int	launchServer(ServerBloc & server)
 					}
 					fcntl(server.client.fd, F_SETFL, O_NONBLOCK);	/* Set the socket to non blocking */
 
-
 					FD_CLR(server.serv_port.fd, &server.serv_select.readfds);	/* removing server fd from reading list to process request first */
-					FD_SET(server.client.fd, &server.serv_select.readfds);	/* Adding the respective socket to the read playlist */
+					FD_SET(server.client.fd, &server.serv_select.readfds);		/* Adding the respective socket to the read playlist */
 
 					server.serv_select.fd_max = server.client.fd;	/* Re-assgning fd_max value for select */
 				}
-				else
-				{
-					COUT << "FD weird\n";
-				}
-				// COUT << "done\n";
 				break ;
 			}
 		}

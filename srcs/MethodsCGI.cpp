@@ -15,7 +15,6 @@ void	Methods::_executeCGI(void)
 	fcntl(pipefd_out[0], F_SETFL, O_NONBLOCK);
 	fcntl(pipefd_out[1], F_SETFL, O_NONBLOCK);
 
-
 	// COUT << "Forking\n";
 	/* Fork() the program for the CGI */
 	pid_t pid;
@@ -39,7 +38,7 @@ void	Methods::_executeCGI(void)
 		/* Array for execve arguments */
 		_createArgvMap();
 		char ** argv = _createArgvArray();
-		if (envp == NULL)
+		if (argv == NULL)
 		{
 			_freeArray(envp);
 			exit(EXIT_FAILURE);
@@ -110,11 +109,12 @@ void	Methods::_communicateWithCGI(int fd_in, int fd_out, pid_t pid)
 			{
 				if (waitpid(pid, &status, WNOHANG) == pid)
 				{
-					COUT << "Child has returned\n";
+					COUT << "Child was terminated";
 					if (WIFEXITED(status))
-						COUT << "Chid termninated normally with signal |" << WEXITSTATUS(status) << "|\n";
+						COUT << " normally with signal |" << WEXITSTATUS(status) << "|";
 					else if (WIFSIGNALED(status))
-						COUT << "Chid termninated ab-normally with signal |" << WTERMSIG(status) << "|\n";
+						COUT << " ab-normally with signal |" << WTERMSIG(status) << "|";
+					COUT << ENDL;
 					if (finishedReading)
 						unfinished = 0;
 				}
@@ -155,7 +155,6 @@ void	Methods::_communicateWithCGI(int fd_in, int fd_out, pid_t pid)
 					// COUT << "FD is available to write\n";
 					if (serv->resp.sendMsg(fd_out, serv->req.body) == true)
 					{
-						// COUT << "Case 2 After sendMsg\n";
 						FD_CLR(fd_out, &cgi.writefds);
 						FD_SET(fd_in, &cgi.readfds);
 						cgi.fd_max = fd_in;
@@ -167,7 +166,6 @@ void	Methods::_communicateWithCGI(int fd_in, int fd_out, pid_t pid)
 					{
 						FD_SET(fd_in, &cgi.readfds);
 						cgi.fd_max = fd_in > fd_out ? fd_in : fd_out;
-						// COUT << "Case 1 After sendMsg\n";
 					}
 				}
 	/* READ */	else if (FD_ISSET(fd_in, &cgi.readfds))
@@ -183,10 +181,9 @@ void	Methods::_communicateWithCGI(int fd_in, int fd_out, pid_t pid)
 					}
 					else if (receivedBytes == 0)
 					{
-						COUT << "Read 0 chars\n";
 						_parseCGIResponse(receivedMessage);
 
-						COUT << RED;
+						COUT << RED << "> CGI RESPONSE\n";
 						COUT << "Status: " << serv->resp.status_code << " " << serv->resp.reason_phrase << ENDL;
 						std::map<std::string, std::string>::iterator begin = serv->resp.header_fields.begin();
 						while (begin != serv->resp.header_fields.end())
@@ -201,18 +198,16 @@ void	Methods::_communicateWithCGI(int fd_in, int fd_out, pid_t pid)
 						FD_CLR(fd_in, &cgi.readfds);
 						close(fd_in);
 						finishedReading = 1;
-						// unfinished = 0;
 					}
 					else
 					{
-						// COUT << "Appending\n";
 						receivedMessage.append(recv_buffer, static_cast<size_t>(receivedBytes));
-						// COUT << "Total Length Read|" << receivedMessage.length() << "|\n";
 
 						_parseCGIResponse(receivedMessage);
 
 						if (finishedWriting)
 							cgi.fd_max = fd_in;
+						// if (!finishedWriting)
 						else
 						{
 							FD_SET(fd_out, &cgi.writefds);
@@ -305,18 +300,6 @@ bool	Methods::_parseGenericField(std::string & receivedMessage)
 	return (false);
 }
 
-// bool	Methods::_parseBody(std::string & receivedMessage)
-// {
-// 	if (receivedMessage == "")
-// 		return (true);
-// 	serv->resp.body += receivedMessage;
-// 	static int i = 0;
-// 	if (!i++)
-// 		COUT << "DIsplaying Body here |" << serv->resp.body << "|" << ENDL;
-// 	receivedMessage.clear();
-// 	return (false);
-// }
-
 void	Methods::_parseCGIResponse(std::string & receivedMessage)
 {
 	size_t size = receivedMessage.size();
@@ -338,7 +321,6 @@ void	Methods::_parseCGIResponse(std::string & receivedMessage)
 	}
 	else if (!size)
 	{
-		// COUT << GREEN << "Reinitilizing static shits" << RESET << ENDL;
 		CGIField = 0;
 		genericField = 0;
 	}
@@ -409,14 +391,10 @@ void	Methods::_createEnvpMap(void)
 	{
         if (it->first.substr(0, 2).find("X-") != std::string::npos)
         {
-			// std::string result(serv->req.transform(it->first, toupper));
 			std::string result = "HTTP_" + it->first;
 			result = serv->req.transform(result, toupper);
-			// result.replace(1, 1, "_");
-			result = serv->req.transform(result, serv->req.toUnderscore);
-
+			result = serv->req.transform(result, serv->req.tounderscore);
 			_envp[result] = it->second;
-			COUT << "_ENVP|" << result << ":" << it->second << "|" << ENDL;
 		}
 	}
 }

@@ -44,11 +44,11 @@ void	Response::concatenateResponse(void)
 		begin++;
 	}
 
+	/* Display Temporary msg */
+	CME << "> RESPONSE\n" << msg << EME;
+
 	/* New line */
 	msg += "\r\n";
-
-	/* Display Temporary msg */
-	CME << "|" << msg << "|" << EME;
 
 	/* Body */
 	if (body.size())
@@ -63,13 +63,8 @@ bool	Response::sendMsg(int client_socket, std::string & message)
 	static size_t	count = 0;
 	std::string		tmp(message.substr(count, message.length() - count));
 
-	// COUT << "count|" << count << "|\n";
-	// COUT << "message.length()|" << message.length() << "|\n";
-	// COUT << "tmp.length()|" << tmp.length() << "|\n";
-
 	/* try to send */
 	ssize_t writtenBytes = write(client_socket, tmp.data(), tmp.length());
-	// COUT << "After write\n";
 
 	if (writtenBytes < 0)
 	{

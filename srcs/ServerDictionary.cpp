@@ -19,6 +19,7 @@ ServerDictionary::ServerDictionary()
 								"rewrite",
 								"allowed_methods",
 								"autoindex",
+								"client_max_body_size",
 								"limit_except",
 								"upload_store",
 								"auth_basic",

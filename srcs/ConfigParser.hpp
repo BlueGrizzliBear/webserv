@@ -87,6 +87,7 @@ class ConfigParser
 	/* Member Functions */
 	public:
 		Servers &			getServers(void);
+		Directives &		getMainDirs(void);
 		ServerDictionary &	getDictionary(void);
 		int &				getStatus(void);
 
@@ -109,8 +110,8 @@ class ConfigParser
 		void	_initPort(ServerBloc & serv);
 		void	_initServers(void);
 
-	public:
-		void	_initSelect(ServerBloc & serv);
+	// public:
+	// 	void	_initSelect(ServerBloc & serv);
 
 	public:
 		/* Clean-up functions */

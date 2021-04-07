@@ -349,7 +349,6 @@ void	Methods::_executePutReq(void)
 
 	file << serv->req.body;
 	file.close();
-	serv->req.body.clear();
 }
 
 /* Execute Post request */
@@ -359,7 +358,6 @@ void	Methods::_executePostReq(void)
 
 	file << serv->req.body;
 	file.close();
-	serv->req.body.clear();
 }
 
 /* Check content type */

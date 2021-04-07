@@ -36,6 +36,9 @@ clean			:
 
 fclean			:		clean
 						rm -f $(NAME)
+						rm -f ./YoupiBanane/post_body
+						rm -f ./data/youpi_put_test/file_should_exist_after
+						rm -f ./data/youpi_put_test/multiple_same
 
 re				:      	fclean all
 

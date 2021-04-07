@@ -36,20 +36,18 @@ std::string &	Request::getData(void)
 }
 
 /* Member Functions */
-void	Request::display(void)
+void	Request::display(void)	/* Display request for debugging purposes */
 {
-	COUT << GREEN << "Displaying Request" << ENDL;
+	COUT << GREEN << "> CLIENT REQUEST\n";
 	COUT << method << " " << uri << " " << protocol_v << ENDL;
 	
 	Headers::iterator begin = headers.begin();
 	while (begin != headers.end())
 	{
-		COUT << begin->first << ":" << begin->second << ENDL;
+		COUT << begin->first << ": " << begin->second << ENDL;
 		++begin;
 	}
-
 	// COUT << body << ENDL;
-
 	COUT << RESET;
 }
 
@@ -63,26 +61,6 @@ void	Request::clear(void)
 	
 	_req.clear();
 	_pos = 0;
-}
-
-int		Request::toUnderscore(int c)
-{
-	if (c == '-')
-		return ('_');
-	return (c);
-}
-
-std::string Request::transform(std::string str, int func(int))
-{
-	std::string::iterator begin = str.begin();
-	std::string result;
-
-	while (begin != str.end())
-	{
-		result.append(1, func(*begin));
-		++begin;
-	}
-	return (result);
 }
 
 /* A conditional function which returns a bool if the needle is in the dictionary dic */
@@ -357,4 +335,25 @@ bool	Request::parseBody(void) throw(BadRequest)
 	else
 		return (true);	/* No body */
 	return (false);
+}
+
+/* Static Functions */
+int		Request::tounderscore(int c)
+{
+	if (c == '-')
+		return ('_');
+	return (c);
+}
+
+std::string Request::transform(std::string str, int func(int))
+{
+	std::string::iterator begin = str.begin();
+	std::string result;
+
+	while (begin != str.end())
+	{
+		result.append(1, func(*begin));
+		++begin;
+	}
+	return (result);
 }

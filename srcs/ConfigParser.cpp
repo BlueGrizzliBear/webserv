@@ -7,9 +7,9 @@ ConfigParser::ConfigParser() {}
 /*	argument	(2)	*/
 ConfigParser::ConfigParser(const char * path) : _path(path), _line_no(0), _count(0), _bracket(0), _status(0)
 {
-	_try_open_file(path);
+	_try_open_file(path);	/* Parse the .conf file to create de server objects */
 
-	_initServers();
+	_initServers();	/* Initialize server parts before getting our first connection */
 }
 
 /*	copy		(3)	*/
@@ -41,6 +41,11 @@ ConfigParser &ConfigParser::operator=(ConfigParser const & rhs)
 ConfigParser::Servers &	ConfigParser::getServers(void)
 {
 	return (_servers);
+}
+
+ConfigParser::Directives &	ConfigParser::getMainDirs(void)
+{
+	return (_main_dir);
 }
 
 int &	ConfigParser::getStatus(void)
@@ -538,26 +543,6 @@ void	ConfigParser::_initPort(ServerBloc & serv)
 	}
 }
 
-void	ConfigParser::_initSelect(ServerBloc & serv)
-{
-	FD_ZERO(&serv.serv_select.readfds);
-	FD_SET(serv.serv_port.fd, &serv.serv_select.readfds);
-
-	FD_ZERO(&serv.serv_select.writefds);
-	// FD_SET(serv.serv_port.fd, &serv.serv_select.writefds);
-
-	FD_ZERO(&serv.serv_select.exceptfds);
-	// FD_SET(serv.serv_port.fd, &serv.serv_select.exceptfds);
-
-	/* Setting time-out */
-	serv.serv_select.timeout.tv_sec = 0.0;
-	serv.serv_select.timeout.tv_usec = 0.0;
-
-	/* Setting max */
-	serv.serv_select.fd_max = serv.serv_port.fd;
-
-}
-
 void	ConfigParser::_initServers(void)
 {
 	Servers::iterator s_it = _servers.begin();
@@ -566,7 +551,7 @@ void	ConfigParser::_initServers(void)
 	while (s_it != s_ite)
 	{
 		_initPort(*s_it);
-		_initSelect(*s_it);
+		s_it->initSelect();
 		s_it++;
 	}
 }

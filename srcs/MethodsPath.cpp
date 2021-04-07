@@ -7,6 +7,7 @@ void	Methods::_findPath(void)
 	std::vector<std::string>	methods;
 	std::map<std::string, std::vector<std::string> >	locationDir;
 	std::string					req_uri = serv->req.uri;
+	size_t	max_body_size = 1000000; /* 1 GB by default */
 
 	_autoindex = true;
 	/* finding all default server conf */
@@ -15,6 +16,7 @@ void	Methods::_findPath(void)
 	_findAutoIndex(serv->dir);
 	_findCGIPath(serv->dir);
 	methods = _findVect(serv->dir, "allowed_methods", methods);
+	_findClientMaxBodySize(serv->getParent()->getMainDirs(), &max_body_size);
 	_indexes = _findVect(serv->dir, "index", _indexes);
 
 	/* iterating location bloc */
@@ -31,104 +33,19 @@ void	Methods::_findPath(void)
 		_findAutoIndex(locationDir);
 		_findCGIPath(locationDir);
 		methods = _findVect(locationDir, "allowed_methods", methods);
+		_findClientMaxBodySize(locationDir, &max_body_size);
 		_indexes = _findVect(locationDir, "index", _indexes);
 		req_uri = _findRewrite(locationDir);
 	}
-	/* check authenticate */
-	_checkRequiredAuthentication();
-	/* return exeption if method not allowed */
-	_checkAllowedMethods(methods);
+	
+	// COUT << MAGENTA << max_body_size << RESET << ENDL;
+
+	_checkRequiredAuthentication();	/* check authenticate */
+	_checkAllowedMethods(methods);	/* return exeption if method not allowed */
+	_checkMaxBodySize(max_body_size);
+
 	_path += req_uri;
 	// COUT << "_path:|" << _path << "|" << ENDL;
-}
-
-void		Methods::_checkRequiredAuthentication()
-{
-	_envp["AUTH_TYPE"] = "";
-	_envp["REMOTE_USER"] = "";
-	if (!_authenticate.empty())
-	{
-		if (serv->req.headers.find("Authorization") != serv->req.headers.end())
-		{
-			if (_checkUserExist(serv->req.headers.find("Authorization")->second, _authenticate[1]))
-				return ;
-		}
-		serv->resp.header_fields.insert(std::make_pair("WWW-Authenticate", "Basic realm=" + _authenticate[0] + ", charset=\"UTF-8\""));
-		_envp["AUTH_TYPE"] = "Basic";
-		throw ServerBloc::Unauthorized();
-	}
-}
-
-bool		Methods::_checkUserExist(std::string user, std::string auth_path)
-{
-	std::vector<std::string>	users;
-	std::string					line;
-	std::fstream				user_file(auth_path);
-
-	_envp["AUTH_TYPE"] = user.substr(0, user.find(' ') - 1);
-
-	if (user.find("Basic ") != std::string::npos && user_file.good())
-	{
-		user.erase(user.find("Basic "), 6);
-		user = _decodeUser(user);
-		// COUT << "user: |" << user << "|" << ENDL;
-		while (std::getline(user_file, line))
-			users.push_back(line);
-		for (std::vector<std::string>::iterator it = users.begin(); it != users.end(); ++it)
-		{
-			if (*it == user)
-			{
-				_envp["REMOTE_USER"] = user.substr(0, user.find(':') - 1);
-				return true;
-			}
-		}
-	}
-	return false;
-}
-
-std::string	Methods::_decodeUser(std::string user)
-{
-	unsigned char	from_base64[] = {255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
-									 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
-									 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 62,  255, 62,  255, 63,
-									 52,  53,  54,  55,  56,  57,  58,  59,  60,  61,  255, 255, 255, 255, 255, 255,
-									 255, 0,   1,   2,   3,   4,   5,   6,   7,   8,   9,  10,   11,  12,  13,  14,
-									 15,  16,  17,  18,  19,  20,  21,  22,  23,  24,  25, 255,  255, 255, 255, 63,
-									 255, 26,  27,  28,  29,  30,  31,  32,  33,  34,  35,  36,  37,  38,  39,  40,
-									 41,  42,  43,  44,  45,  46,  47,  48,  49,  50,  51, 255,  255, 255, 255, 255};
-	// Make sure string length is a multiple of 4
-	while ((user.size() % 4) != 0)
-		user.push_back('=');
-
-	size_t	encoded_size = user.size();
-	std::vector<unsigned char>	ret;
-
-	ret.reserve(3 * encoded_size / 4);
-	for (size_t i = 0; i < encoded_size; i += 4)
-	{
-		// Get values for each group of four base 64 characters
-		unsigned char	b4[4];
-		b4[0] = (user[i + 0] <= 'z') ? from_base64[static_cast<unsigned char>(user[i + 0])] : 0xff;
-		b4[1] = (user[i + 1] <= 'z') ? from_base64[static_cast<unsigned char>(user[i + 1])] : 0xff;
-		b4[2] = (user[i + 2] <= 'z') ? from_base64[static_cast<unsigned char>(user[i + 2])] : 0xff;
-		b4[3] = (user[i + 3] <= 'z') ? from_base64[static_cast<unsigned char>(user[i + 3])] : 0xff;
-		// Transform into a group of three bytes
-		unsigned char	b3[3];
-		b3[0] = static_cast<unsigned char>(((b4[0] & 0x3f) << 2) + ((b4[1] & 0x30) >> 4));
-		b3[1] = static_cast<unsigned char>(((b4[1] & 0x0f) << 4) + ((b4[2] & 0x3c) >> 2));
-		b3[2] = static_cast<unsigned char>(((b4[2] & 0x03) << 6) + ((b4[3] & 0x3f) >> 0));
-		// Add the byte to the return value if it isn't part of an '=' character (indicated by 0xff)
-		if (b4[1] != 0xff)
-			ret.push_back(b3[0]);
-		if (b4[2] != 0xff)
-			ret.push_back(b3[1]);
-		if (b4[3] != 0xff)
-			ret.push_back(b3[2]);
-	}
-	std::stringstream	cat;
-	for (std::vector<unsigned char>::iterator it = ret.begin(); it != ret.end(); ++it)
-	cat << *it;
-	return cat.str();
 }
 
 template< typename T, typename U >
@@ -180,6 +97,27 @@ std::vector<std::string>	Methods::_findVect(std::map< T, U > dir, std::string to
 	return vect;
 }
 
+template< typename T, typename U >
+void	Methods::_findClientMaxBodySize(std::map< T, U > dir, size_t * max_size)
+{
+	std::string to_find;
+
+	if (dir.find("client_max_body_size") != dir.end())
+	{
+		to_find = dir.find("client_max_body_size")->second[0];
+
+		if (!to_find.empty())
+		{
+			*max_size = static_cast<size_t>(std::atoi(to_find.c_str()));
+			if (to_find[to_find.size() - 1] == 'K')
+				*max_size *= 1000;
+			else if (to_find[to_find.size() - 1] == 'M')
+				*max_size *= 1000000;
+			else if (to_find[to_find.size() - 1] == 'G')
+				*max_size *= 1000000000;
+		}
+	}
+}
 
 template< typename T, typename U >
 std::string	Methods::_findRewrite(std::map< T, U > dir)
@@ -350,7 +288,98 @@ std::string	Methods::_uriFirstPart()
 	return (uri_path);
 }
 
-	/* (3) allowed method */
+	/* (3) authentication */
+void		Methods::_checkRequiredAuthentication(void)
+{
+	_envp["AUTH_TYPE"] = "";
+	_envp["REMOTE_USER"] = "";
+	if (!_authenticate.empty())
+	{
+		if (serv->req.headers.find("Authorization") != serv->req.headers.end())
+		{
+			if (_checkUserExist(serv->req.headers.find("Authorization")->second, _authenticate[1]))
+				return ;
+		}
+		serv->resp.header_fields.insert(std::make_pair("WWW-Authenticate", "Basic realm=" + _authenticate[0] + ", charset=\"UTF-8\""));
+		_envp["AUTH_TYPE"] = "Basic";
+		throw ServerBloc::Unauthorized();
+	}
+}
+
+bool		Methods::_checkUserExist(std::string user, std::string auth_path)
+{
+	std::vector<std::string>	users;
+	std::string					line;
+	std::fstream				user_file(auth_path);
+
+	_envp["AUTH_TYPE"] = user.substr(0, user.find(' ') - 1);
+
+	if (user.find("Basic ") != std::string::npos && user_file.good())
+	{
+		user.erase(user.find("Basic "), 6);
+		user = _decodeUser(user);
+		// COUT << "user: |" << user << "|" << ENDL;
+		while (std::getline(user_file, line))
+			users.push_back(line);
+		for (std::vector<std::string>::iterator it = users.begin(); it != users.end(); ++it)
+		{
+			if (*it == user)
+			{
+				_envp["REMOTE_USER"] = user.substr(0, user.find(':') - 1);
+				return true;
+			}
+		}
+	}
+	return false;
+}
+
+std::string	Methods::_decodeUser(std::string user)
+{
+	unsigned char	from_base64[] = {255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+									 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+									 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 62,  255, 62,  255, 63,
+									 52,  53,  54,  55,  56,  57,  58,  59,  60,  61,  255, 255, 255, 255, 255, 255,
+									 255, 0,   1,   2,   3,   4,   5,   6,   7,   8,   9,  10,   11,  12,  13,  14,
+									 15,  16,  17,  18,  19,  20,  21,  22,  23,  24,  25, 255,  255, 255, 255, 63,
+									 255, 26,  27,  28,  29,  30,  31,  32,  33,  34,  35,  36,  37,  38,  39,  40,
+									 41,  42,  43,  44,  45,  46,  47,  48,  49,  50,  51, 255,  255, 255, 255, 255};
+	// Make sure string length is a multiple of 4
+	while ((user.size() % 4) != 0)
+		user.push_back('=');
+
+	size_t	encoded_size = user.size();
+	std::vector<unsigned char>	ret;
+
+	ret.reserve(3 * encoded_size / 4);
+	for (size_t i = 0; i < encoded_size; i += 4)
+	{
+		// Get values for each group of four base 64 characters
+		unsigned char	b4[4];
+		b4[0] = (user[i + 0] <= 'z') ? from_base64[static_cast<unsigned char>(user[i + 0])] : 0xff;
+		b4[1] = (user[i + 1] <= 'z') ? from_base64[static_cast<unsigned char>(user[i + 1])] : 0xff;
+		b4[2] = (user[i + 2] <= 'z') ? from_base64[static_cast<unsigned char>(user[i + 2])] : 0xff;
+		b4[3] = (user[i + 3] <= 'z') ? from_base64[static_cast<unsigned char>(user[i + 3])] : 0xff;
+		// Transform into a group of three bytes
+		unsigned char	b3[3];
+		b3[0] = static_cast<unsigned char>(((b4[0] & 0x3f) << 2) + ((b4[1] & 0x30) >> 4));
+		b3[1] = static_cast<unsigned char>(((b4[1] & 0x0f) << 4) + ((b4[2] & 0x3c) >> 2));
+		b3[2] = static_cast<unsigned char>(((b4[2] & 0x03) << 6) + ((b4[3] & 0x3f) >> 0));
+		// Add the byte to the return value if it isn't part of an '=' character (indicated by 0xff)
+		if (b4[1] != 0xff)
+			ret.push_back(b3[0]);
+		if (b4[2] != 0xff)
+			ret.push_back(b3[1]);
+		if (b4[3] != 0xff)
+			ret.push_back(b3[2]);
+	}
+	std::stringstream	cat;
+	for (std::vector<unsigned char>::iterator it = ret.begin(); it != ret.end(); ++it)
+	cat << *it;
+	return cat.str();
+}
+
+
+	/* (4) allowed method */
 void	Methods::_checkAllowedMethods(std::vector<std::string> methods)
 {
 	std::string	cat_meth;
@@ -369,4 +398,11 @@ void	Methods::_checkAllowedMethods(std::vector<std::string> methods)
 		serv->resp.header_fields.insert(std::make_pair("Allow", cat_meth));
 		throw ServerBloc::MethodNotAllowed();
 	}
+}
+
+	/* (5) max_body_size */
+void	Methods::_checkMaxBodySize(size_t max_size)
+{
+	if (serv->req.body.length() > max_size)
+		throw ServerBloc::PayloadTooLarge();
 }

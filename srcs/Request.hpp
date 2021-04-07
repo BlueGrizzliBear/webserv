@@ -49,9 +49,6 @@ class Request
 
 		void	display(void);
 
-		static int			toUnderscore(int c);
-		static std::string	transform(std::string str, int func(int));
-
 	private:
 		size_t	_passSpaces(void);
 
@@ -93,6 +90,10 @@ class Request
 		std::string 		_req;
 		size_t				_pos;
 
+	/* Static functions */
+	public:
+		static int			tounderscore(int c);
+		static std::string	transform(std::string str, int func(int));
 };
 
 #endif

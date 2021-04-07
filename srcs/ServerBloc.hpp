@@ -9,7 +9,6 @@
 # include "./Methods.hpp"
 
 class ConfigParser;
-// class Request;
 
 struct Socket
 {
@@ -52,11 +51,6 @@ class ServerBloc
 		ServerBloc &	operator=(ServerBloc const & rhs);
 
 	/* Exceptions */
-		class SeeOther : public std::exception {
-			public:
-				virtual const char *	what() const throw() { return ("303"); }
-		};
-
 		class BadRequest : public std::exception {
 			public:
 				virtual const char *	what() const throw() { return ("400"); }
@@ -87,6 +81,11 @@ class ServerBloc
 				virtual const char *	what() const throw() { return ("412"); }
 		};
 
+		class PayloadTooLarge : public std::exception {
+			public:
+				virtual const char *	what() const throw() { return ("413"); }
+		};
+
 		class UnsupportedMediaType : public std::exception {
 			public:
 				virtual const char *	what() const throw() { return ("415"); }
@@ -98,11 +97,13 @@ class ServerBloc
 		size_t &		getNo(void);
 		ConfigParser *	getParent(void);
 
+		void	initSelect(void);
+		void	initClient(void);
+
 		bool	readClient(int client_socket);
 		void	parseException(const char * code);
 
 		bool	processRequest(void);
-		void	executeRequest(void);
 		bool	sendResponse(Socket & client);
 
 	private:
