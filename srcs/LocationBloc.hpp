@@ -25,7 +25,7 @@ class LocationBloc
 
 	/* Member Attributes */
 	public:
-		Directives	loc_dir;
+		Directives		loc_dir;
 };
 
 #endif

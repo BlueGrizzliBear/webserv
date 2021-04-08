@@ -77,7 +77,7 @@ bool	Response::sendMsg(int client_socket, std::string & message)
 	if (count == message.length())
 	{
 		count = 0;
-		COUT << "------------------Complete message sent-------------------" << ENDL;
+		// COUT << "------------------Complete message sent-------------------" << ENDL;
 
 		return (true);
 	}

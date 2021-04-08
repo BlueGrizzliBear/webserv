@@ -105,9 +105,11 @@ class ConfigParser
 		bool	_str_is_digit(std::string const & str);
 		int		_check_directive(std::string & key, std::vector<std::string> & values);
 
+		void	_verify_uniqueness(ServerBloc & serv, std::string str);
 		void	_verify_serverbloc(ServerBloc & serv);
 
 		void	_initPort(ServerBloc & serv);
+		// void	_initLocationPath(ServerBloc & serv);
 		void	_initServers(void);
 
 	// public:

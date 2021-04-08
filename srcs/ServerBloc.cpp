@@ -139,7 +139,7 @@ bool	ServerBloc::processRequest(void)
 		headerParsed = false;			/* Reseting bool indicator if header is parsed or not */
 		req.headerComplete = false;		/* Reseting bool indicator if header is complete or not */
 
-		COUT << MAGENTA << "Avant Exec" << RESET << ENDL;
+		// COUT << MAGENTA << "Avant Exec" << RESET << ENDL;
 
 		/* Execute the parsed request */
 		Methods	implementedMethods(*this);
@@ -166,7 +166,7 @@ void	ServerBloc::_addHeaderFields(void)
 	resp.header_fields.insert(std::make_pair("Connection", "close"));
 }
 
-bool	ServerBloc::sendResponse(Socket & client)
+bool	ServerBloc::sendResponse(Socket_old & client)
 {
 	if (!resp.isComplete)
 	{

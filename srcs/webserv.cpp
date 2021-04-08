@@ -1,5 +1,5 @@
-#include "./webserv.hpp"
-#include "./ConfigParser.hpp"
+# include "./webserv.hpp"
+# include "./ConfigParser.hpp"
 
 void	displayError(const char * main_err, const char * err)
 {
@@ -57,8 +57,8 @@ bool	parseServerResponse(ServerBloc & server)
 	{
 		if (server.sendResponse(server.client))
 		{
-			gettimeofday(&mytime2, NULL);
-			COUT << RED << "Time elapsed: " << static_cast<float>((mytime2.tv_sec - mytime1.tv_sec) * 1000 + ((mytime2.tv_usec - mytime1.tv_usec) / 1000)) << " ms." << RESET << ENDL;
+			// gettimeofday(&mytime2, NULL);
+			// COUT << RED << "Time elapsed: " << static_cast<float>((mytime2.tv_sec - mytime1.tv_sec) * 1000 + ((mytime2.tv_usec - mytime1.tv_usec) / 1000)) << " ms." << RESET << ENDL;
 			return (true);
 		}
 	}
@@ -69,9 +69,50 @@ bool	parseServerResponse(ServerBloc & server)
 	return (false);
 }
 
+void	displayDebug(const char * str)
+{
+	static int mystatic = -1;
+	bool yes = 0;
+
+	if (!strcmp(str, "I"))
+	{
+		yes = (mystatic != 0) ? 1 : 0;
+		mystatic = 0;
+	}
+	else if (!strcmp(str, "R"))
+	{
+		yes = (mystatic != 1) ? 1 : 0;
+		mystatic = 1;
+	}
+	else if (!strcmp(str, "W"))
+	{
+		yes = (mystatic != 2) ? 1 : 0;
+		mystatic = 2;
+	}
+	else if (!strcmp(str, "Reading"))
+	{
+		yes = (mystatic != 3) ? 1 : 0;
+		mystatic = 3;
+	}
+	else if (!strcmp(str, "Writing"))
+	{
+		yes = (mystatic != 4) ? 1 : 0;
+		mystatic = 4;
+	}
+	else if (!strcmp(str, "New"))
+	{
+		yes = (mystatic != 5) ? 1 : 0;
+		mystatic = 5;
+	}
+
+	if (yes == 1)
+		CERR << str << ENDL;
+}
+
 int	launchServer(ServerBloc & server)
 {
 	server.client.fd = -1;
+	// std::list<Socket> clientList;
 
 	static bool status = true;
 
@@ -92,23 +133,23 @@ int	launchServer(ServerBloc & server)
 				// displayError("Error in Select()", "select timed out");
 				if (server.client.fd == -1)
 				{
+					displayDebug("I");
 					// CERR << "\rI";
-					// CERR << "I\n";
 					FD_SET(server.serv_port.fd, &server.serv_select.readfds);
 					// server.initSelect();	/* Re-initializing select for server */
 				}
 				else if (status == true)
 				{
+					displayDebug("R");
 					// CERR << "\rR";
-					// CERR << "R\n";
 					FD_ZERO(&server.serv_select.readfds);
 					FD_SET(server.client.fd, &server.serv_select.readfds);
 					server.serv_select.fd_max = server.client.fd;
 				}
 				else
 				{
+					displayDebug("W");
 					// CERR << "\rW";
-					// CERR << "W\n";
 					FD_ZERO(&server.serv_select.writefds);
 					FD_SET(server.client.fd, &server.serv_select.writefds);
 					server.serv_select.fd_max = server.client.fd;
@@ -136,6 +177,7 @@ int	launchServer(ServerBloc & server)
 				}
 	/* READ */	else if ((server.client.fd != -1) && FD_ISSET(server.client.fd, &server.serv_select.readfds))
 				{
+					displayDebug("Reading");
 					// CMEY << "Respective socket is ready for reading request" << EME;
 					if (parseClientRequest(server))	/* Parsing Client Request */
 					{
@@ -146,6 +188,7 @@ int	launchServer(ServerBloc & server)
 				}
 	/* WRITE */	else if ((server.client.fd != -1) && FD_ISSET(server.client.fd, &server.serv_select.writefds))
 				{
+					displayDebug("Writing");
 					// CMEY << "Respective socket is ready for writing request response" << EME;
 					if ((status = parseServerResponse(server)))	/* Parsing Server Response */
 					{
@@ -157,19 +200,27 @@ int	launchServer(ServerBloc & server)
 					}
 				}
 	/* NEW */	else if ((server.client.fd == -1) && FD_ISSET(server.serv_port.fd, &server.serv_select.readfds))
+	// /* NEW */	else if (clientList.size() < 3 && FD_ISSET(server.serv_port.fd, &server.serv_select.readfds))
 				{
-					gettimeofday(&mytime1, NULL); // to display the time consumption of request
+					displayDebug("New");
+					// static int i = 0;
+					// COUT << GREEN << "Request #" << i++ << RESET << ENDL;
 
-					CMEY << "Someone is talking to the server socket" << EME;
+					// gettimeofday(&mytime1, NULL); // to display the time consumption of request
 
 					/* Opening socket for new client */
 					server.client.fd = accept(server.serv_port.fd, reinterpret_cast<struct sockaddr *>(&server.client.address), reinterpret_cast<socklen_t *>(&server.client.addrlen));
+					// Socket new_client;
+
+					// new_client.fd = accept(server.serv_port.fd, reinterpret_cast<struct sockaddr *>(&new_client.address), reinterpret_cast<socklen_t *>(&new_client.addrlen));
 					if (server.client.fd == -1)
 					{
 						displayError("Error in accept()", strerror(errno));
 						break ;
 					}
 					fcntl(server.client.fd, F_SETFL, O_NONBLOCK);	/* Set the socket to non blocking */
+
+					// clientList.push_back(new_client);
 
 					FD_CLR(server.serv_port.fd, &server.serv_select.readfds);	/* removing server fd from reading list to process request first */
 					FD_SET(server.client.fd, &server.serv_select.readfds);		/* Adding the respective socket to the read playlist */

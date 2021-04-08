@@ -13,6 +13,13 @@ class ConfigParser;
 struct Socket
 {
 	int					fd;
+	struct sockaddr_in	address;
+	int					addrlen;
+};
+
+struct Socket_old
+{
+	int					fd;
 	unsigned short		port_no;
 	bool				is_default;
 	struct sockaddr_in	address;
@@ -104,7 +111,7 @@ class ServerBloc
 		void	parseException(const char * code);
 
 		bool	processRequest(void);
-		bool	sendResponse(Socket & client);
+		bool	sendResponse(Socket_old & client);
 
 	private:
 		/* Response functions */
@@ -118,10 +125,10 @@ class ServerBloc
 		Locations	loc;
 
 		/* Attributes from initialization */
-		Socket		serv_port;
+		Socket_old	serv_port;
 		Select		serv_select;
 
-		Socket 		client;
+		Socket_old 	client;
 
 		/* Attributes from RequestParsing */
 		Request		req;

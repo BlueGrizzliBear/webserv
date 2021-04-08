@@ -5,7 +5,7 @@
 void	Methods::_findPath(void)
 {
 	std::vector<std::string>	methods;
-	std::map<std::string, std::vector<std::string> >	locationDir;
+	// std::map<std::string, std::vector<std::string> >	locationDir;
 	std::string	req_uri = serv->req.uri;
 	size_t		max_body_size = 1000000; /* 1 GB by default */
 
@@ -20,22 +20,25 @@ void	Methods::_findPath(void)
 	_findVect(serv->dir, "index", &_indexes);
 
 	/* iterating location bloc */
+	std::map<std::vector<std::string>, LocationBloc>::iterator tmp = serv->loc.end();
+
 	for (std::map<std::vector<std::string>, LocationBloc>::iterator it = serv->loc.begin(); it != serv->loc.end(); ++it)
 	{
-		if (_matchingLocationDir(it, &locationDir))
+		// if (_matchingLocationDir(it, &locationDir))
+		if (_matchingLocationDir(it, tmp))
 			break;
 	}
 	/* if location bloc found applying corresponding config */
-	if (!locationDir.empty())
+	if (tmp != serv->loc.end())
 	{
-		_findAuthenticate(locationDir);
-		_findRoot(locationDir);
-		_findAutoIndex(locationDir);
-		_findCGIPath(locationDir);
-		_findVect(locationDir, "allowed_methods", &methods);
-		_findClientMaxBodySize(locationDir, &max_body_size);
-		_findVect(locationDir, "index", &_indexes);
-		req_uri = _findRewrite(locationDir);
+		_findAuthenticate(tmp->second.loc_dir);
+		_findRoot(tmp->second.loc_dir);
+		_findAutoIndex(tmp->second.loc_dir);
+		_findCGIPath(tmp->second.loc_dir);
+		_findVect(tmp->second.loc_dir, "allowed_methods", &methods);
+		_findClientMaxBodySize(tmp->second.loc_dir, &max_body_size);
+		_findVect(tmp->second.loc_dir, "index", &_indexes);
+		req_uri = _findRewrite(tmp->second.loc_dir);
 	}
 	
 	_checkRequiredAuthentication();	/* check authenticate */
@@ -144,30 +147,30 @@ std::string	Methods::_uriWithoutFirstPart(void)
 }
 
 	/* (2) find location bloc config */
-bool	Methods::_matchingLocationDir(std::map<std::vector<std::string>, LocationBloc>::iterator & it, std::map<std::string, std::vector<std::string> > * location_dir)
+bool	Methods::_matchingLocationDir(std::map<std::vector<std::string>, LocationBloc>::iterator & it, std::map<std::vector<std::string>, LocationBloc>::iterator & tmp)
 {
 	if (it->first[0] == "=" && ((_uriFirstPart() == it->first[1]) || (serv->req.uri == it->first[1])))
 	{
-		*location_dir = it->second.loc_dir;
+		tmp = it;
 		return true;
 	}
 	else if (it->first[0] == "^~" && _compareCapturingGroup(serv->req.uri, it->first[1]))
 	{
-		*location_dir = it->second.loc_dir;
+		tmp = it;
 		return true;
 	}
 	else if (it->first[0] == "~" && _compareCapturingGroup(serv->req.uri, it->first[1]))
 	{
-		*location_dir = it->second.loc_dir;
+		tmp = it;
 		return true;
 	}
 	else if (it->first[0] == "~*" && _compareCapturingGroup(serv->req.transform(serv->req.uri, tolower), serv->req.transform(it->first[1], tolower)))
 	{
-		*location_dir = it->second.loc_dir;
+		tmp = it;
 		return true;
 	}
 	else if (it->first[0] == _uriFirstPart())
-		*location_dir = it->second.loc_dir;
+		tmp = it;
 	return false;
 }
 

@@ -96,7 +96,8 @@ class Methods
 	
 		std::string	_uriWithoutFirstPart();
 			/* (2) find location bloc config */
-		bool		_matchingLocationDir(std::map<std::vector<std::string>, LocationBloc>::iterator & it, std::map<std::string, std::vector<std::string> > * location_dir);
+		bool		_matchingLocationDir(std::map<std::vector<std::string>, LocationBloc>::iterator & it, std::map<std::vector<std::string>, LocationBloc>::iterator & tmp);
+		bool		_applyLocationBloc(std::map<std::vector<std::string>, LocationBloc>::iterator & it);
 
 		bool		_compareCapturingGroup(std::string uri_path, std::string cap_grp);
 		bool		_compareFromEnd(std::string & uri_path, std::vector<std::string> & path_set);

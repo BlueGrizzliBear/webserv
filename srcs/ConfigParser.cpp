@@ -447,9 +447,13 @@ int		ConfigParser::_check_directive(std::string & key, std::vector<std::string> 
 	// else if (key == "error_page")
 	// {
 	// }
-	// else if (key == "root")
-	// {
-	// }
+	else if (key == "root")
+	{
+		if (values.empty())
+			return (1);
+		if (values[0][0] != '/')
+			return (1);
+	}
 	// else if (key == "autoindex")
 	// {
 	// }
@@ -463,7 +467,7 @@ int		ConfigParser::_check_directive(std::string & key, std::vector<std::string> 
 	return (0);
 }
 
-void	ConfigParser::_verify_serverbloc(ServerBloc & serv)
+void	ConfigParser::_verify_uniqueness(ServerBloc & serv, std::string str)
 {
 	std::map<std::string, std::vector<std::string> >::iterator begin = serv.dir.begin();
 	std::map<std::string, std::vector<std::string> >::iterator end = serv.dir.end();
@@ -471,7 +475,7 @@ void	ConfigParser::_verify_serverbloc(ServerBloc & serv)
 
 	while (begin != end)
 	{
-		if ((*begin).first == "listen")
+		if ((*begin).first == str)
 			exists++;
 		begin++;
 	}
@@ -479,6 +483,12 @@ void	ConfigParser::_verify_serverbloc(ServerBloc & serv)
 		return ;
 	_display_parsing_error(_count);
 	throw MissingKey();
+}
+
+void	ConfigParser::_verify_serverbloc(ServerBloc & serv)
+{
+	_verify_uniqueness(serv, "listen");
+	_verify_uniqueness(serv, "root");
 }
 
 void	ConfigParser::abortServers(const char * main_err, const char * err)
