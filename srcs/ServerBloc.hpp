@@ -10,22 +10,6 @@
 
 class ConfigParser;
 
-struct Socket
-{
-	int					fd;
-	struct sockaddr_in	address;
-	int					addrlen;
-};
-
-struct Socket_old
-{
-	int					fd;
-	unsigned short		port_no;
-	bool				is_default;
-	struct sockaddr_in	address;
-	int					addrlen;
-};
-
 struct Select
 {
 	int		fd_max;
@@ -104,14 +88,11 @@ class ServerBloc
 		size_t &		getNo(void);
 		ConfigParser *	getParent(void);
 
-		void	initSelect(void);
-		void	initClient(void);
-
 		bool	readClient(int client_socket);
 		void	parseException(const char * code);
 
-		bool	processRequest(void);
-		bool	sendResponse(Socket_old & client);
+		bool	processRequest(Socket & client);
+		bool	sendResponse(Socket & client);
 
 	private:
 		/* Response functions */
@@ -125,10 +106,12 @@ class ServerBloc
 		Locations	loc;
 
 		/* Attributes from initialization */
-		Socket_old	serv_port;
-		Select		serv_select;
+		unsigned short	port_no;
+		bool			is_default;
+		Socket			serv_port;
+		Select			serv_select;
 
-		Socket_old 	client;
+		std::list<Socket> clientList;
 
 		/* Attributes from RequestParsing */
 		Request		req;

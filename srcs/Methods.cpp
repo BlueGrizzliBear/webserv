@@ -158,6 +158,8 @@ void	Methods::_applyGet(void)
 		_lastModifiedHeader(_getFileTime());
 	/* (4) Fill Transfer-Encoding */
 	serv->resp.header_fields.insert(std::make_pair("Transfer-Encoding", "identity"));
+
+
 }
 
 void	Methods::_applyHead(void)
@@ -238,6 +240,7 @@ void	Methods::_executeGetReq(void)
 		if (_fileExist(_path) == false)
 			throw ServerBloc::NotFound();
 	}
+	// COUT << "_path|" << _path << "|" << ENDL;
 }
 
 bool	Methods::_isDirectory(std::string const & path)

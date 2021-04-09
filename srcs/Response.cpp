@@ -3,7 +3,7 @@
 /* Response Class Declaration */
 /* Constructor */
 /*	default		(1)	*/
-Response::Response(void) {}
+Response::Response(void) : status_code(""), reason_phrase(""), header_fields(), body(""), msg(""), isComplete(0) {}
 
 /*	copy		(2)	*/
 Response::Response(Response const & cpy)
@@ -26,6 +26,10 @@ Response &	Response::operator=(Response const & rhs)
 
 	/* Body */
 	body = rhs.body;
+
+	msg = rhs.msg;
+
+	isComplete = rhs.isComplete;
 	
 	return (*this);
 }
@@ -56,6 +60,7 @@ void	Response::concatenateResponse(void)
 
 	/* Initialisation de count */
 	isComplete = 1;
+
 }
 
 bool	Response::sendMsg(int client_socket, std::string & message)

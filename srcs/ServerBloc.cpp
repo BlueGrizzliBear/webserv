@@ -42,31 +42,6 @@ ConfigParser *	ServerBloc::getParent(void)
 }
 
 /* Member Functions */
-void	ServerBloc::initSelect(void)	/* Reseting select for server */
-{
-	FD_ZERO(&serv_select.readfds);
-	FD_SET(serv_port.fd, &serv_select.readfds);
-
-	FD_ZERO(&serv_select.writefds);
-	// FD_SET(serv.serv_port.fd, &serv.serv_select.writefds);
-
-	FD_ZERO(&serv_select.exceptfds);
-	// FD_SET(serv.serv_port.fd, &serv.serv_select.exceptfds);
-
-	/* Setting time-out */
-	serv_select.timeout.tv_sec = 0.0;
-	serv_select.timeout.tv_usec = 0.0;
-
-	/* Setting max */
-	serv_select.fd_max = serv_port.fd;
-}
-
-void	ServerBloc::initClient(void)	/* Reseting client struct for server */
-{
-	close(client.fd);	/* Closing client socket */
-	client.fd = -1;		/* Reset fd value */
-}
-
 void	ServerBloc::parseException(const char * code)
 {
 	std::string str(code);
@@ -104,7 +79,7 @@ bool	ServerBloc::readClient(int client_socket)
 		return (true);	
 	else if (receivedBytes == 0)	/* client connection closed or EOF ! */
 	{
-		// COUT << MAGENTA << "Client connection closed or EOF" << RESET << ENDL;
+		COUT << MAGENTA << "Client connection closed or EOF" << RESET << ENDL;
 		return (true);	
 	}
 	else if ((req.getData().find("\r\n\r\n", old_pos) == std::string::npos))
@@ -118,7 +93,7 @@ bool	ServerBloc::readClient(int client_socket)
 	return (true);
 }
 
-bool	ServerBloc::processRequest(void)
+bool	ServerBloc::processRequest(Socket & client)
 {
 	static bool	headerParsed = false;
 
@@ -129,6 +104,7 @@ bool	ServerBloc::processRequest(void)
 		if (req.parseHeaders())
 			// CME << "> Parsed Headers: COMPLETE !" << EME;
 		headerParsed = true;
+		req.getData().erase(0, req.getData().find("\r\n\r\n") + 4);
 	}
 	if (req.parseBody())
 	{
@@ -139,11 +115,15 @@ bool	ServerBloc::processRequest(void)
 		headerParsed = false;			/* Reseting bool indicator if header is parsed or not */
 		req.headerComplete = false;		/* Reseting bool indicator if header is complete or not */
 
+		req.client = &client;
+
 		// COUT << MAGENTA << "Avant Exec" << RESET << ENDL;
 
 		/* Execute the parsed request */
 		Methods	implementedMethods(*this);
 		implementedMethods.execute();
+
+		// COUT << MAGENTA << "AFter Exec" << RESET << ENDL;
 
 		/* Clean Request */
 		req.clear();
@@ -166,7 +146,7 @@ void	ServerBloc::_addHeaderFields(void)
 	resp.header_fields.insert(std::make_pair("Connection", "close"));
 }
 
-bool	ServerBloc::sendResponse(Socket_old & client)
+bool	ServerBloc::sendResponse(Socket & client)
 {
 	if (!resp.isComplete)
 	{
@@ -175,6 +155,7 @@ bool	ServerBloc::sendResponse(Socket_old & client)
 	}
 	if (resp.sendMsg(client.fd, resp.msg) == true)
 	{
+		// COUT << "Cleaning now\n";
 		resp.cleanResponse();
 		return (true);
 	}

@@ -351,12 +351,12 @@ void	Methods::_createEnvpMap(void)
 // QUERY_STRING
 	_envp["QUERY_STRING"] = _createQueryStringEnvp();	/* put the search identifier in the uri if any (query-string part of the uri) */
 // REMOTE_ADDR
-	tmp << inet_ntoa(serv->client.address.sin_addr);
+	tmp << inet_ntoa(serv->req.client->address.sin_addr);
 	_envp["REMOTE_ADDR"] = tmp.str();	/* Get client IP adress */
 	tmp.str("");
 // REMOTE_IDENT
 	// A VERIFIER
-	tmp << ntohs(serv->serv_port.address.sin_port) << ", " << ntohs(serv->client.address.sin_port);
+	tmp << ntohs(serv->serv_port.address.sin_port) << ", " << ntohs(serv->req.client->address.sin_port);
 	if (_envp["REMOTE_USER"].empty())
 		tmp << " : ERROR : HIDDEN-USER";	//  6195, 23 : ERROR : NO-USER
 	else

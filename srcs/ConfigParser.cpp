@@ -517,11 +517,11 @@ void	ConfigParser::_initPort(ServerBloc & serv)
 		if ((*d_it).first == "listen")
 		{
 			/* Convert port from std::string to unsigned short */
-			serv.serv_port.port_no = static_cast<unsigned short>(std::atoi((*d_it).second[0].c_str()));
+			serv.port_no = static_cast<unsigned short>(std::atoi((*d_it).second[0].c_str()));
 			
 			/* Assigns boolean for default_server */
 			if ((*d_it).second[1] == "default_server")
-				serv.serv_port.is_default = 1;
+				serv.is_default = 1;
 
 			/* Creating socket file descriptor */
 			if ((serv.serv_port.fd = socket(AF_INET, SOCK_STREAM, 0)) == 0)		/* AF_INET: Protocoles Internet IPv4	|	SOCK_STREAM: Virtual Circuit Service */
@@ -533,7 +533,7 @@ void	ConfigParser::_initPort(ServerBloc & serv)
 			/* Defining address struct */
 			serv.serv_port.address.sin_family = AF_INET;						/* corresponding to IPv4 protocols */
 			serv.serv_port.address.sin_addr.s_addr = htonl(INADDR_ANY);			/* corresponding to 0.0.0.0 */
-			serv.serv_port.address.sin_port = htons(serv.serv_port.port_no);	/* corresponding to the server port, must be > 1024 */
+			serv.serv_port.address.sin_port = htons(serv.port_no);	/* corresponding to the server port, must be > 1024 */
 			
 			/* Defining address length */
 			serv.serv_port.addrlen = sizeof(serv.serv_port.address);
@@ -561,7 +561,6 @@ void	ConfigParser::_initServers(void)
 	while (s_it != s_ite)
 	{
 		_initPort(*s_it);
-		s_it->initSelect();
 		s_it++;
 	}
 }

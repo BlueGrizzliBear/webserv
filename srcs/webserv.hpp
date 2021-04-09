@@ -33,8 +33,8 @@
 /* Default Config */
 # define PORT 8080
 # define MAX_CLIENTS 1024
-# define MAX_HEADER_SIZE 65535
-// # define MAX_HEADER_SIZE 819
+// # define MAX_HEADER_SIZE 65535
+# define MAX_HEADER_SIZE 819
 
 /* Debug defines */
 # define COUT std::cout
@@ -49,8 +49,8 @@
 // #define CMEG std::cerr << GREEN
 # define EME RESET << std::endl
 
-static struct timeval mytime1;
-static struct timeval mytime2;
+// static struct timeval mytime1;
+// static struct timeval mytime2;
 
 /* Terminal Colors */
 # define RESET		"\033[0m"
@@ -61,5 +61,15 @@ static struct timeval mytime2;
 # define MAGENTA	"\033[0;35m"
 # define CYAN		"\033[0;36m"
 # define WHITE		"\033[0;37m"
+
+struct Socket
+{
+	int					fd;
+	struct sockaddr_in	address;
+	int					addrlen;
+	bool				finishedReading;
+	struct timeval 		mytime1;
+	struct timeval 		mytime2;
+};
 
 #endif

@@ -70,13 +70,14 @@ class Request
 		std::string	_getWord(char const * delimiter_dic);
 		std::string	_getWord(int func(int));
 
-		void	_parseChunkedBody(ssize_t & size) throw(BadRequest);
-		bool	_checkEndOfChunkedEncoding(ssize_t & size);
+		bool	_parseChunkedBody(size_t & size) throw(BadRequest);
+		// bool	_checkEndOfChunkedEncoding(ssize_t & size);
 
 	/* Member Attributes */
 	public:
 		/* Parsing Attributes */
-		bool	headerComplete;
+		bool		headerComplete;
+		Socket * 	client;
 
 		/* Request Attributes */
 		std::string		method;

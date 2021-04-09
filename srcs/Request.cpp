@@ -265,61 +265,52 @@ bool	Request::parseHeaders(void) throw(BadRequest)
 	return (true);
 }
 
-void	Request::_parseChunkedBody(ssize_t & size) throw(BadRequest)
+bool	Request::_parseChunkedBody(size_t & size) throw(BadRequest)
 {
-	std::string hexa_size;
+	size_t pos = 0;
+	if ((pos = _req.find("\r\n")) == std::string::npos)
+		return (false);
 
-	while (_req[_pos] != '\r' && std::isxdigit(_req[_pos]))
-		hexa_size += _req[_pos++];
-	
-	if (_req.find("\r\n", _pos) == std::string::npos || !(_pos += 2))
-		throw BadRequest();
-
-	size = std::strtol(hexa_size.c_str(), NULL, 16);
-	
-	body.insert(body.size(), _req, _pos, static_cast<size_t>(size));
-	_pos += static_cast<size_t>(size);
-	size = 0;
-
-	if (_req.find("\r\n", _pos) == std::string::npos || !(_pos += 2))
-		throw BadRequest();
-}
-
-bool	Request::_checkEndOfChunkedEncoding(ssize_t & size)
-{
-	if (_req[_pos] == '0' && _req[_pos + 1] == '\r' && _req[_pos + 2] == '\n' && _req[_pos + 3] == '\r' && _req[_pos + 4] == '\n')
+	if (_req.find_first_not_of("0123456789ABCDEFabcdef", 0) != pos)
 	{
-		if (size == 0)
-		{
-			_pos += 5;
-			return (true);
-		}
+		body.clear();
+		_req.clear();
+		throw BadRequest();
 	}
-	return (false);
+
+	size = static_cast<unsigned long>(std::strtol((_req.substr(0, pos)).c_str(), NULL, 16));
+
+	if (_req.size() - pos - 2 < size + 2)
+		return (false);
+
+	size_t body_pos = 0;
+	if ((body_pos = _req.find("\r\n", size + pos + 2, 2)) == std::string::npos)
+	{
+		body.clear();
+		_req.clear();
+		throw BadRequest();
+	}
+
+	body.append(_req, pos + 2, size);
+
+	_req.erase(0, pos + 2 + size + 2);
+	
+	return (true);
 }
 
 bool	Request::parseBody(void) throw(BadRequest)
 {
-	if (headers.find("Transfer-Encoding") != headers.end()) // attention, peut etre pas chunked
+	if (headers.find("Transfer-Encoding") != headers.end() && headers.find("Transfer-Encoding")->second == "chunked")
 	{
-		static ssize_t size = 0;
+		// COUT << "Transfert Encoding" << ENDL;
+		static size_t size = 0;
 
-		// if (_req.find("0\r\n\r\n", _pos - 5) == std::string::npos)
-		if (_req.find("0\r\n\r\n", _req.size() - 5) == std::string::npos)
+		while (_parseChunkedBody(size))
 		{
-			
-			// COUT << MAGENTA << _req.substr(_pos, 10) << RESET << ENDL;
-
-			// COUT << "Transfert-Encoding: INCOMPLETE BODY" << ENDL;
-			return (false);
+			if (size == 0)
+				return (true);
 		}
-		while (!_checkEndOfChunkedEncoding(size))
-		{
-			_parseChunkedBody(size);
-		}
-		size = 0;
-		return (true);
-		// COUT << "Transfert-Encoding: BODY" << ENDL;
+		return (false);
 	}
 	else if (headers.find("Content-Length") != headers.end())
 	{
@@ -334,7 +325,10 @@ bool	Request::parseBody(void) throw(BadRequest)
 		return (true);
 	}
 	else
+	{
+		// COUT << "NO body" << ENDL;
 		return (true);	/* No body */
+	}
 	return (false);
 }
 
