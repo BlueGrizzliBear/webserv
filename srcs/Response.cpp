@@ -16,11 +16,11 @@ Response::~Response() {}
 
 /* Operators */
 Response &	Response::operator=(Response const & rhs)
-{	
+{
 	/* Status Line */
 	status_code = rhs.status_code;
 	reason_phrase = rhs.reason_phrase;
-	
+
 	/* Header Fields */
 	header_fields = rhs.header_fields;
 
@@ -30,7 +30,7 @@ Response &	Response::operator=(Response const & rhs)
 	msg = rhs.msg;
 
 	isComplete = rhs.isComplete;
-	
+
 	return (*this);
 }
 
@@ -41,7 +41,7 @@ void	Response::concatenateResponse(void)
 	msg = "HTTP/1.1 " + status_code + " " + reason_phrase + "\r\n";
 
 	/* Header Fields */
-	std::map<std::string, std::string>::iterator begin = header_fields.begin();
+	std::map<std::string, std::string, ci_less>::iterator begin = header_fields.begin();
 	while (begin != header_fields.end())
 	{
 		msg += begin->first + ": " + begin->second + "\r\n";
@@ -78,7 +78,7 @@ bool	Response::sendMsg(int client_socket, std::string & message)
 		return (true);
 	}
 	count += static_cast<size_t>(writtenBytes);
-	
+
 	if (count == message.length())
 	{
 		count = 0;

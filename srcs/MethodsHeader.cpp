@@ -16,6 +16,8 @@ void	Methods::_PutHeaderStatusCode(void)
 		/* Fill Status Line */
 		serv->resp.status_code = "201";
 		serv->resp.reason_phrase = "Created";
+		/* Add Header Content-Location pointing to the path of newly created file */
+		serv->resp.header_fields.insert(std::make_pair("Content-Location", serv->req.uri));
 	}
 	else
 	{
@@ -24,6 +26,7 @@ void	Methods::_PutHeaderStatusCode(void)
 			/* Fill Status Line */
 			serv->resp.status_code = "204";
 			serv->resp.reason_phrase = "No Content";
+			serv->resp.header_fields.insert(std::make_pair("Content-Location", serv->req.uri));
 		}
 		else
 		{
@@ -46,7 +49,7 @@ struct tm	*Methods::_getFileTime(void)
 	struct tm			*timeinfo = NULL;
 
 	if (!lstat(_path.c_str(), &info))
-		timeinfo = gmtime(&info.st_mtime); // to check
+		timeinfo = gmtime(&info.st_mtime); // to check (time_t to struct tm)
 	return timeinfo;
 }
 
@@ -81,8 +84,8 @@ int	Methods::_cmpTimeInfo(struct tm * t1, struct tm * t2)
 	time_t	time1;
 	time_t	time2;
 
-	time1 = mktime(t1); // to check
-	time2 = mktime(t2); // to check
+	time1 = mktime(t1); // to check (struct tm to time_t)
+	time2 = mktime(t2); // to check (struct tm to time_t)
 
 	if (time1 < time2)
 		return 0;

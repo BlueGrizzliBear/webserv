@@ -185,7 +185,7 @@ void	Methods::_communicateWithCGI(int fd_in, int fd_out, pid_t pid)
 
 						COUT << RED << "> CGI RESPONSE\n";
 						COUT << "Status: " << serv->resp.status_code << " " << serv->resp.reason_phrase << ENDL;
-						std::map<std::string, std::string>::iterator begin = serv->resp.header_fields.begin();
+						std::map<std::string, std::string, ci_less>::iterator begin = serv->resp.header_fields.begin();
 						while (begin != serv->resp.header_fields.end())
 						{
 							COUT << begin->first + ": " + begin->second + "\r\n";
@@ -349,7 +349,7 @@ void	Methods::_createEnvpMap(void)
 // PATH_TRANSLATED
 	_envp["PATH_TRANSLATED"] = _path;
 // QUERY_STRING
-	_envp["QUERY_STRING"] = _createQueryStringEnvp();	/* put the search identifier in the uri if any (query-string part of the uri) */
+	_envp["QUERY_STRING"] = _query;	/* put the search identifier in the uri if any (query-string part of the uri) */
 // REMOTE_ADDR
 	tmp << inet_ntoa(serv->req.client->address.sin_addr);
 	_envp["REMOTE_ADDR"] = tmp.str();	/* Get client IP adress */
@@ -387,7 +387,7 @@ void	Methods::_createEnvpMap(void)
 	_envp["SERVER_SOFTWARE"] = "HuntGaming/1.0";
 
 // ADDITIONAL IMPLEMENTATION-DEFINED CGI HEADER FIELDS
-	for (std::map<std::string, std::string>::iterator it = serv->req.headers.begin(); it != serv->req.headers.end(); ++it)
+	for (std::map<std::string, std::string, ci_less>::iterator it = serv->req.headers.begin(); it != serv->req.headers.end(); ++it)
 	{
         if (it->first.substr(0, 2).find("X-") != std::string::npos)
         {
@@ -409,7 +409,7 @@ char **	Methods::_createEnvpArray(void)
 	}
 	array[_envp.size()] = 0;
 
-	std::map<std::string, std::string>::iterator begin = _envp.begin();
+	std::map<std::string, std::string, ci_less>::iterator begin = _envp.begin();
 	int i = 0;
 
 	while (begin != _envp.end())
@@ -477,11 +477,4 @@ void	Methods::_freeArray(char ** array)
 	for (int i = 0; array[i]; ++i)
 		free(array[i++]);
 	free(array);
-}
-
-
-std::string	Methods::_createQueryStringEnvp(void)
-{
-	// convert std::string query from struct to a special format for envp
-	return ("");
 }

@@ -40,7 +40,7 @@ void	Methods::execute(void)
 	else if (serv->req.method == "PUT")
 		_applyPut();
 
-	// serv->req.display(); 
+	// serv->req.display();
 }
 
 void	Methods::customError(std::string & status_code, std::string & reason_phrase)
@@ -131,7 +131,20 @@ void	Methods::_URIResolutionProcess(void)
 
 void	Methods::_queryResolutionProcess(void)
 {
-	// to implement
+	size_t	begin;
+	size_t	end;
+
+	/*    /over/there?name=ferret&name2=ferret2#nose  */
+	/*    \_________/ \_______________________/ \__/  */
+	/*        |            |                     |    */
+	/*       path        query               fragment */
+	if ((begin = serv->req.uri.find('?')) != std::string::npos)
+	{
+		end = serv->req.uri.find('#');	/* jusqu'au # ou fin de l'uri */
+		_query = serv->req.uri.substr(begin + 1, end);
+		serv->req.uri.erase(begin, std::string::npos);
+	}
+	_query = "";
 }
 
 void	Methods::_applyGet(void)
@@ -139,27 +152,30 @@ void	Methods::_applyGet(void)
 	/* Check if path exist on server */
 	_findPath();
 
-	/* execute specific to GET request */
-	_executeGetReq();
-	/* Check if server knows file type */
-	_checkContentType();
-	/* Fill body with file content */
-	if (_path != "./dir_listing.html")
-		_fillBody();
-	/* Fill header informations */
-	/* (1) Fill Status Line */
-	_GetHeaderStatusCode();
+	if (_cgi_path.empty())
+	{
+		/* execute specific to GET request */
+		_executeGetReq();
+		/* Check if server knows file type */
+		_checkContentType();
+		/* Fill body with file content */
+		if (_path != "./dir_listing.html")
+			_fillBody();
+		/* Fill header informations */
+		/* (1) Fill Status Line */
+		_GetHeaderStatusCode();
 
-	/* (2) Fill Content-lenght */
+		/* (2) Fill Last-Modified */
+		if (_path != "./dir_listing.html")
+			_lastModifiedHeader(_getFileTime());
+		/* (3) Fill Transfer-Encoding */
+		serv->resp.header_fields.insert(std::make_pair("Transfer-Encoding", "identity"));
+	}
+	else
+		_executeCGI();
+
+	/* (4) Fill Content-lenght */
 	serv->resp.header_fields.insert(std::make_pair("Content-Length", _getSizeOfStr(serv->resp.body)));
-
-	/* (3) Fill Last-Modified */
-	if (_path != "./dir_listing.html")
-		_lastModifiedHeader(_getFileTime());
-	/* (4) Fill Transfer-Encoding */
-	serv->resp.header_fields.insert(std::make_pair("Transfer-Encoding", "identity"));
-
-
 }
 
 void	Methods::_applyHead(void)
@@ -216,8 +232,7 @@ void	Methods::_applyPut(void)
 	}
 
 	/* Fill header informations */
-	/* (2) Fill Content-Location */
-		// return the path to the newly or modified file
+
 }
 
 /* Execute Get request */

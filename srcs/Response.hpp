@@ -9,7 +9,7 @@ class Response
 {
 	public:
 	/* Member Types */
-		typedef std::map<std::string, std::string > Headers;
+		typedef std::map<std::string, std::string, ci_less > Headers;
 
 	/* Constructor */
 		/*	default		(1)	*/	Response(void);

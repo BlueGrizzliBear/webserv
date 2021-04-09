@@ -161,14 +161,16 @@ ServerDictionary &	ServerDictionary::operator=( ServerDictionary const & rhs )
 }
 
 /* Member Functions */
-void	ServerDictionary::_createDic(Dic & dic, std::string const * tab, size_t size)
+template < class Compare >
+void	ServerDictionary::_createDic(std::map< std::string, std::string, Compare > & dic, std::string const * tab, size_t size)
 {
 	for (size_t i = 0; i < (size / sizeof(*tab)); i++)
 		dic.insert(std::make_pair(*(tab + i), ""));
 }
 
 /* . . . overloaded function for error-codes */
-void	ServerDictionary::_createDic(Dic & dic, std::pair<std::string , std::string> const * tab, size_t size)
+template < class Compare >
+void	ServerDictionary::_createDic(std::map< std::string, std::string, Compare > & dic, std::pair<std::string , std::string> const * tab, size_t size)
 {
 	for (size_t i = 0; i < (size / sizeof(*tab)); i++)
 		dic.insert(*(tab + i));
@@ -204,6 +206,6 @@ void	ServerDictionary::_parseMimeTypes(void)
 	}
 
 	/* to optimise if necessary */
-	// for (std::map<std::string, std::string>::iterator it = mimeDic.begin(); it != mimeDic.end(); ++it)
+	// for (std::map<std::string, std::string, ci_less>::iterator it = mimeDic.begin(); it != mimeDic.end(); ++it)
 	// 	COUT << "mime_key:|" << (*it).first << "|" << ", mime_value:|" << (*it).second << "|" << ENDL;
 }

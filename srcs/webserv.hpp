@@ -72,4 +72,19 @@ struct Socket
 	struct timeval 		mytime2;
 };
 
+struct ci_less : std::binary_function < std::string, std::string, bool >
+{
+	struct nocase_compare : public std::binary_function< unsigned char, unsigned char, bool>
+	{
+		bool operator() (const unsigned char & x, const unsigned char & y) const
+		{
+			return tolower(x) < tolower(y);
+		}
+	};
+	bool operator() (const std::string & x, const std::string & y) const
+	{
+		return std::lexicographical_compare(x.begin(), x.end(), y.begin(), y.end(), nocase_compare());
+	}
+};
+
 #endif

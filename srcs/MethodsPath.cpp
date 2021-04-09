@@ -5,7 +5,6 @@
 void	Methods::_findPath(void)
 {
 	std::vector<std::string>	methods;
-	// std::map<std::string, std::vector<std::string> >	locationDir;
 	std::string	req_uri = serv->req.uri;
 	size_t		max_body_size = 1000000; /* 1 GB by default */
 
@@ -24,7 +23,6 @@ void	Methods::_findPath(void)
 
 	for (std::map<std::vector<std::string>, LocationBloc>::iterator it = serv->loc.begin(); it != serv->loc.end(); ++it)
 	{
-		// if (_matchingLocationDir(it, &locationDir))
 		if (_matchingLocationDir(it, tmp))
 			break;
 	}
@@ -40,7 +38,7 @@ void	Methods::_findPath(void)
 		_findVect(tmp->second.loc_dir, "index", &_indexes);
 		req_uri = _findRewrite(tmp->second.loc_dir);
 	}
-	
+
 	_checkRequiredAuthentication();	/* check authenticate */
 	_checkAllowedMethods(methods);	/* return exeption if method not allowed */
 	_checkMaxBodySize(max_body_size);
@@ -57,6 +55,7 @@ void		Methods::_findAuthenticate(std::map< T, U > & dir)
 		std::vector<std::string>	realm_vect = dir.find("auth_basic")->second;
 		std::string					realm;
 		std::vector<std::string>::iterator it = realm_vect.begin();
+
 		realm = *it;
 		it++;
 		for(; it != realm_vect.end(); ++it)

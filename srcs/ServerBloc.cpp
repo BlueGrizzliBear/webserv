@@ -76,11 +76,11 @@ bool	ServerBloc::readClient(int client_socket)
 
 	// if (req.headerComplete || receivedBytes == 0)	/* Headers seems complete || client connection closed or EOF ! */
 	if (req.headerComplete)	/* Headers seems complete */
-		return (true);	
+		return (true);
 	else if (receivedBytes == 0)	/* client connection closed or EOF ! */
 	{
 		COUT << MAGENTA << "Client connection closed or EOF" << RESET << ENDL;
-		return (true);	
+		return (true);
 	}
 	else if ((req.getData().find("\r\n\r\n", old_pos) == std::string::npos))
 	{
@@ -169,7 +169,7 @@ std::string	ServerBloc::_getDate(void)
 	char			buffer[30];
 
 	gettimeofday(&time_val, nullptr);
-	time = gmtime(&time_val.tv_sec);
+	time = gmtime(&time_val.tv_sec); // to check (time_t to struct tm)
 	strftime(buffer, 30, "%a, %d %b %Y %H:%M:%S GMT", time);
 	std::string	str(buffer);
 	return (str);

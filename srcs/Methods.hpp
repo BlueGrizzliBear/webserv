@@ -93,7 +93,7 @@ class Methods
 
 		template< typename T, typename U >
 		std::string	_findRewrite(std::map< T, U > & dir);
-	
+
 		std::string	_uriWithoutFirstPart();
 			/* (2) find location bloc config */
 		bool		_matchingLocationDir(std::map<std::vector<std::string>, LocationBloc>::iterator & it, std::map<std::vector<std::string>, LocationBloc>::iterator & tmp);
@@ -102,7 +102,7 @@ class Methods
 		bool		_compareCapturingGroup(std::string uri_path, std::string cap_grp);
 		bool		_compareFromEnd(std::string & uri_path, std::vector<std::string> & path_set);
 		bool		_compareFromBegin(std::string & uri_path, std::vector<std::string> & path_set);
-		
+
 		std::string	_uriFirstPart(void);
 
 			/* (3) authentication */
@@ -135,8 +135,6 @@ class Methods
 		char **		_createArgvArray(void);
 
 		void		_freeArray(char ** array);
-		
-		std::string	_createQueryStringEnvp(void);
 
 		void		_communicateWithCGI(int fd_in, int fd_out, pid_t pid);
 
@@ -162,7 +160,7 @@ class Methods
 		std::vector<std::string>	_indexes;
 		bool						_autoindex;
 
-		std::map<std::string, std::string>	_envp;
+		std::map<std::string, std::string, ci_less>	_envp;
 		std::vector<std::string>	_argv;
 
 
