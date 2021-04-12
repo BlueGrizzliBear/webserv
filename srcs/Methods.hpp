@@ -20,8 +20,8 @@ class Methods
 	/* Constructor */
 	public:
 		/*	default		(1)	*/	Methods(void);
-		/*	by parent	(2)	*/	Methods(ServerBloc & server);
-		/*	copy		(2)	*/	Methods(Methods const & cpy);
+		/*	parent		(2)	*/	Methods(ServerBloc & server, std::string const & code = "", std::string const & phrase = "");
+		/*	copy		(3)	*/	Methods(Methods const & cpy);
 
 	/* Destructor */
 		~Methods();
@@ -32,11 +32,11 @@ class Methods
 	/* Member Functions */
 	public:
 		void	execute(void);
-		void	customError(std::string & status_code, std::string & reason_phrase);
+		void	customError(std::string const & status_code, std::string const & reason_phrase);
 
 	private:
-		bool	_ErrorNbInErrorPageList(std::vector<std::string> & list, std::string & status);
-		void	_fillDefaultExceptionBody(std::string & status, std::string & reason);
+		bool	_ErrorNbInErrorPageList(std::vector<std::string> & list, std::string const & status);
+		void	_fillDefaultExceptionBody(std::string const & status, std::string const & reason);
 
 		/* Method functions */
 		void	_URIResolutionProcess(void);
@@ -111,10 +111,10 @@ class Methods
 		std::string	_decodeUser(std::string & user);
 
 			/* (4) allowed method */
-		void		_checkAllowedMethods(std::vector<std::string> & methods);
+		void		_checkAllowedMethods(void);
 
 			/* (5) max_body_size */
-		void		_checkMaxBodySize(size_t & max_size);
+		void		_checkMaxBodySize(void);
 
 	/* MethodsHeader.cpp */
 		/* Header server response */
@@ -127,7 +127,7 @@ class Methods
 		std::string	_readFileToStr(void);
 
 	/* MethodsCGI.cpp */
-		void		_executeCGI(void);
+		void		_launchCGI(void);
 
 		void 		_createEnvpMap(void);
 		void		_createArgvMap(void);
@@ -154,6 +154,9 @@ class Methods
 	private:
 		/* Method Utilities */
 		std::string					_path;
+		
+		std::vector<std::string>	_methods;
+		size_t						_max_body_size;
 		std::string					_query;
 		std::string					_cgi_path;
 		std::vector<std::string>	_authenticate;
@@ -161,9 +164,7 @@ class Methods
 		bool						_autoindex;
 
 		std::map<std::string, std::string, ci_less>	_envp;
-		std::vector<std::string>	_argv;
-
-
+		std::vector<std::string>					_argv;
 
 };
 

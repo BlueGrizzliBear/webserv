@@ -1,6 +1,6 @@
 #include "./Methods.hpp"
 
-void	Methods::_executeCGI(void)
+void	Methods::_launchCGI(void)
 {
 	// COUT << "Creating Pipes\n";
 	/* Pipe creation to communicate with the CGI program */

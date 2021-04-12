@@ -53,8 +53,7 @@ void	ServerBloc::parseException(const char * code)
 		resp.status_code = it->first;
 		resp.reason_phrase = it->second;
 
-		Methods	implementedMethods(*this);
-		implementedMethods.customError(resp.status_code, resp.reason_phrase);
+		Methods	implementedMethods(*this, resp.status_code, resp.reason_phrase);
 	}
 }
 
@@ -63,6 +62,7 @@ bool	ServerBloc::readClient(int client_socket)
 	char	recv_buffer[MAX_HEADER_SIZE];
 
 	ssize_t receivedBytes = read(client_socket, &recv_buffer, MAX_HEADER_SIZE);
+
 	if (receivedBytes < 0)
 	{
 		std::cerr << "Error in read(): " << strerror(errno) << ENDL;
@@ -99,6 +99,8 @@ bool	ServerBloc::processRequest(Socket & client)
 
 	if (!headerParsed)
 	{
+		req.client = &client;
+
 		if (req.parseRequestLine())
 			// CME << "> Parsed Request-line: COMPLETE !" << EME;
 		if (req.parseHeaders())
@@ -112,10 +114,8 @@ bool	ServerBloc::processRequest(Socket & client)
 
 		/* Cleaning */
 		req.getData().clear();			/* Clearing _req buffer */
-		headerParsed = false;			/* Reseting bool indicator if header is parsed or not */
 		req.headerComplete = false;		/* Reseting bool indicator if header is complete or not */
-
-		req.client = &client;
+		headerParsed = false;			/* Reseting bool indicator if header is parsed or not */
 
 		// COUT << MAGENTA << "Avant Exec" << RESET << ENDL;
 

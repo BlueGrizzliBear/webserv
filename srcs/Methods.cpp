@@ -5,10 +5,28 @@
 /*	default		(1)	*/
 Methods::Methods(void) : serv(NULL) {}
 
-/*	default		(1)	*/
-Methods::Methods(ServerBloc & server) : serv(&server) {}
+/*	parent	(2)	*/
+Methods::Methods(ServerBloc & server, std::string const & code, std::string const & phrase)
+: serv(&server), _max_body_size(1000000)
+{
+	/* uri resolution process (treat ../ and ./) */
+	_URIResolutionProcess();
+	_queryResolutionProcess();
 
-/*	copy		(2)	*/
+	/* Check if path exist on server */
+	_findPath();
+
+	if (code == "" && phrase == "")
+	{
+		_checkRequiredAuthentication();	/* check authenticate */
+		_checkMaxBodySize();
+		_checkAllowedMethods();	/* return exeption if method not allowed */
+	}
+	else
+		customError(code, phrase);
+}
+
+/*	copy		(3)	*/
 Methods::Methods(Methods const & cpy)
 {
 	*this = cpy;
@@ -27,10 +45,6 @@ Methods &	Methods::operator=(Methods const & rhs)
 /* Member Functions */
 void	Methods::execute(void)
 {
-	/* uri resolution process (treat ../ and ./) */
-	_URIResolutionProcess();
-	_queryResolutionProcess();
-
 	if (serv->req.method == "GET")
 		_applyGet();
 	else if (serv->req.method == "HEAD")
@@ -43,7 +57,7 @@ void	Methods::execute(void)
 	// serv->req.display();
 }
 
-void	Methods::customError(std::string & status_code, std::string & reason_phrase)
+void	Methods::customError(std::string const & status_code, std::string const & reason_phrase)
 {
 	std::vector<std::string>	error_pages;
 
@@ -73,7 +87,7 @@ void	Methods::customError(std::string & status_code, std::string & reason_phrase
 	serv->req.clear();
 }
 
-bool		Methods::_ErrorNbInErrorPageList(std::vector<std::string> & list, std::string & status)
+bool		Methods::_ErrorNbInErrorPageList(std::vector<std::string> & list, std::string const & status)
 {
 	for (std::vector<std::string>::iterator it = list.begin(); it != list.end(); ++it)
 	{
@@ -83,7 +97,7 @@ bool		Methods::_ErrorNbInErrorPageList(std::vector<std::string> & list, std::str
 	return false;
 }
 
-void	Methods::_fillDefaultExceptionBody(std::string & status, std::string & reason)
+void	Methods::_fillDefaultExceptionBody(std::string const & status, std::string const & reason)
 {
 	serv->resp.body = "<html>\n";
 	serv->resp.body += "<head><title>" + status + " " + reason + "</title></head>\n";
@@ -149,9 +163,6 @@ void	Methods::_queryResolutionProcess(void)
 
 void	Methods::_applyGet(void)
 {
-	/* Check if path exist on server */
-	_findPath();
-
 	if (_cgi_path.empty())
 	{
 		/* execute specific to GET request */
@@ -172,7 +183,7 @@ void	Methods::_applyGet(void)
 		serv->resp.header_fields.insert(std::make_pair("Transfer-Encoding", "identity"));
 	}
 	else
-		_executeCGI();
+		_launchCGI();
 
 	/* (4) Fill Content-lenght */
 	serv->resp.header_fields.insert(std::make_pair("Content-Length", _getSizeOfStr(serv->resp.body)));
@@ -187,9 +198,6 @@ void	Methods::_applyHead(void)
 
 void	Methods::_applyPost()
 {
-	/* Check if path exist on server */
-	_findPath();
-
 	/* execute specific to POST request */
 	if (_cgi_path.empty())
 	{
@@ -199,7 +207,7 @@ void	Methods::_applyPost()
 		_GetHeaderStatusCode();
 	}
 	else
-		_executeCGI();
+		_launchCGI();
 
 	// /* (2) Fill Content-length */
 	serv->resp.header_fields.insert(std::make_pair("Content-Length", _getSizeOfStr(serv->resp.body)));
@@ -207,9 +215,6 @@ void	Methods::_applyPost()
 
 void	Methods::_applyPut(void)
 {
-	/* Check if path exist on server */
-	_findPath();
-
 	/* MUST send a 400 (Bad Request) response to a PUT request that contains a Content-Range header field */
 	if (serv->req.headers.find("Content-Range") != serv->req.headers.end())
 		throw ServerBloc::BadRequest();
@@ -230,9 +235,6 @@ void	Methods::_applyPut(void)
 		/* Execute request */
 		_executePutReq();
 	}
-
-	/* Fill header informations */
-
 }
 
 /* Execute Get request */
@@ -364,18 +366,18 @@ bool	Methods::_fileExist(const std::string & name)
 void	Methods::_executePutReq(void)
 {
 	std::ofstream	file(_path);
-
+	
 	file << serv->req.body;
-	file.close();
+	file.close();		
 }
 
 /* Execute Post request */
 void	Methods::_executePostReq(void)
 {
 	std::ofstream	file(_path, std::ios_base::app);
-
+	
 	file << serv->req.body;
-	file.close();
+	file.close();		
 }
 
 /* Check content type */

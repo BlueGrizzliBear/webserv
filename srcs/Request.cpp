@@ -53,6 +53,9 @@ void	Request::display(void)	/* Display request for debugging purposes */
 
 void	Request::clear(void)
 {
+	headerComplete = false;		/* Reseting bool indicator if header is complete or not */
+	headerParsed = false;		/* Reseting bool indicator if header is parsed or not */
+
 	method.clear();
 	uri.clear();
 	protocol_v.clear();
@@ -191,7 +194,10 @@ bool	Request::parseRequestLine(void) throw(NotImplemented, BadRequest)
 	method = _getWord(&isspace);
 	// COUT << "here\n";
 	if (_dic.methodDic.find(method) == _dic.methodDic.end())
+	{
+		COUT << "ICI CEST PAS IMPLEMENTER with |" << method << "|\n";
 		throw NotImplemented();		/* Or 405 (Method Not Allowed), if it doesnt have the rights */
+	}
 
 	/* Pass 1 Space */
 	if (!_passStrictOneChar(" "))
@@ -324,12 +330,7 @@ bool	Request::parseBody(void) throw(BadRequest)
 		// COUT << "Content-Length: BODY IS COMPLETE" << ENDL;
 		return (true);
 	}
-	else
-	{
-		// COUT << "NO body" << ENDL;
-		return (true);	/* No body */
-	}
-	return (false);
+	return (true);	/* No body */
 }
 
 /* Static Functions */

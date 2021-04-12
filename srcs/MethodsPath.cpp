@@ -4,9 +4,9 @@
 	/* (1) find server config */
 void	Methods::_findPath(void)
 {
-	std::vector<std::string>	methods;
+	// std::vector<std::string>	methods;
 	std::string	req_uri = serv->req.uri;
-	size_t		max_body_size = 1000000; /* 1 GB by default */
+	// size_t		max_body_size = 1000000; /* 1 GB by default */
 
 	_autoindex = true;
 	/* finding all default server conf */
@@ -14,8 +14,8 @@ void	Methods::_findPath(void)
 	_findRoot(serv->dir);
 	_findAutoIndex(serv->dir);
 	_findCGIPath(serv->dir);
-	_findVect(serv->dir, "allowed_methods", &methods);
-	_findClientMaxBodySize(serv->getParent()->getMainDirs(), &max_body_size);
+	_findVect(serv->dir, "allowed_methods", &_methods);
+	_findClientMaxBodySize(serv->getParent()->getMainDirs(), &_max_body_size);
 	_findVect(serv->dir, "index", &_indexes);
 
 	/* iterating location bloc */
@@ -33,15 +33,11 @@ void	Methods::_findPath(void)
 		_findRoot(tmp->second.loc_dir);
 		_findAutoIndex(tmp->second.loc_dir);
 		_findCGIPath(tmp->second.loc_dir);
-		_findVect(tmp->second.loc_dir, "allowed_methods", &methods);
-		_findClientMaxBodySize(tmp->second.loc_dir, &max_body_size);
+		_findVect(tmp->second.loc_dir, "allowed_methods", &_methods);
+		_findClientMaxBodySize(tmp->second.loc_dir, &_max_body_size);
 		_findVect(tmp->second.loc_dir, "index", &_indexes);
 		req_uri = _findRewrite(tmp->second.loc_dir);
 	}
-
-	_checkRequiredAuthentication();	/* check authenticate */
-	_checkAllowedMethods(methods);	/* return exeption if method not allowed */
-	_checkMaxBodySize(max_body_size);
 
 	_path += req_uri;
 	// COUT << "_path:|" << _path << "|" << ENDL;
@@ -360,17 +356,17 @@ std::string	Methods::_decodeUser(std::string & user)
 }
 
 	/* (4) allowed method */
-void	Methods::_checkAllowedMethods(std::vector<std::string> & methods)
+void	Methods::_checkAllowedMethods(void)
 {
 	std::string	cat_meth;
 
-	if (!methods.empty()) /* if not empty */
+	if (!_methods.empty()) /* if not empty */
 	{
-		for (std::vector<std::string>::iterator it = methods.begin(); it != methods.end(); ++it)
+		for (std::vector<std::string>::iterator it = _methods.begin(); it != _methods.end(); ++it)
 		{
 			if (serv->req.method == *it)
 				return ;
-			if (*it != *(methods.rbegin()))
+			if (*it != *(_methods.rbegin()))
 				cat_meth += *it + ", ";
 			else
 				cat_meth += *it;
@@ -381,8 +377,8 @@ void	Methods::_checkAllowedMethods(std::vector<std::string> & methods)
 }
 
 	/* (5) max_body_size */
-void	Methods::_checkMaxBodySize(size_t & max_size)
+void	Methods::_checkMaxBodySize(void)
 {
-	if (serv->req.body.length() > max_size)
+	if (serv->req.body.length() > _max_body_size)
 		throw ServerBloc::PayloadTooLarge();
 }
