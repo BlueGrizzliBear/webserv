@@ -77,10 +77,14 @@ void	Request::_passUntilChar(char c)
 	size_t i = 0;
 
 	if ((i = _req.find_first_of(c, _pos)) != std::string::npos)
+	{
+		// COUT << "found r\n";
 		_pos = i;
+	}
 	else
 	{
-		_pos = _req.size() - 1;
+		// COUT << "didnt find r\n";
+		_pos = _req.size();
 		return;
 	}
 	return ;
@@ -142,7 +146,7 @@ bool	Request::parseRequestLine(void) throw(NotImplemented, BadRequest)
 	method = _getWord("\t ");
 	if (_dic.methodDic.find(method) == _dic.methodDic.end())
 	{
-		COUT << "ICI CEST PAS IMPLEMENTER with |" << method << "|\n";
+		COUT << "METHOD NON IMPLEMENTEE BORDEL |" << method << "|\n";
 		throw NotImplemented();		/* Or 405 (Method Not Allowed), if it doesnt have the rights */
 	}
 
@@ -219,21 +223,20 @@ bool	Request::parseHeaders(void) throw(BadRequest)
 
 			// COUT << "&_req[_pos]|" << &_req[_pos] << "|\n";
 
-			std::string header_val = _getWord("\t \r");	/* Gather Header Values */
+			// std::string header_val = _getWord("\t \r");	/* Gather Header Values */
+			std::string header_val = _getWord("\r");	/* Gather Header Values */
 
 			// COUT << "&_req[_pos]|" << &_req[_pos] << "|\n";
 			headers.insert(std::make_pair(header_key, header_val));
 
 			// COUT << "&_req[_pos]|" << &_req[_pos] << "|\n";
-			_passOptionalChars("\t ");
+			// _passOptionalChars("\t ");
 			// COUT << "&_req[_pos]|" << &_req[_pos] << "|\n";
 		}
 		else
 		{
-			// COUT << "ICI ?????\n";
 			_passUntilChar('\r');	/* Header is not implemented: pass until the end of line */
 		}
-
 
 
 		if (!_passStrictOneChar('\r'))
