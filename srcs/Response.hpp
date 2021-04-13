@@ -27,6 +27,8 @@ class Response
 	public:
 		void	concatenateResponse(void);
 		bool	sendMsg(int client_socket, std::string & message);
+		bool	sendMsgCGI(int client_socket, std::string & message);
+
 		void	cleanResponse(void);
 
 	/* Member Attributes */

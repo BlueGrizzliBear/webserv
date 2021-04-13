@@ -70,6 +70,30 @@ bool	Response::sendMsg(int client_socket, std::string & message)
 {
 	static size_t	count = 0;
 
+	ssize_t writtenBytes = send(client_socket, &message.data()[count], message.length() - count, MSG_DONTWAIT);
+
+	if (writtenBytes < 0)
+	{
+		CERR << "Error in write(): " << strerror(errno) << ENDL;
+		return (true);
+	}
+	count += static_cast<size_t>(writtenBytes);
+
+	if (count == message.length())
+	{
+		count = 0;
+		// COUT << "------------------Complete message sent-------------------" << ENDL;
+
+		return (true);
+	}
+	// COUT << "Sent|" << count << "/" << message.length() << "|bytes" << ENDL;
+	return (false);
+}
+
+bool	Response::sendMsgCGI(int client_socket, std::string & message)
+{
+	static size_t	count = 0;
+
 	ssize_t writtenBytes = write(client_socket, &message.data()[count], message.length() - count);
 
 	if (writtenBytes < 0)

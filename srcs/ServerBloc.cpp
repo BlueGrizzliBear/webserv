@@ -62,7 +62,7 @@ bool	ServerBloc::readClient(Socket & client)
 {
 	char	recv_buffer[MAX_HEADER_SIZE];
 
-	ssize_t receivedBytes = read(client.fd, &recv_buffer, MAX_HEADER_SIZE);
+	ssize_t receivedBytes = recv(client.fd, &recv_buffer, MAX_HEADER_SIZE, MSG_DONTWAIT);
 
 	if (receivedBytes < 0)
 	{

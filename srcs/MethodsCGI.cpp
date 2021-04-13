@@ -56,7 +56,7 @@ void	Methods::_launchCGI(void)
 		}
 
 		CERR << "Execve-ing\n";
-		execve(_cgi_path.c_str(), argv, envp);
+		execve(_cgi_path.data(), argv, envp);
 		CERR << "Error in execve(): " << strerror(errno) << ENDL;
 		_freeArray(envp);
 		_freeArray(argv);
@@ -153,7 +153,7 @@ void	Methods::_communicateWithCGI(int fd_in, int fd_out, pid_t pid)
 	/* WRITE */	else if (FD_ISSET(fd_out, &cgi.writefds))
 				{
 					// COUT << "FD is available to write\n";
-					if (serv->resp.sendMsg(fd_out, serv->req.body) == true)
+					if (serv->resp.sendMsgCGI(fd_out, serv->req.body) == true)
 					{
 						FD_CLR(fd_out, &cgi.writefds);
 						FD_SET(fd_in, &cgi.readfds);
@@ -241,7 +241,7 @@ bool	Methods::_parseCGIField(std::string & receivedMessage)
 {
 	size_t size = receivedMessage.find("\r\n");
 
-	if (receivedMessage.find("Status:", 0) == 0)
+	if (receivedMessage.find("Status:", 0) == 0)	// case insensitive search TO DO
 	{
 		if (!_str_is((serv->resp.status_code = receivedMessage.substr(8, 3)), isdigit))
 			return (true); // Error
@@ -250,22 +250,21 @@ bool	Methods::_parseCGIField(std::string & receivedMessage)
 			return (true); // Error
 		// COUT << "Reason Phrase |" << serv->resp.reason_phrase << "|" << ENDL;
 	}
-	else if (receivedMessage.find("Location:", 0) == 0)
+	else if (receivedMessage.find("Location:", 0) == 0)	// case insensitive search TO DO
 	{
+		COUT << "location found \n";
 		// A CORRIGER PLUS TARD
 		serv->resp.status_code = "301";
 		serv->resp.reason_phrase = "Found";
 	}
-	else if (receivedMessage.find("Content-Type:", 0) == 0)
+	else if (receivedMessage.find("Content-Type:", 0) == 0)	// case insensitive search TO DO
 	{
-		COUT << "We have Content-Type here actually \n";
 		serv->resp.status_code = "200";
 		serv->resp.reason_phrase = "OK";
 		return (true);
 	}
 	else
-		return (true); // Error
-
+		return (false); // Error
 	receivedMessage.erase(0, size + 2);
 	return (true);
 }
@@ -389,25 +388,30 @@ void	Methods::_createEnvpMap(void)
 // ADDITIONAL IMPLEMENTATION-DEFINED CGI HEADER FIELDS
 	for (std::map<std::string, std::string, ci_less>::iterator it = serv->req.headers.begin(); it != serv->req.headers.end(); ++it)
 	{
-        if (it->first.substr(0, 2).find("X-") != std::string::npos)
-        {
+		if (it->first.substr(0, 2).find("X-") != std::string::npos)
+		{
 			std::string result = "HTTP_" + it->first;
 			result = serv->req.transform(result, toupper);
 			result = serv->req.transform(result, serv->req.tounderscore);
 			_envp[result] = it->second;
 		}
 	}
+// REDIRECT_STATUS
+	_envp["REDIRECT_STATUS"] = "1";
 }
 
 char **	Methods::_createEnvpArray(void)
 {
-	char ** array = static_cast<char **>(malloc(sizeof(char *) * (_envp.size() + 1)));
+	size_t	envp_size = 0;
+
+	for (; serv->getParent()->envp[envp_size]; ++envp_size);
+	char ** array = static_cast<char **>(malloc(sizeof(char *) * (_envp.size() + envp_size + 1)));
 	if (array == NULL)
 	{
 		CERR << "Error in malloc(): " << strerror(errno) << ENDL;
 		return (NULL);
 	}
-	array[_envp.size()] = 0;
+	array[_envp.size() + envp_size] = 0;
 
 	std::map<std::string, std::string, ci_less>::iterator begin = _envp.begin();
 	int i = 0;
@@ -429,6 +433,19 @@ char **	Methods::_createEnvpArray(void)
 		// COUT << "lign #" << i << "|" << array[i] << "|" << ENDL;
 		++i;
 		++begin;
+	}
+	for (int j = 0; serv->getParent()->envp[j]; ++j)
+	{
+		array[i] = strdup(serv->getParent()->envp[j]);
+		if (array[i] == NULL)
+		{
+			CERR << "Error in dup(): " << strerror(errno) << ENDL;
+			while (--i > 0)
+				free(array[i]);
+			free(array);
+			return (NULL);
+		}
+		++i;
 	}
 	return (array);
 }
@@ -475,6 +492,6 @@ char **	Methods::_createArgvArray(void)
 void	Methods::_freeArray(char ** array)
 {
 	for (int i = 0; array[i]; ++i)
-		free(array[i++]);
+		free(array[i]);
 	free(array);
 }

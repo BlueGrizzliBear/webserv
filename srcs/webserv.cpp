@@ -168,7 +168,7 @@ int	launchServer(ServerBloc & server)
 		{
 			case 0:
 			{
-				displayDebug("Time Out", -1);
+				// displayDebug("Time Out", -1);
 				// for (std::list<Socket>::iterator it = server.clientList.begin(); it != server.clientList.end(); ++it)
 				// {
 				// 	close(it->fd);
@@ -284,7 +284,7 @@ int	launchServer(ServerBloc & server)
 
 					new_client.finishedReading = 0;
 					// new_client.finishedWriting = 0;
-					
+
 					server.clientList.push_back(new_client);
 
 					// if (i > 96)
