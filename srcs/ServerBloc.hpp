@@ -88,7 +88,7 @@ class ServerBloc
 		size_t &		getNo(void);
 		ConfigParser *	getParent(void);
 
-		bool	readClient(int client_socket);
+		bool	readClient(Socket & client);
 		void	parseException(const char * code);
 
 		bool	processRequest(Socket & client);

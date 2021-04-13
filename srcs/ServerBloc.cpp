@@ -54,19 +54,19 @@ void	ServerBloc::parseException(const char * code)
 		resp.reason_phrase = it->second;
 
 		Methods	implementedMethods(*this, resp.status_code, resp.reason_phrase);
+
 	}
 }
 
-bool	ServerBloc::readClient(int client_socket)
+bool	ServerBloc::readClient(Socket & client)
 {
 	char	recv_buffer[MAX_HEADER_SIZE];
 
-	ssize_t receivedBytes = read(client_socket, &recv_buffer, MAX_HEADER_SIZE);
+	ssize_t receivedBytes = read(client.fd, &recv_buffer, MAX_HEADER_SIZE);
 
 	if (receivedBytes < 0)
 	{
 		std::cerr << "Error in read(): " << strerror(errno) << ENDL;
-		COUT << MAGENTA << "WTF" << RESET << ENDL;
 		return (false);
 	}
 
@@ -79,7 +79,8 @@ bool	ServerBloc::readClient(int client_socket)
 		return (true);
 	else if (receivedBytes == 0)	/* client connection closed or EOF ! */
 	{
-		COUT << MAGENTA << "Client connection closed or EOF" << RESET << ENDL;
+		client.clientClosed = true;
+		CERR << MAGENTA << "Client connection closed or EOF" << RESET << ENDL;
 		return (true);
 	}
 	else if ((req.getData().find("\r\n\r\n", old_pos) == std::string::npos))
@@ -88,6 +89,7 @@ bool	ServerBloc::readClient(int client_socket)
 		return (false); /* Not found ending sequence */
 	}
 
+	// COUT << MAGENTA << "Found request ending sequence" << RESET << ENDL;
 	/* Request is complete */
 	req.headerComplete = 1;
 	return (true);
@@ -95,9 +97,7 @@ bool	ServerBloc::readClient(int client_socket)
 
 bool	ServerBloc::processRequest(Socket & client)
 {
-	static bool	headerParsed = false;
-
-	if (!headerParsed)
+	if (!req.headerParsed)
 	{
 		req.client = &client;
 
@@ -105,7 +105,7 @@ bool	ServerBloc::processRequest(Socket & client)
 			// CME << "> Parsed Request-line: COMPLETE !" << EME;
 		if (req.parseHeaders())
 			// CME << "> Parsed Headers: COMPLETE !" << EME;
-		headerParsed = true;
+		req.headerParsed = true;
 		req.getData().erase(0, req.getData().find("\r\n\r\n") + 4);
 	}
 	if (req.parseBody())
@@ -115,13 +115,24 @@ bool	ServerBloc::processRequest(Socket & client)
 		/* Cleaning */
 		req.getData().clear();			/* Clearing _req buffer */
 		req.headerComplete = false;		/* Reseting bool indicator if header is complete or not */
-		headerParsed = false;			/* Reseting bool indicator if header is parsed or not */
+		req.headerParsed = false;			/* Reseting bool indicator if header is parsed or not */
+
+		client.finishedReading = 1;
 
 		// COUT << MAGENTA << "Avant Exec" << RESET << ENDL;
+
+		// static float t = 0.;
+		// gettimeofday(&client.mytime2, NULL);
+		// t = static_cast<float>((client.mytime2.tv_sec - client.mytime1.tv_sec) * 1000000 + ((client.mytime2.tv_usec - client.mytime1.tv_usec)));
+		// COUT << RED << "PARSE Time elapsed: " << t << " ms." << RESET << ENDL;
 
 		/* Execute the parsed request */
 		Methods	implementedMethods(*this);
 		implementedMethods.execute();
+
+		// gettimeofday(&client.mytime3, NULL);
+		// t = static_cast<float>((client.mytime3.tv_sec - client.mytime2.tv_sec) * 1000000 + ((client.mytime3.tv_usec - client.mytime2.tv_usec)));
+		// COUT << RED << "EXEC Time elapsed: " << t << " ms." << RESET << ENDL;
 
 		// COUT << MAGENTA << "AFter Exec" << RESET << ENDL;
 

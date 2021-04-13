@@ -368,7 +368,7 @@ void	Methods::_executePutReq(void)
 	std::ofstream	file(_path);
 	
 	file << serv->req.body;
-	file.close();		
+	file.close();
 }
 
 /* Execute Post request */

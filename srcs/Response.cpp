@@ -56,7 +56,10 @@ void	Response::concatenateResponse(void)
 
 	/* Body */
 	if (body.size())
+	{
 		msg += body;
+		// CME << "-- with Body --\n" << EME;
+	}
 
 	/* Initialisation de count */
 	isComplete = 1;

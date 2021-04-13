@@ -124,6 +124,9 @@ class ConfigParser
 		void	display_config(void);
 
 	/* Member Attributes */
+	public:
+		const char **	envp;
+	
 	private:
 		/* Parsing utilities */
 		ServerDictionary	_dic;

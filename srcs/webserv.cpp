@@ -7,34 +7,33 @@ void	displayError(const char * main_err, const char * err)
 	COUT << err << ENDL;
 }
 
-void	exitServerOnError(const char * main_err, const char * err, ServerBloc & server, int client_socket)
-{
-	displayError(main_err, err);
-	FD_ZERO(&server.serv_select.readfds);
-	FD_ZERO(&server.serv_select.writefds);
-	FD_ZERO(&server.serv_select.exceptfds);
-	close(client_socket);
-	close(server.serv_port.fd);
-	exit(EXIT_FAILURE);
-}
+// void	exitServerOnError(const char * main_err, const char * err, ServerBloc & server, int client_socket)
+// {
+// 	displayError(main_err, err);
+// 	FD_ZERO(&server.serv_select.readfds);
+// 	FD_ZERO(&server.serv_select.writefds);
+// 	FD_ZERO(&server.serv_select.exceptfds);
+// 	close(client_socket);
+// 	close(server.serv_port.fd);
+// 	exit(EXIT_FAILURE);
+// }
 
 bool	parseClientRequest(ServerBloc & server, Socket & client)
 {
 	try
 	{
 		/* Read Client Request with recv */
-		if (server.readClient(client.fd))
+		if (server.readClient(client))
 		{
-			/* Displaying Client request */
-			// COUT << "Received Data from client\n";
-			// std::cerr << "Displaying length|" << GREEN << server.req.getData().length() << RESET << "|" << std::endl;
-
+			if (client.clientClosed)
+				return (true);
 			// std::cerr << "Displaying header|" << GREEN;
 			// for (size_t i = 0; i != server.req.getData().find("\r\n\r\n") + 4; i++)
 			// 	std::cerr << server.req.getData()[i];
 			// std::cerr << RESET << "|" << std::endl;
 
 			// std::cerr << "Displaying all data|" << GREEN << server.req.getData() << RESET << "|" << std::endl;
+
 
 			/* Parse Client Request first */
 			if (server.processRequest(client))
@@ -65,7 +64,7 @@ bool	parseServerResponse(ServerBloc & server, Socket & client)
 	return (false);
 }
 
-void	displayDebug(const char * str)
+void	displayDebug(const char * str, int request_no)
 {
 	static int mystatic = -1;
 	bool yes = 0;
@@ -108,6 +107,11 @@ void	displayDebug(const char * str)
 
 	if (yes == 1)
 		CERR << str << ENDL;
+	// else if (strcmp(str, "Time Out"))
+	else
+	{
+		CERR << "\r" << str << " " << request_no << ENDL;
+	}
 }
 
 int	getMaxFd(ServerBloc & server)
@@ -125,7 +129,7 @@ int	getMaxFd(ServerBloc & server)
 int	launchServer(ServerBloc & server)
 {
 	static int i = 0;
-	static float t = 0.;
+	// static float t = 0.;
 
     while (1)
     {
@@ -135,19 +139,25 @@ int	launchServer(ServerBloc & server)
 		FD_SET(STDIN_FILENO, &server.serv_select.readfds);
 		FD_SET(server.serv_port.fd, &server.serv_select.readfds);
 
-		for (std::list<Socket>::iterator it = server.clientList.begin(); it != server.clientList.end(); ++it)
+		for (std::list<Socket>::iterator it = server.clientList.begin(); it != server.clientList.end(); it++)
 		{
 			if (it->finishedReading)
+			{
+				// COUT << "Lets write\n";
 				FD_SET(it->fd, &server.serv_select.writefds);
+			}
 			else
+			{
+				// COUT << "Lets read\n";
 				FD_SET(it->fd, &server.serv_select.readfds);
+			}
 		}
 
 		server.serv_select.fd_max = getMaxFd(server);
 
 		/* Setting time-out */
-		server.serv_select.timeout.tv_sec = 3.0;
-		server.serv_select.timeout.tv_usec = 0.0;
+		server.serv_select.timeout.tv_sec = 1;
+		server.serv_select.timeout.tv_usec = 0;
 
 
 		/* ------ Listening to sockets . . . ----------------------- */
@@ -158,13 +168,14 @@ int	launchServer(ServerBloc & server)
 		{
 			case 0:
 			{
-				// usleep(10000);
-				displayDebug("Time Out");
+				displayDebug("Time Out", -1);
+				// for (std::list<Socket>::iterator it = server.clientList.begin(); it != server.clientList.end(); ++it)
+				// {
+				// 	close(it->fd);
+				// 	server.clientList.erase(it);
+				// }
 				break ;
 			}
-
-			// lire et ecrire en meme temps pour le body dans le 1er select
-
 			case -1:
 			{
 				displayError("Error in Select()", strerror(errno));
@@ -182,7 +193,7 @@ int	launchServer(ServerBloc & server)
 					for (std::list<Socket>::iterator it = server.clientList.begin(); it != server.clientList.end(); ++it)
 						close (it->fd);
 					close(server.serv_port.fd);
-					// server.getParent()->abortServers("Aborting", "");
+					server.getParent()->abortServers("Aborting", "");
 					// while (1);
 					exit(EXIT_SUCCESS);
 				}
@@ -193,50 +204,74 @@ int	launchServer(ServerBloc & server)
 					{
 			/* READ */	if (FD_ISSET(it->fd, &server.serv_select.readfds))
 						{
-							// displayDebug("Reading");
+							// displayDebug("Reading", it->request_no);
 							if (parseClientRequest(server, *it))	/* Parsing Client Request */
 							{
+								if (it->clientClosed)
+								{
+									COUT << "Closing prematurely Client\n";
+									close(it->fd);
+									// it->finishedReading = 0;
+									server.clientList.erase(it);
+									server.req.clear();
+									break;
+								}
+								// if (it->finishedReading)
+								// {
+								// 	close(it->fd);
+								// 	server.clientList.erase(it);
+								// }
+
 								// FD_CLR(it->fd, &server.serv_select.readfds);		/* Clearing read list from client socket */
-								// FD_SET(it->fd, &server.serv_select.writefds);		/* Adding the client socket to the write playlist */
+								// FD_SET(it->fd, &server.serv_select.writefds);	/* Adding the client socket to the write playlist */
 								it->finishedReading = 1;
 							}
 							break;
 						}
 			/* WRITE */	else if (FD_ISSET(it->fd, &server.serv_select.writefds))
 						{
-							// displayDebug("Writing");
-							// if ((finishedWriting = parseServerResponse(server, *it)))	/* Parsing Server Response */
+							// displayDebug("Writing", it->request_no);
 							if (parseServerResponse(server, *it))	/* Parsing Server Response */
 							{
-								it->finishedReading = 0;
-								// FD_CLR(it->fd, &server.serv_select.writefds);		/* Clearing read list from client socket */
+								// it->finishedReading = 0;
+								// it->finishedWriting = 1;
+								// FD_CLR(it->fd, &server.serv_select.writefds);		/* Clearing write list from client socket */
 
-								if (i > 96)
-								{
-									gettimeofday(&it->mytime2, NULL);
-									if (t < static_cast<float>((it->mytime2.tv_sec - it->mytime1.tv_sec) * 1000 + ((it->mytime2.tv_usec - it->mytime1.tv_usec) / 1000)))
-									{
-										t = static_cast<float>((it->mytime2.tv_sec - it->mytime1.tv_sec) * 1000 + ((it->mytime2.tv_usec - it->mytime1.tv_usec) / 1000));
-										COUT << RED << "Time elapsed: " << t << " ms." << RESET << ENDL;
-									}
-								}
+								// if (i > 96)
+								// {
+								// 	gettimeofday(&it->mytime2, NULL);
+								// 	if (t < static_cast<float>((it->mytime2.tv_sec - it->mytime1.tv_sec) * 1000 + ((it->mytime2.tv_usec - it->mytime1.tv_usec) / 1000)))
+								// 	{
+								// 		t = static_cast<float>((it->mytime2.tv_sec - it->mytime1.tv_sec) * 1000 + ((it->mytime2.tv_usec - it->mytime1.tv_usec) / 1000));
+								// 		COUT << RED << "Time elapsed: " << t << " ms." << RESET << ENDL;
+								// 	}
+								// }
 
+								// COUT << "clientList.size() ?|" << server.clientList.size() << "|\n";
 								close(it->fd);
 								server.clientList.erase(it);
 							}
 							break;
 						}
+						// else /* Nothing to read - need to close socket */
+						// {
+						// 	COUT << "Closing socket\n";
+						// 	close(it->fd);
+						// 	server.clientList.erase(it);
+						// 	// it->finishedReading = 0;
+						// 	COUT << "After closing socket\n";
+						// }
 					}
 				}
 	/* NEW */	else if (FD_ISSET(server.serv_port.fd, &server.serv_select.readfds))
 				{
-					// displayDebug("New");
-					i++;
-					// COUT << GREEN << "Request #" << i++ << RESET << ENDL;
+					COUT << GREEN << "Request #" << i++ << RESET << ENDL;
+					// displayDebug("New", i);
 
 					/* Opening socket for new client */
 					Socket new_client;
 
+					new_client.request_no = i;
 					new_client.fd = accept(server.serv_port.fd, reinterpret_cast<struct sockaddr *>(&new_client.address), reinterpret_cast<socklen_t *>(&new_client.addrlen));
 					if (new_client.fd == -1)
 					{
@@ -245,12 +280,15 @@ int	launchServer(ServerBloc & server)
 					}
 					fcntl(new_client.fd, F_SETFL, O_NONBLOCK);	/* Set the socket to non blocking */
 
+					gettimeofday(&new_client.mytime1, NULL); // to display the time consumption of request
+
 					new_client.finishedReading = 0;
+					// new_client.finishedWriting = 0;
 					
 					server.clientList.push_back(new_client);
 
-					if (i > 96)
-						gettimeofday(&new_client.mytime1, NULL); // to display the time consumption of request
+					// if (i > 96)
+					// 	gettimeofday(&new_client.mytime1, NULL); // to display the time consumption of request
 
 					// FD_SET(new_client.fd, &server.serv_select.readfds);			/* Adding the respective socket to the read playlist */
 				}
@@ -266,23 +304,25 @@ int	launchServer(ServerBloc & server)
 
 int	initServer(ServerBloc & server)
 {
+	launchServer(server);
+
 	/* Fork() the program for each server bloc */
-	if ((server.pid = fork()) == -1)
-		server.getParent()->abortServers("Error in fork()", strerror(errno));
-	/* Child program */
-	else if (server.pid == 0)
-	{
-		CME << "Launching Server #" << server.getNo() <<  ". . ." << EME;
-		launchServer(server);
-	}
+	// if ((server.pid = fork()) == -1)
+	// 	server.getParent()->abortServers("Error in fork()", strerror(errno));
+	// /* Child program */
+	// else if (server.pid == 0)
+	// {
+	// 	CME << "Launching Server #" << server.getNo() <<  ". . ." << EME;
+	// 	launchServer(server);
+	// }
 	/* Parent program */
-	else
-	{
-	}
+	// else
+	// {
+	// }
 	return (0);
 }
 
-int main(int argc, char const ** argv)
+int main(int argc, char const ** argv, char const ** envp)
 {
 	if (argc == 1 || argc == 2)
 	{
@@ -291,19 +331,20 @@ int main(int argc, char const ** argv)
 			std::string path = (argc == 1 ? "./configuration/default.conf" : argv[1]);
 			ConfigParser	config(path.c_str());
 			CME << "Parsing Complete !" << EME;
+			config.envp = envp;
 			// config.display_config();
 
 			CME << "Launching All Servers . . ." << EME;
-			unsigned long size = config.getServers().size();
+			// unsigned long size = config.getServers().size();
 			std::for_each(config.getServers().begin(), config.getServers().end(), initServer);
 
-			while (size-- > 0)
-			{
-				CME << "Waiting for Servers . . ." << EME;
-				waitpid(-1, &config.getStatus(), 0);
-				CME << "One server came back . . ." << EME;
-				CME << "Status of return|" << config.getStatus() << "|" << EME;
-			}
+			// while (size-- > 0)
+			// {
+			// 	CME << "Waiting for Servers . . ." << EME;
+			// 	waitpid(-1, &config.getStatus(), 0);
+			// 	CME << "One server came back . . ." << EME;
+			// 	CME << "Status of return|" << config.getStatus() << "|" << EME;
+			// }
 			CME << "All servers came back . . ." << EME;
 		}
 		catch(const std::exception& e)

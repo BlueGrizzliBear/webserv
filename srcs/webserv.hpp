@@ -33,8 +33,8 @@
 /* Default Config */
 # define PORT 8080
 # define MAX_CLIENTS 1024
-// # define MAX_HEADER_SIZE 65535
-# define MAX_HEADER_SIZE 819
+# define MAX_HEADER_SIZE 65535
+// # define MAX_HEADER_SIZE 819
 
 /* Debug defines */
 # define COUT std::cout
@@ -68,15 +68,19 @@ struct Socket
 	struct sockaddr_in	address;
 	int					addrlen;
 	bool				finishedReading;
+	bool				clientClosed;
+	// bool				finishedWriting;
 	struct timeval 		mytime1;
 	struct timeval 		mytime2;
+	struct timeval 		mytime3;
+	int 				request_no;
 };
 
 struct ci_less : std::binary_function < std::string, std::string, bool >
 {
 	struct nocase_compare : public std::binary_function< unsigned char, unsigned char, bool>
 	{
-		bool operator() (const unsigned char & x, const unsigned char & y) const
+		bool operator() (const char & x, const char & y) const
 		{
 			return tolower(x) < tolower(y);
 		}

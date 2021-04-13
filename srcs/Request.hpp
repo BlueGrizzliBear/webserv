@@ -12,7 +12,7 @@ class Request
 {
 	public:
 	/* Member Types */
-		typedef std::map<std::string, std::string, ci_less > Headers;
+		typedef std::map<std::string, std::string, ci_less> Headers;
 
 	/* Constructor */
 		/*	default		(1)	*/	Request(void);
@@ -50,25 +50,16 @@ class Request
 		void	display(void);
 
 	private:
-		size_t	_passSpaces(void);
-
-		void	_passUntilChar(int c);
-		void	_passUntilChar(int func(int));
+		void	_passUntilChar(char c);
 
 		bool	_isLegitPath(std::string const & path);
-		bool	_isinDic(char needle, char const * dic);
+		bool	_isinDic(char needle, const char * dic);
 
-		bool	_passStrictOneChar(char const * dic);
-		bool	_passStrictOneChar(int func(int));
+		bool	_passStrictOneChar(char c);
 
-		void	_passOneChar(char const * dic);
-		void	_passOneChar(int func(int));
+		void	_passOptionalChars(const char * dic);
 
-		void	_passOptionalChars(char const * dic);
-		void	_passOptionalChars(int func(int));
-
-		std::string	_getWord(char const * delimiter_dic);
-		std::string	_getWord(int func(int));
+		std::string	_getWord(const char * delimiter_dic);
 
 		bool	_parseChunkedBody(size_t & size) throw(BadRequest);
 

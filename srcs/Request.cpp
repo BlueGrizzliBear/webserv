@@ -3,7 +3,7 @@
 /* Request Class Declaration */
 /* Constructor */
 /*	default		(1)	*/
-Request::Request(void) : _req(""), _pos(0) {}
+Request::Request(void) : headerComplete(0), headerParsed(0), client(nullptr), _req(""), _pos(0) {}
 
 /*	copy		(2)	*/
 Request::Request(Request const & cpy)
@@ -17,6 +17,11 @@ Request::~Request() {}
 /* Operators */
 Request &	Request::operator=(Request const & rhs)
 {
+	headerComplete = rhs.headerComplete;
+	headerParsed = rhs.headerParsed;
+
+	client = rhs.client;
+
 	method = rhs.method;
 	uri = rhs.uri;
 	protocol_v = rhs.protocol_v;
@@ -66,111 +71,57 @@ void	Request::clear(void)
 	_pos = 0;
 }
 
-/* A conditional function which returns a bool if the needle is in the dictionary dic */
-bool	Request::_isinDic(char needle, char const * dic)
-{
-	int i = 0;
-	
-	while (dic[i] && dic[i] != needle)
-		i++;
-	if (dic[i] == '\0' && needle != '\0')
-		return (false);
-	return (true);
-}
-
 /* A function which passes until char is found */
-void	Request::_passUntilChar(int c)
+void	Request::_passUntilChar(char c)
 {
-	while (_req[_pos] != c)
-		_pos++;
-}
+	size_t i = 0;
 
-/* . . . and an overload with a conditional function (usage with isspace() for example) */
-void	Request::_passUntilChar(int func(int))
-{
-	while (!func(_req[_pos]))
-		_pos++;
+	if ((i = _req.find_first_of(c, _pos)) != std::string::npos)
+		_pos = i;
+	else
+	{
+		_pos = _req.size() - 1;
+		return;
+	}
+	return ;
 }
 
 /* A function which strictly passes 1 char from the dictionary dic, and if not, throws */
-bool	Request::_passStrictOneChar(char const * dic)
+bool	Request::_passStrictOneChar(char c)
 {
-	if (_isinDic(_req[_pos], dic))
+	if (_req.find_first_of(c, _pos) == _pos)
 	{
 		_pos++;
 		return (true);
 	}
 	return (false);
-	// 	_pos++;
-	// else if (!_req[_pos])
-	// 	return (true);
-	// else
-	// 	return (false);
-	// return (true);
-}
-
-/* . . . and an overload with a conditional function (usage with isspace() for example) */
-bool	Request::_passStrictOneChar(int func(int))
-{
-	if (func(_req[_pos]))
-	{
-		_pos++;
-		return (true);
-	}
-	return (false);
-	// else if (!_req[_pos])
-	// 	return (true);
-	// else
-	// 	return (false);
-	// return (true);
-}
-
-/* A function which passes 1 char from the dictionary dic */
-void	Request::_passOneChar(char const * dic)
-{
-	if (_isinDic(_req[_pos], dic))
-		_pos++;
-}
-
-/* . . . and an overload with a conditional function (usage with isspace() for example) */
-void	Request::_passOneChar(int func(int))
-{
-	if (func(_req[_pos]))
-		_pos++;
 }
 
 /* A function which passes 1 or more Chars from the dictionary dic */
-void	Request::_passOptionalChars(char const * dic)
+void	Request::_passOptionalChars(const char * dic)
 {
-	size_t ret = 0;
-	if ((ret = _req.find_first_of(dic)) != std::string::npos)
-		_pos += ret;
-}
+	size_t i = 0;
 
-/* . . . and an overload with a conditional function (usage with isspace() for example) */
-void	Request::_passOptionalChars(int func(int))
-{
-	while (func(_req[_pos]))
+	if ((i = _req.find_first_of(dic, _pos)) == _pos)
 		_pos++;
 }
 
-/* A function which gets the first encountered word until the character delim is found */
-std::string	Request::_getWord(char const * delimiter_dic)
-{
-	std::string word;
-
-	while (!_isinDic(_req[_pos], delimiter_dic))
-		word += _req[_pos++];
-	return (word);
-}
-
 /* A function which gets the first encountered word until the function func is true */
-std::string	Request::_getWord(int func(int))
+std::string	Request::_getWord(const char * delimiter_dic)
 {
 	std::string word;
+	size_t pos;
 
-	while (!func(_req[_pos]))
-		word += _req[_pos++];
+	if ((pos = _req.find_first_of(delimiter_dic, _pos)) != std::string::npos)
+	{
+		word = _req.substr(_pos, pos - _pos);
+		_pos = pos;
+	}
+	else
+	{
+		_pos = _req.size();
+		return ("");
+	}
 	return (word);
 }
 
@@ -180,9 +131,6 @@ bool	Request::_isLegitPath(std::string const & path)
 
 	if (path.empty())
 		return (false);
-	// Option to check maybe ?
-	// if (path == "*" /* && method == "OPTION"*/)
-		// return (false);
 	return (true);
 }
 
@@ -191,8 +139,7 @@ bool	Request::parseRequestLine(void) throw(NotImplemented, BadRequest)
 	/* Request-Line = Method SP Request-URI SP HTTP-Version CRLF */
 
 	/* Check Method */
-	method = _getWord(&isspace);
-	// COUT << "here\n";
+	method = _getWord("\t ");
 	if (_dic.methodDic.find(method) == _dic.methodDic.end())
 	{
 		COUT << "ICI CEST PAS IMPLEMENTER with |" << method << "|\n";
@@ -200,28 +147,47 @@ bool	Request::parseRequestLine(void) throw(NotImplemented, BadRequest)
 	}
 
 	/* Pass 1 Space */
-	if (!_passStrictOneChar(" "))
+	if (!_passStrictOneChar(' '))
+	{
+		// COUT << "1\n";
 		throw BadRequest();
+	}
 
 	/* Check Request-URI */
-	uri = _getWord(&isspace);
+	uri = _getWord("\t ");
 	if (!_isLegitPath(uri))
+	{
+		// COUT << "1\n";
 		throw BadRequest();
+	}
 
 	/* Pass 1 Space */
-	if (!_passStrictOneChar(" "))
+	if (!_passStrictOneChar(' '))
+	{
+		// COUT << "1\n";
 		throw BadRequest();
+	}
 
 	/* Check HTTP-Version */
-	protocol_v = _getWord(&isspace);
+	protocol_v = _getWord("\r");
 	if (protocol_v != "HTTP/1.1")
+	{
+		// COUT << "1\n";
 		throw BadRequest();
+	}
+
 
 	/* Check if end of the line (CRLF = \r\n) */
-	if (!_passStrictOneChar("\r"))
+	if (!_passStrictOneChar('\r'))
+	{
+		// COUT << "1\n";
 		throw BadRequest();
-	if (!_passStrictOneChar("\n"))
+	}
+	if (!_passStrictOneChar('\n'))
+	{
+		// COUT << "1\n";
 		throw BadRequest();
+	}
 
 	return (true);
 }
@@ -230,42 +196,67 @@ bool	Request::parseHeaders(void) throw(BadRequest)
 {
 	/* Request Header Fields */
 
-	while (_req[_pos] && _req[_pos] != '\r')
+	while (1)
 	{
-		/* Check Header Key */
-		std::string header_key = _getWord("(),/:;<=>?@[\\]{}\" \t\r\f\n\v");
+		// COUT << "BEGIN &_req[_pos]|" << &_req[_pos] << "|\n";
+
+		// std::string header_key = _getWord("(),/:;<=>?@[\\]{}\" \t\r\f\n\v");	/* Check Header Key */
+		std::string header_key = _getWord(":\r");	/* Check Header Key */
+
 		if (header_key == "")
 			break ;
-		else if (_dic.headerDic.find(header_key) != _dic.headerDic.end() || (header_key.substr(0, 2).find("X-") != std::string::npos))
+		else if (_dic.headerDic.find(header_key) != _dic.headerDic.end() || (header_key.find("X-", 0) == 0))
 		{
-			/* Header is implemented: get values and insert into Headers */
-			// COUT << "Header IS implemented |" << header_key << "|" << ENDL;
-
-			/* Check is ':' is present */
-			if (!_passStrictOneChar(":"))
+			if (!_passStrictOneChar(':'))	/* Check is ':' is present */
+			{
+				// COUT << "missing:\n";
 				throw BadRequest();
+			}
 
-			_passOptionalChars(&isspace);
+			_passOptionalChars("\t ");
+			
+			// COUT << MAGENTA << "New Header\n" << RESET;
 
-			/* Gather Header Values */
-			std::string header_val = _getWord("\r");
-			// CME << "Values|" << header_val << "|" << EME;
+			// COUT << "&_req[_pos]|" << &_req[_pos] << "|\n";
+
+			std::string header_val = _getWord("\t \r");	/* Gather Header Values */
+
+			// COUT << "&_req[_pos]|" << &_req[_pos] << "|\n";
 			headers.insert(std::make_pair(header_key, header_val));
 
+			// COUT << "&_req[_pos]|" << &_req[_pos] << "|\n";
+			_passOptionalChars("\t ");
+			// COUT << "&_req[_pos]|" << &_req[_pos] << "|\n";
 		}
 		else
 		{
-			/* Header is not implemented: pass until the end of line */
-			_passUntilChar('\r');
+			// COUT << "ICI ?????\n";
+			_passUntilChar('\r');	/* Header is not implemented: pass until the end of line */
 		}
-		_passOneChar("\r");
-		_passOneChar("\n");
+
+
+
+		if (!_passStrictOneChar('\r'))
+		{
+			// COUT << "ici3\n";
+			throw BadRequest();
+		}
+		if (!_passStrictOneChar('\n'))
+		{
+			// COUT << "ici4\n";
+			throw BadRequest();
+		}
 	}
 
 	/* Check if new line */
-	if (_req.find("\r\n", _pos) == std::string::npos || !(_pos += 2))
+	if (!_passStrictOneChar('\r'))
 	{
-		COUT << "ICI \n";
+		// COUT << "ici5\n";
+		throw BadRequest();
+	}
+	if (!_passStrictOneChar('\n'))
+	{
+		// COUT << "ici6\n";
 		throw BadRequest();
 	}
 	return (true);
@@ -306,20 +297,28 @@ bool	Request::_parseChunkedBody(size_t & size) throw(BadRequest)
 
 bool	Request::parseBody(void) throw(BadRequest)
 {
-	if (headers.find("Transfer-Encoding") != headers.end() && headers.find("Transfer-Encoding")->second == "chunked")
+	if (headers.find("Transfer-Encoding") != headers.end())
 	{
-		// COUT << "Transfert Encoding" << ENDL;
-		static size_t size = 0;
+		// CERR << "Transfert Encoding" << ENDL;
 
-		while (_parseChunkedBody(size))
+		if (headers.find("Transfer-Encoding")->second == "chunked")
 		{
-			if (size == 0)
-				return (true);
+			// CERR << "> chunked" << ENDL;
+			static size_t size = 0;
+
+			while (_parseChunkedBody(size))
+			{
+				if (size == 0)
+				{
+					return (true);
+				}
+			}
+			return (false);
 		}
-		return (false);
 	}
 	else if (headers.find("Content-Length") != headers.end())
 	{
+		CERR << "Content-length" << ENDL;
 		size_t size = static_cast<size_t>(std::atoi(headers.find("Content-Length")->second.c_str()));
 		
 		if (size > _req.size() - _pos)
@@ -330,6 +329,7 @@ bool	Request::parseBody(void) throw(BadRequest)
 		// COUT << "Content-Length: BODY IS COMPLETE" << ENDL;
 		return (true);
 	}
+	// CERR << "No Body" << ENDL;
 	return (true);	/* No body */
 }
 
