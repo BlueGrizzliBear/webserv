@@ -34,7 +34,6 @@ bool	parseClientRequest(ServerBloc & server, Socket & client)
 
 			// std::cerr << "Displaying all data|" << GREEN << server.req.getData() << RESET << "|" << std::endl;
 
-
 			/* Parse Client Request first */
 			if (server.processRequest(client))
 				return (true);
@@ -52,15 +51,17 @@ bool	parseClientRequest(ServerBloc & server, Socket & client)
 
 bool	parseServerResponse(ServerBloc & server, Socket & client)
 {
-	try
-	{
-		if (server.sendResponse(client))
-			return (true);
-	}
-	catch(const std::exception& e)
-	{
-		std::cerr << RED << e.what() << RESET << '\n';
-	}
+	if (server.sendResponse(client))
+		return (true);
+	// try
+	// {
+	// 	if (server.sendResponse(client))
+	// 		return (true);
+	// }
+	// catch(const std::exception& e)
+	// {
+	// 	std::cerr << RED << e.what() << RESET << '\n';
+	// }
 	return (false);
 }
 
@@ -120,6 +121,11 @@ int	getMaxFd(ServerBloc & server)
 
 	for (std::list<Socket>::iterator it = server.clientList.begin(); it != server.clientList.end(); ++it)
 	{
+		// if (!(it->finishedReading && it->finishedWriting))
+		// {
+		// 	if (result < it->fd)
+		// 		result = it->fd;
+		// }
 		if (result < it->fd)
 			result = it->fd;
 	}
@@ -130,6 +136,10 @@ int	launchServer(ServerBloc & server)
 {
 	static int i = 0;
 	// static float t = 0.;
+
+	/* Setting time-out */
+	server.serv_select.timeout.tv_sec = 1;
+	server.serv_select.timeout.tv_usec = 0;
 
     while (1)
     {
@@ -144,6 +154,8 @@ int	launchServer(ServerBloc & server)
 			if (it->finishedReading)
 			{
 				// COUT << "Lets write\n";
+				// if (!it->finishedWriting)
+				// 	FD_SET(it->fd, &server.serv_select.writefds);
 				FD_SET(it->fd, &server.serv_select.writefds);
 			}
 			else
@@ -152,27 +164,21 @@ int	launchServer(ServerBloc & server)
 				FD_SET(it->fd, &server.serv_select.readfds);
 			}
 		}
-
 		server.serv_select.fd_max = getMaxFd(server);
 
-		/* Setting time-out */
-		server.serv_select.timeout.tv_sec = 1;
-		server.serv_select.timeout.tv_usec = 0;
-
-
-		/* ------ Listening to sockets . . . ----------------------- */
-		int recVal = 0;
-
-		recVal = select(server.serv_select.fd_max + 1, &server.serv_select.readfds, &server.serv_select.writefds, NULL, &server.serv_select.timeout);
-		switch (recVal)
+		switch (select(server.serv_select.fd_max + 1, &server.serv_select.readfds, &server.serv_select.writefds, NULL, &server.serv_select.timeout))
 		{
 			case 0:
 			{
-				// displayDebug("Time Out", -1);
+				displayDebug("Time Out", -1);
+
 				// for (std::list<Socket>::iterator it = server.clientList.begin(); it != server.clientList.end(); ++it)
 				// {
-				// 	close(it->fd);
-				// 	server.clientList.erase(it);
+				// 	if (it->finishedReading && it->finishedWriting)
+				// 	{
+				// 		close(it->fd);
+				// 		server.clientList.erase(it);
+				// 	}
 				// }
 				break ;
 			}
@@ -197,72 +203,6 @@ int	launchServer(ServerBloc & server)
 					// while (1);
 					exit(EXIT_SUCCESS);
 				}
- /* R OR W */	else if (!server.clientList.empty())
-				{
-					// displayDebug("Read or Write");
-					for (std::list<Socket>::iterator it = server.clientList.begin(); it != server.clientList.end(); ++it)
-					{
-			/* READ */	if (FD_ISSET(it->fd, &server.serv_select.readfds))
-						{
-							// displayDebug("Reading", it->request_no);
-							if (parseClientRequest(server, *it))	/* Parsing Client Request */
-							{
-								if (it->clientClosed)
-								{
-									COUT << "Closing prematurely Client\n";
-									close(it->fd);
-									// it->finishedReading = 0;
-									server.clientList.erase(it);
-									server.req.clear();
-									break;
-								}
-								// if (it->finishedReading)
-								// {
-								// 	close(it->fd);
-								// 	server.clientList.erase(it);
-								// }
-
-								// FD_CLR(it->fd, &server.serv_select.readfds);		/* Clearing read list from client socket */
-								// FD_SET(it->fd, &server.serv_select.writefds);	/* Adding the client socket to the write playlist */
-								it->finishedReading = 1;
-							}
-							break;
-						}
-			/* WRITE */	else if (FD_ISSET(it->fd, &server.serv_select.writefds))
-						{
-							// displayDebug("Writing", it->request_no);
-							if (parseServerResponse(server, *it))	/* Parsing Server Response */
-							{
-								// it->finishedReading = 0;
-								// it->finishedWriting = 1;
-								// FD_CLR(it->fd, &server.serv_select.writefds);		/* Clearing write list from client socket */
-
-								// if (i > 96)
-								// {
-								// 	gettimeofday(&it->mytime2, NULL);
-								// 	if (t < static_cast<float>((it->mytime2.tv_sec - it->mytime1.tv_sec) * 1000 + ((it->mytime2.tv_usec - it->mytime1.tv_usec) / 1000)))
-								// 	{
-								// 		t = static_cast<float>((it->mytime2.tv_sec - it->mytime1.tv_sec) * 1000 + ((it->mytime2.tv_usec - it->mytime1.tv_usec) / 1000));
-								// 		COUT << RED << "Time elapsed: " << t << " ms." << RESET << ENDL;
-								// 	}
-								// }
-
-								// COUT << "clientList.size() ?|" << server.clientList.size() << "|\n";
-								close(it->fd);
-								server.clientList.erase(it);
-							}
-							break;
-						}
-						// else /* Nothing to read - need to close socket */
-						// {
-						// 	COUT << "Closing socket\n";
-						// 	close(it->fd);
-						// 	server.clientList.erase(it);
-						// 	// it->finishedReading = 0;
-						// 	COUT << "After closing socket\n";
-						// }
-					}
-				}
 	/* NEW */	else if (FD_ISSET(server.serv_port.fd, &server.serv_select.readfds))
 				{
 					COUT << GREEN << "Request #" << i++ << RESET << ENDL;
@@ -280,17 +220,65 @@ int	launchServer(ServerBloc & server)
 					}
 					fcntl(new_client.fd, F_SETFL, O_NONBLOCK);	/* Set the socket to non blocking */
 
-					gettimeofday(&new_client.mytime1, NULL); // to display the time consumption of request
+					// gettimeofday(&new_client.mytime1, NULL); // to display the time consumption of request
 
 					new_client.finishedReading = 0;
 					// new_client.finishedWriting = 0;
 
 					server.clientList.push_back(new_client);
+					// COUT << "clientList.size()|" << server.clientList.size() << "|\n";
 
-					// if (i > 96)
+					// if (i == 96)
 					// 	gettimeofday(&new_client.mytime1, NULL); // to display the time consumption of request
+				}
+ /* R OR W */	else if (!server.clientList.empty())
+				{
+					// displayDebug("Read or Write");
+					for (std::list<Socket>::iterator it = server.clientList.begin(); it != server.clientList.end(); ++it)
+					{
+			/* READ */	if (FD_ISSET(it->fd, &server.serv_select.readfds))
+						{
+							// displayDebug("Reading", it->request_no);
+							if (parseClientRequest(server, *it))	/* Parsing Client Request */
+							{
+								if (it->clientClosed)
+								{
+									COUT << "Closing prematurely Client\n";
+									// COUT << "clientList.size()|" << server.clientList.size() << "|\n";
+									close(it->fd);
+									server.clientList.erase(it);
+									server.req.clear();
+									break;
+								}
+								it->finishedReading = 1;
+							}
+							break;
+						}
+			/* WRITE */	else if (FD_ISSET(it->fd, &server.serv_select.writefds))
+						{
+							// displayDebug("Writing", it->request_no);
+							if (parseServerResponse(server, *it))	/* Parsing Server Response */
+							{
+								it->finishedWriting = true;
 
-					// FD_SET(new_client.fd, &server.serv_select.readfds);			/* Adding the respective socket to the read playlist */
+								// if (i > 96)
+								// {
+								// 	gettimeofday(&it->mytime2, NULL);
+								// 	if (t < static_cast<float>((it->mytime2.tv_sec - it->mytime1.tv_sec) * 1000 + ((it->mytime2.tv_usec - it->mytime1.tv_usec) / 1000)))
+								// 	{
+								// 		t = static_cast<float>((it->mytime2.tv_sec - it->mytime1.tv_sec) * 1000 + ((it->mytime2.tv_usec - it->mytime1.tv_usec) / 1000));
+								// 		COUT << RED << "Time elapsed: " << t << " ms." << RESET << ENDL;
+								// 	}
+								// }
+								
+								close(it->fd);
+								std::list<Socket>::iterator other_it = it;
+								server.clientList.erase(other_it);
+								// COUT << "clientList.size() ?|" << server.clientList.size() << "|\n";
+							}
+							break;
+						}
+					}
 				}
 				else
 					COUT << "WTF\n";
@@ -324,6 +312,7 @@ int	initServer(ServerBloc & server)
 
 int main(int argc, char const ** argv, char const ** envp)
 {
+	errno = 0;
 	if (argc == 1 || argc == 2)
 	{
 		try

@@ -66,6 +66,7 @@ void	Request::clear(void)
 	protocol_v.clear();
 	headers.clear();
 	body.clear();
+	body.reserve();
 	
 	_req.clear();
 	_pos = 0;

@@ -11,6 +11,7 @@
 # include <sys/stat.h>
 # include <fcntl.h>
 # include <sys/time.h>
+# include <sys/wait.h>
 # include <dirent.h>
 # include <arpa/inet.h>
 
@@ -26,6 +27,7 @@
 # include <cctype>
 
 /* STL libraries */
+# include <algorithm>
 # include <map>
 # include <vector>
 # include <list>
@@ -49,9 +51,6 @@
 // #define CMEG std::cerr << GREEN
 # define EME RESET << std::endl
 
-// static struct timeval mytime1;
-// static struct timeval mytime2;
-
 /* Terminal Colors */
 # define RESET		"\033[0m"
 # define RED		"\033[0;31m"
@@ -69,7 +68,7 @@ struct Socket
 	int					addrlen;
 	bool				finishedReading;
 	bool				clientClosed;
-	// bool				finishedWriting;
+	bool				finishedWriting;
 	struct timeval 		mytime1;
 	struct timeval 		mytime2;
 	struct timeval 		mytime3;

@@ -69,6 +69,12 @@ bool	ServerBloc::readClient(Socket & client)
 		std::cerr << "Error in read(): " << strerror(errno) << ENDL;
 		return (false);
 	}
+	else if (receivedBytes == 0)	/* client connection closed or EOF ! */
+	{
+		client.clientClosed = true;
+		CERR << MAGENTA << "Client connection closed or EOF" << RESET << ENDL;
+		return (true);
+	}
 
 	size_t old_pos = req.getData().size() > 4 ? req.getData().size() - 4 : 0;
 
@@ -77,12 +83,12 @@ bool	ServerBloc::readClient(Socket & client)
 	// if (req.headerComplete || receivedBytes == 0)	/* Headers seems complete || client connection closed or EOF ! */
 	if (req.headerComplete)	/* Headers seems complete */
 		return (true);
-	else if (receivedBytes == 0)	/* client connection closed or EOF ! */
-	{
-		client.clientClosed = true;
-		CERR << MAGENTA << "Client connection closed or EOF" << RESET << ENDL;
-		return (true);
-	}
+	// else if (receivedBytes == 0)	/* client connection closed or EOF ! */
+	// {
+	// 	client.clientClosed = true;
+	// 	CERR << MAGENTA << "Client connection closed or EOF" << RESET << ENDL;
+	// 	return (true);
+	// }
 	else if ((req.getData().find("\r\n\r\n", old_pos) == std::string::npos))
 	{
 		// COUT << MAGENTA << "Not Found ending sequence" << RESET << ENDL;
@@ -106,18 +112,21 @@ bool	ServerBloc::processRequest(Socket & client)
 		if (req.parseHeaders())
 			// CME << "> Parsed Headers: COMPLETE !" << EME;
 		req.headerParsed = true;
+
 		req.getData().erase(0, req.getData().find("\r\n\r\n") + 4);
 	}
 	if (req.parseBody())
 	{
+		client.finishedReading = 1;
 		// CME << "> Parsed Body: COMPLETE !" << EME;
 
 		/* Cleaning */
+		// COUT << "_req.Capacity()|" << req.getData().capacity() << "|" << ENDL;
 		req.getData().clear();			/* Clearing _req buffer */
+		req.getData().reserve();
+
 		req.headerComplete = false;		/* Reseting bool indicator if header is complete or not */
 		req.headerParsed = false;			/* Reseting bool indicator if header is parsed or not */
-
-		client.finishedReading = 1;
 
 		// COUT << MAGENTA << "Avant Exec" << RESET << ENDL;
 
@@ -125,6 +134,7 @@ bool	ServerBloc::processRequest(Socket & client)
 		// gettimeofday(&client.mytime2, NULL);
 		// t = static_cast<float>((client.mytime2.tv_sec - client.mytime1.tv_sec) * 1000000 + ((client.mytime2.tv_usec - client.mytime1.tv_usec)));
 		// COUT << RED << "PARSE Time elapsed: " << t << " ms." << RESET << ENDL;
+
 
 		/* Execute the parsed request */
 		Methods	implementedMethods(*this);

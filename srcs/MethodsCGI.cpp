@@ -77,33 +77,39 @@ void	Methods::_launchCGI(void)
 void	Methods::_communicateWithCGI(int fd_in, int fd_out, pid_t pid)
 {
 	std::string receivedMessage;
-	bool unfinished = 1;
-	bool finishedWriting = 0;
-	bool finishedReading = 0;
+	bool	finishedWriting = 0;
+	bool	finishedReading = 0;
+	bool	CGIfinished = 0;
 
 	int status = 0;
 	Select	cgi;
-
-	/* Initilization des fd de readfds and writefds */
-	FD_ZERO(&cgi.readfds);
-
-	FD_ZERO(&cgi.writefds);
-	FD_SET(fd_out, &cgi.writefds);
 
 	/* Pas de timeout */
 	cgi.timeout.tv_sec = 0;
 	cgi.timeout.tv_usec = 0;
 
-	/* Setting max */
-	cgi.fd_max = fd_in > fd_out ? fd_in : fd_out;
-
-	while (unfinished)
+	while (!(finishedWriting && finishedReading && CGIfinished))
 	{
-		int recVal = 0;
-		FD_SET(STDIN_FILENO, &cgi.readfds);
+		FD_ZERO(&cgi.readfds);
+		FD_ZERO(&cgi.writefds);
 
-		recVal = select(cgi.fd_max + 1, &cgi.readfds, &cgi.writefds, NULL, &cgi.timeout);
-		switch (recVal)
+		FD_SET(STDIN_FILENO, &cgi.readfds);
+		if (!finishedReading)
+		{
+			if (finishedWriting)
+			{
+				FD_SET(fd_in, &cgi.readfds);
+				cgi.fd_max = fd_in;
+			}
+			else
+			{
+				FD_SET(fd_in, &cgi.readfds);
+				FD_SET(fd_out, &cgi.writefds);
+				cgi.fd_max = fd_in > fd_out ? fd_in : fd_out;
+			}
+		}
+
+		switch (select(cgi.fd_max + 1, &cgi.readfds, &cgi.writefds, NULL, &cgi.timeout))
 		{
 			case 0:
 			{
@@ -115,19 +121,7 @@ void	Methods::_communicateWithCGI(int fd_in, int fd_out, pid_t pid)
 					else if (WIFSIGNALED(status))
 						COUT << " ab-normally with signal |" << WTERMSIG(status) << "|";
 					COUT << ENDL;
-					if (finishedReading)
-						unfinished = 0;
-				}
-				if (finishedWriting)
-				{
-					FD_SET(fd_in, &cgi.readfds);
-					cgi.fd_max = fd_in;
-				}
-				else
-				{
-					FD_SET(fd_in, &cgi.readfds);
-					FD_SET(fd_out, &cgi.writefds);
-					cgi.fd_max = fd_in > fd_out ? fd_in : fd_out;
+					CGIfinished = true;
 				}
 				break ;
 			}
@@ -138,34 +132,22 @@ void	Methods::_communicateWithCGI(int fd_in, int fd_out, pid_t pid)
 			}
 			default:
 			{
-				/* Keyboard was pressed, exiting server properly */
-	/* STOP */	if (FD_ISSET(STDIN_FILENO, &cgi.readfds))
+	/* STOP */	if (FD_ISSET(STDIN_FILENO, &cgi.readfds))	/* Keyboard was pressed, exiting server properly */
 				{
 					COUT << "Keyboard was pressed, killing CGI properly\n";
 					kill(pid, SIGKILL);
-					FD_ZERO(&cgi.readfds);
-					FD_ZERO(&cgi.writefds);
-					FD_ZERO(&cgi.exceptfds);
 					close(fd_in);
 					close(fd_out);
-					unfinished = 0;
+					return ;
 				}
 	/* WRITE */	else if (FD_ISSET(fd_out, &cgi.writefds))
 				{
 					// COUT << "FD is available to write\n";
 					if (serv->resp.sendMsgCGI(fd_out, serv->req.body) == true)
 					{
-						FD_CLR(fd_out, &cgi.writefds);
-						FD_SET(fd_in, &cgi.readfds);
-						cgi.fd_max = fd_in;
 						close(fd_out);
 						finishedWriting = 1;
 						COUT << "Sent EOF to CGI\n";
-					}
-					else
-					{
-						FD_SET(fd_in, &cgi.readfds);
-						cgi.fd_max = fd_in > fd_out ? fd_in : fd_out;
 					}
 				}
 	/* READ */	else if (FD_ISSET(fd_in, &cgi.readfds))
@@ -195,31 +177,18 @@ void	Methods::_communicateWithCGI(int fd_in, int fd_out, pid_t pid)
 						COUT << "Body Length |" << serv->resp.body.length() << "|\n";
 						COUT << RESET;
 
-						FD_CLR(fd_in, &cgi.readfds);
 						close(fd_in);
 						finishedReading = 1;
 					}
 					else
 					{
 						receivedMessage.append(recv_buffer, static_cast<size_t>(receivedBytes));
-
 						_parseCGIResponse(receivedMessage);
-
-						if (finishedWriting)
-							cgi.fd_max = fd_in;
-						// if (!finishedWriting)
-						else
-						{
-							FD_SET(fd_out, &cgi.writefds);
-							cgi.fd_max = fd_in > fd_out ? fd_in : fd_out;
-						}
 					}
 				}
-				break ;
 			}
 		}
 	}
-	// COUT << "ReceivedMEssage\n|" << receivedMessage << "|" << ENDL;
 	COUT << "CGI finished\n";
 	return ;
 }

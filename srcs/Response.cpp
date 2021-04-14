@@ -90,11 +90,11 @@ bool	Response::sendMsg(int client_socket, std::string & message)
 	return (false);
 }
 
-bool	Response::sendMsgCGI(int client_socket, std::string & message)
+bool	Response::sendMsgCGI(int fd, std::string & message)
 {
 	static size_t	count = 0;
 
-	ssize_t writtenBytes = write(client_socket, &message.data()[count], message.length() - count);
+	ssize_t writtenBytes = write(fd, &message.data()[count], message.length() - count);
 
 	if (writtenBytes < 0)
 	{
@@ -121,8 +121,10 @@ void	Response::cleanResponse(void)
 	reason_phrase.clear();	/* Status Line */
 	header_fields.clear();	/* Header Fields */
 	body.clear();			/* Body */
+	body.reserve();								/* Reserver */
 
 	/* Cleaning Msg */
 	msg.clear();	/* Msg */
+	msg.reserve();								/* Reserver */
 	isComplete = 0;	/* Msg status */
 }
