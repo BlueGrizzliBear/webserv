@@ -49,6 +49,7 @@ class Request
 
 		void	display(void);
 
+		size_t	strFindCaseinsensitive(std::string str, char const * to_find);
 	private:
 		void	_passUntilChar(char c);
 

@@ -10,6 +10,8 @@ ServerDictionary::ServerDictionary()
 								"pid",
 								"worker_connections",
 								"client_max_body_size",
+								"php-cgi",
+								"cgi",
 								"server"					};
 	_createDic(mainDic, main_dir, sizeof(main_dir));
 
@@ -26,6 +28,7 @@ ServerDictionary::ServerDictionary()
 								"auth_basic_user_file",
 								"expires",
 								"proxy_pass",
+								"php-cgi",
 								"cgi"			};
 	_createDic(locationDic, locations, sizeof(locations));
 

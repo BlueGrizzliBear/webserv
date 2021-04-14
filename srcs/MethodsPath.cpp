@@ -82,7 +82,15 @@ template< typename T, typename U >
 void		Methods::_findCGIPath(std::map< T, U > & dir)
 {
 	if (dir.find("cgi") != dir.end())
+	{
 		_cgi_path = dir.find("cgi")->second[0];
+		_cgi_is_php = false;
+	}
+	if (dir.find("php-cgi") != dir.end())
+	{
+		_cgi_path = dir.find("php-cgi")->second[0];
+		_cgi_is_php = true;
+	}
 }
 
 template< typename T, typename U >
@@ -289,10 +297,9 @@ bool	Methods::_checkUserExist(std::string & user, std::string & auth_path)
 	std::fstream				user_file(auth_path);
 
 	_envp["AUTH_TYPE"] = user.substr(0, user.find(' ') - 1);
-
-	if (user.find("Basic ") != std::string::npos && user_file.good())
+	if (serv->req.strFindCaseinsensitive(user, "Basic") != std::string::npos && user_file.good())
 	{
-		user.erase(user.find("Basic "), 6);
+		user.erase(serv->req.strFindCaseinsensitive(user, "Basic"), 6);
 		user = _decodeUser(user);
 		while (std::getline(user_file, line))
 			users.push_back(line);

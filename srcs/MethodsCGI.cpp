@@ -44,6 +44,9 @@ void	Methods::_launchCGI(void)
 			exit(EXIT_FAILURE);
 		}
 
+		// _displayArray(envp);
+		// _displayArray(argv);
+
 		// COUT << "Duping\n";
 		/* Duplicating Fd for STDIN and STDOUT */
 		if (dup2(pipefd_in[0], STDIN_FILENO) < 0 || close(pipefd_in[0])		/* Lecture par le CGI dans fd_in[0] */
@@ -145,6 +148,7 @@ void	Methods::_communicateWithCGI(int fd_in, int fd_out, pid_t pid)
 					// COUT << "FD is available to write\n";
 					if (serv->resp.sendMsgCGI(fd_out, serv->req.body) == true)
 					{
+						// COUT << "Body to CGI|" << serv->req.body << "|\n";
 						close(fd_out);
 						finishedWriting = 1;
 						COUT << "Sent EOF to CGI\n";
@@ -163,6 +167,7 @@ void	Methods::_communicateWithCGI(int fd_in, int fd_out, pid_t pid)
 					}
 					else if (receivedBytes == 0)
 					{
+						COUT << "Received EOF from CGI\n";
 						_parseCGIResponse(receivedMessage);
 
 						COUT << RED << "> CGI RESPONSE\n";
@@ -183,6 +188,7 @@ void	Methods::_communicateWithCGI(int fd_in, int fd_out, pid_t pid)
 					else
 					{
 						receivedMessage.append(recv_buffer, static_cast<size_t>(receivedBytes));
+						COUT << "ReceivedBytes|" << receivedMessage << "|\n";
 						_parseCGIResponse(receivedMessage);
 					}
 				}
@@ -206,80 +212,67 @@ bool	Methods::_str_is(std::string str, int func(int))
 	return (true);
 }
 
-bool	Methods::_parseCGIField(std::string & receivedMessage)
-{
-	size_t size = receivedMessage.find("\r\n");
-
-	if (receivedMessage.find("Status:", 0) == 0)	// case insensitive search TO DO
-	{
-		if (!_str_is((serv->resp.status_code = receivedMessage.substr(8, 3)), isdigit))
-			return (true); // Error
-		// COUT << "Status Code |" << serv->resp.status_code << "|" << ENDL;
-		if (!_str_is((serv->resp.reason_phrase = receivedMessage.substr(12, size - 12)), isprint))
-			return (true); // Error
-		// COUT << "Reason Phrase |" << serv->resp.reason_phrase << "|" << ENDL;
-	}
-	else if (receivedMessage.find("Location:", 0) == 0)	// case insensitive search TO DO
-	{
-		COUT << "location found \n";
-		// A CORRIGER PLUS TARD
-		serv->resp.status_code = "301";
-		serv->resp.reason_phrase = "Found";
-	}
-	else if (receivedMessage.find("Content-Type:", 0) == 0)	// case insensitive search TO DO
-	{
-		serv->resp.status_code = "200";
-		serv->resp.reason_phrase = "OK";
-		return (true);
-	}
-	else
-		return (false); // Error
-	receivedMessage.erase(0, size + 2);
-	return (true);
-}
-
-bool	Methods::_parseGenericField(std::string & receivedMessage)
+bool	Methods::_parseHeaderField(std::string & receivedMessage)
 {
 	size_t size = receivedMessage.find("\r\n");
 
 	if (size == 0)
 	{
 		receivedMessage.erase(0, 2);
+		COUT << "END ReceivedMessage after erase|" << receivedMessage << "|\n";
 		return (true);
 	}
 
-	size_t pos = 0;
+	size_t	pos = 0;
+	bool	return_value = 0;
+	size_t	osp = 0;
 	if ((pos = receivedMessage.find(":")) != std::string::npos)
 	{
-		std::string key = receivedMessage.substr(0, pos);
-		// COUT << "Key to be inserted|" << key << "|" << ENDL;
-		if (serv->getParent()->getDictionary().headerDic.find(key) == serv->getParent()->getDictionary().headerDic.end())
-		{
-			COUT << "Error \n";
-			return (false); // Error
-		}
-		serv->resp.header_fields.insert(std::make_pair(key, receivedMessage.substr(pos + 2, size - pos - 2)));
-		// COUT << "Value inserted|" << serv->resp.header_fields.find(key)->second << "|" << ENDL;
-	}
-	else
-		return (false); // Error
+		if (receivedMessage.find(": ", pos) == pos)
+			osp = 1;
 
+		std::string key = receivedMessage.substr(0, pos);
+		COUT << "key|" << key << "|\n";
+
+		if (serv->req.strFindCaseinsensitive(key, "Status") == 0)
+		{
+			serv->resp.status_code = receivedMessage.substr(7 + osp, 3);
+			serv->resp.reason_phrase = receivedMessage.substr(11 + osp, size - 11 - osp);
+			if (!_str_is(serv->resp.status_code, isdigit) || !_str_is(serv->resp.reason_phrase, isprint))
+				return_value = true; // Status value is incorrect - return true to finish parsing
+		}
+		else
+		{
+			if (serv->req.strFindCaseinsensitive(key, "Location") == 0) // a implementer davantage
+			{
+				serv->resp.status_code = "301";
+				serv->resp.reason_phrase = "Found";
+			}
+			else if (serv->req.strFindCaseinsensitive(key, "Content-Type") == 0)
+			{
+				serv->resp.status_code = "200";
+				serv->resp.reason_phrase = "OK";
+			}
+			serv->resp.header_fields.insert(std::make_pair(key, receivedMessage.substr(pos + 1 + osp, size - pos - 1 - osp)));
+			// COUT << "Value inserted|" << serv->resp.header_fields.find(key)->second << "|" << ENDL;
+		}
+	}
 	receivedMessage.erase(0, size + 2);
-	return (false);
+	COUT << "ReceivedMessage after erase|" << receivedMessage << "|\n";
+	return (return_value);
 }
 
 void	Methods::_parseCGIResponse(std::string & receivedMessage)
 {
 	size_t size = receivedMessage.size();
-	static bool CGIField = 0;
-	static bool genericField = 0;
+	static bool	HeaderIncomplete = true;
 
-	while ((!CGIField || !genericField) && receivedMessage.find("\r\n") != std::string::npos)
+	COUT << "receivedMessage|" << receivedMessage << "|\n";
+
+	while (HeaderIncomplete && receivedMessage.find("\r\n") != std::string::npos)
 	{
-		if (!CGIField)
-			CGIField = _parseCGIField(receivedMessage);
-		else if (!genericField)
-			genericField = _parseGenericField(receivedMessage);
+		// if (_parseHeaderField(receivedMessage))
+		HeaderIncomplete = !_parseHeaderField(receivedMessage);
 	}
 
 	if (!receivedMessage.empty())
@@ -289,8 +282,9 @@ void	Methods::_parseCGIResponse(std::string & receivedMessage)
 	}
 	else if (!size)
 	{
-		CGIField = 0;
-		genericField = 0;
+		HeaderIncomplete = true;
+		// CGIField = 0;
+		// genericField = 0;
 	}
 }
 
@@ -357,7 +351,7 @@ void	Methods::_createEnvpMap(void)
 // ADDITIONAL IMPLEMENTATION-DEFINED CGI HEADER FIELDS
 	for (std::map<std::string, std::string, ci_less>::iterator it = serv->req.headers.begin(); it != serv->req.headers.end(); ++it)
 	{
-		if (it->first.substr(0, 2).find("X-") != std::string::npos)
+		if (serv->req.strFindCaseinsensitive(it->first.substr(0, 2), "X-") != std::string::npos)
 		{
 			std::string result = "HTTP_" + it->first;
 			result = serv->req.transform(result, toupper);
@@ -463,4 +457,10 @@ void	Methods::_freeArray(char ** array)
 	for (int i = 0; array[i]; ++i)
 		free(array[i]);
 	free(array);
+}
+
+void	Methods::_displayArray(char ** array)
+{
+	for (int i = 0; array[i]; ++i)
+		COUT << "array[" << i << "]|" << array[i] << "|\n";
 }

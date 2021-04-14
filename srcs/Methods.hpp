@@ -65,7 +65,7 @@ class Methods
 		std::string	_pathExtension(std::string const & path);
 
 		/* Fill Body */
-		void		_fillBody(void);
+		void		_fillStrFromFile(std::string & body, std::string const & path);
 		std::string	_getSizeOfStr(std::string const & str);
 
 	/* MethodsPath.cpp */
@@ -135,14 +135,16 @@ class Methods
 		char **		_createArgvArray(void);
 
 		void		_freeArray(char ** array);
+		void		_displayArray(char ** array);
 
 		void		_communicateWithCGI(int fd_in, int fd_out, pid_t pid);
 
 		/* Utitilies */
 		bool		_str_is(std::string str, int func(int));
 
-		bool		_parseCGIField(std::string & receivedMessage);
-		bool		_parseGenericField(std::string & receivedMessage);
+		bool		_parseHeaderField(std::string & receivedMessage);
+		// bool		_parseCGIField(std::string & receivedMessage);
+		// bool		_parseGenericField(std::string & receivedMessage);
 		bool		_parseBody(std::string & receivedMessage);
 
 		void		_parseCGIResponse(std::string & receivedMessage);
@@ -154,11 +156,13 @@ class Methods
 	private:
 		/* Method Utilities */
 		std::string					_path;
-		
+
 		std::vector<std::string>	_methods;
 		size_t						_max_body_size;
 		std::string					_query;
 		std::string					_cgi_path;
+		bool						_cgi_is_php;
+
 		std::vector<std::string>	_authenticate;
 		std::vector<std::string>	_indexes;
 		bool						_autoindex;

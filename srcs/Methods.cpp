@@ -69,7 +69,7 @@ void	Methods::customError(std::string const & status_code, std::string const & r
 		if (_fileExist(_path) == true)
 		{
 			_checkContentType();
-			_fillBody();
+			_fillStrFromFile(serv->resp.body, _path);
 		}
 		else
 		{
@@ -171,7 +171,7 @@ void	Methods::_applyGet(void)
 		_checkContentType();
 		/* Fill body with file content */
 		if (_path != "./dir_listing.html")
-			_fillBody();
+			_fillStrFromFile(serv->resp.body, _path);
 		/* Fill header informations */
 		/* (1) Fill Status Line */
 		_GetHeaderStatusCode();
@@ -183,8 +183,14 @@ void	Methods::_applyGet(void)
 		serv->resp.header_fields.insert(std::make_pair("Transfer-Encoding", "identity"));
 	}
 	else
+	{
+		if (_cgi_is_php)
+		{
+			_fillStrFromFile(serv->req.body, _path);
+			serv->req.headers["Content-Length"] = _getSizeOfStr(serv->req.body);
+		}
 		_launchCGI();
-
+	}
 	/* (4) Fill Content-lenght */
 	serv->resp.header_fields.insert(std::make_pair("Content-Length", _getSizeOfStr(serv->resp.body)));
 }
@@ -207,8 +213,14 @@ void	Methods::_applyPost()
 		_GetHeaderStatusCode();
 	}
 	else
+	{
+		if (_cgi_is_php)
+		{
+			_fillStrFromFile(serv->req.body, _path);
+			serv->req.headers["Content-Length"] = _getSizeOfStr(serv->req.body);
+		}
 		_launchCGI();
-
+	}
 	// /* (2) Fill Content-length */
 	serv->resp.header_fields.insert(std::make_pair("Content-Length", _getSizeOfStr(serv->resp.body)));
 }
@@ -366,7 +378,7 @@ bool	Methods::_fileExist(const std::string & name)
 void	Methods::_executePutReq(void)
 {
 	std::ofstream	file(_path);
-	
+
 	file << serv->req.body;
 	file.close();
 }
@@ -375,9 +387,9 @@ void	Methods::_executePutReq(void)
 void	Methods::_executePostReq(void)
 {
 	std::ofstream	file(_path, std::ios_base::app);
-	
+
 	file << serv->req.body;
-	file.close();		
+	file.close();
 }
 
 /* Check content type */
@@ -423,11 +435,11 @@ std::string	Methods::_pathExtension(const std::string & path)
 }
 
 /* Fill Body */
-void	Methods::_fillBody()
+void	Methods::_fillStrFromFile(std::string & body, std::string const & path)
 {
-	std::ifstream		file(_path.c_str());
+	std::ifstream		file(path.c_str());
 
-	serv->resp.body.assign(std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>());
+	body.assign(std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>());
 	file.close();
 }
 

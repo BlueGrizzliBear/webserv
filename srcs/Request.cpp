@@ -30,7 +30,7 @@ Request &	Request::operator=(Request const & rhs)
 
 	_req = rhs._req;
 	_pos = rhs._pos;
-	
+
 	return (*this);
 }
 
@@ -45,7 +45,7 @@ void	Request::display(void)	/* Display request for debugging purposes */
 {
 	COUT << GREEN << "> CLIENT REQUEST\n";
 	COUT << method << " " << uri << " " << protocol_v << ENDL;
-	
+
 	Headers::iterator begin = headers.begin();
 	while (begin != headers.end())
 	{
@@ -67,9 +67,21 @@ void	Request::clear(void)
 	headers.clear();
 	body.clear();
 	body.reserve();
-	
+
 	_req.clear();
 	_pos = 0;
+}
+
+size_t	Request::strFindCaseinsensitive(std::string str, char const * to_find)
+{
+	std::string	tmp = str;
+	std::string	tmp_to_find(to_find);
+
+	for (std::string::iterator it = tmp.begin(); it != tmp.end(); ++it)
+		*it = static_cast<char>(tolower(*it));
+	for (std::string::iterator it = tmp_to_find.begin(); it != tmp_to_find.end(); ++it)
+		*it = static_cast<char>(tolower(*it));
+	return (tmp.find(tmp_to_find));
 }
 
 /* A function which passes until char is found */
@@ -219,7 +231,7 @@ bool	Request::parseHeaders(void) throw(BadRequest)
 			}
 
 			_passOptionalChars("\t ");
-			
+
 			// COUT << MAGENTA << "New Header\n" << RESET;
 
 			// COUT << "&_req[_pos]|" << &_req[_pos] << "|\n";
@@ -295,7 +307,7 @@ bool	Request::_parseChunkedBody(size_t & size) throw(BadRequest)
 	body.append(_req, pos + 2, size);
 
 	_req.erase(0, pos + 2 + size + 2);
-	
+
 	return (true);
 }
 
@@ -324,12 +336,12 @@ bool	Request::parseBody(void) throw(BadRequest)
 	{
 		CERR << "Content-length" << ENDL;
 		size_t size = static_cast<size_t>(std::atoi(headers.find("Content-Length")->second.c_str()));
-		
+
 		if (size > _req.size() - _pos)
 			return (false);
 		while (size--)
 			body += _req[_pos++];
-		
+
 		// COUT << "Content-Length: BODY IS COMPLETE" << ENDL;
 		return (true);
 	}
