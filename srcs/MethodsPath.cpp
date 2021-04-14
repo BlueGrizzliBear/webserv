@@ -82,15 +82,7 @@ template< typename T, typename U >
 void		Methods::_findCGIPath(std::map< T, U > & dir)
 {
 	if (dir.find("cgi") != dir.end())
-	{
 		_cgi_path = dir.find("cgi")->second[0];
-		_cgi_is_php = false;
-	}
-	if (dir.find("php-cgi") != dir.end())
-	{
-		_cgi_path = dir.find("php-cgi")->second[0];
-		_cgi_is_php = true;
-	}
 }
 
 template< typename T, typename U >

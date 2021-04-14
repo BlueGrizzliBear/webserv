@@ -143,8 +143,6 @@ class Methods
 		bool		_str_is(std::string str, int func(int));
 
 		bool		_parseHeaderField(std::string & receivedMessage);
-		// bool		_parseCGIField(std::string & receivedMessage);
-		// bool		_parseGenericField(std::string & receivedMessage);
 		bool		_parseBody(std::string & receivedMessage);
 
 		void		_parseCGIResponse(std::string & receivedMessage);
@@ -161,7 +159,6 @@ class Methods
 		size_t						_max_body_size;
 		std::string					_query;
 		std::string					_cgi_path;
-		bool						_cgi_is_php;
 
 		std::vector<std::string>	_authenticate;
 		std::vector<std::string>	_indexes;

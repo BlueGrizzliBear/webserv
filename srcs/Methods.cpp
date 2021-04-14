@@ -183,14 +183,7 @@ void	Methods::_applyGet(void)
 		serv->resp.header_fields.insert(std::make_pair("Transfer-Encoding", "identity"));
 	}
 	else
-	{
-		if (_cgi_is_php)
-		{
-			_fillStrFromFile(serv->req.body, _path);
-			serv->req.headers["Content-Length"] = _getSizeOfStr(serv->req.body);
-		}
 		_launchCGI();
-	}
 	/* (4) Fill Content-lenght */
 	serv->resp.header_fields.insert(std::make_pair("Content-Length", _getSizeOfStr(serv->resp.body)));
 }
@@ -213,14 +206,7 @@ void	Methods::_applyPost()
 		_GetHeaderStatusCode();
 	}
 	else
-	{
-		if (_cgi_is_php)
-		{
-			_fillStrFromFile(serv->req.body, _path);
-			serv->req.headers["Content-Length"] = _getSizeOfStr(serv->req.body);
-		}
 		_launchCGI();
-	}
 	// /* (2) Fill Content-length */
 	serv->resp.header_fields.insert(std::make_pair("Content-Length", _getSizeOfStr(serv->resp.body)));
 }

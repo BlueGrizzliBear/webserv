@@ -167,7 +167,6 @@ void	Methods::_communicateWithCGI(int fd_in, int fd_out, pid_t pid)
 					}
 					else if (receivedBytes == 0)
 					{
-						COUT << "Received EOF from CGI\n";
 						_parseCGIResponse(receivedMessage);
 
 						COUT << RED << "> CGI RESPONSE\n";
@@ -188,7 +187,7 @@ void	Methods::_communicateWithCGI(int fd_in, int fd_out, pid_t pid)
 					else
 					{
 						receivedMessage.append(recv_buffer, static_cast<size_t>(receivedBytes));
-						COUT << "ReceivedBytes|" << receivedMessage << "|\n";
+						// COUT << "ReceivedBytes|" << receivedMessage << "|\n";
 						_parseCGIResponse(receivedMessage);
 					}
 				}
@@ -219,7 +218,6 @@ bool	Methods::_parseHeaderField(std::string & receivedMessage)
 	if (size == 0)
 	{
 		receivedMessage.erase(0, 2);
-		COUT << "END ReceivedMessage after erase|" << receivedMessage << "|\n";
 		return (true);
 	}
 
@@ -232,7 +230,6 @@ bool	Methods::_parseHeaderField(std::string & receivedMessage)
 			osp = 1;
 
 		std::string key = receivedMessage.substr(0, pos);
-		COUT << "key|" << key << "|\n";
 
 		if (serv->req.strFindCaseinsensitive(key, "Status") == 0)
 		{
@@ -254,11 +251,9 @@ bool	Methods::_parseHeaderField(std::string & receivedMessage)
 				serv->resp.reason_phrase = "OK";
 			}
 			serv->resp.header_fields.insert(std::make_pair(key, receivedMessage.substr(pos + 1 + osp, size - pos - 1 - osp)));
-			// COUT << "Value inserted|" << serv->resp.header_fields.find(key)->second << "|" << ENDL;
 		}
 	}
 	receivedMessage.erase(0, size + 2);
-	COUT << "ReceivedMessage after erase|" << receivedMessage << "|\n";
 	return (return_value);
 }
 
@@ -267,13 +262,8 @@ void	Methods::_parseCGIResponse(std::string & receivedMessage)
 	size_t size = receivedMessage.size();
 	static bool	HeaderIncomplete = true;
 
-	COUT << "receivedMessage|" << receivedMessage << "|\n";
-
 	while (HeaderIncomplete && receivedMessage.find("\r\n") != std::string::npos)
-	{
-		// if (_parseHeaderField(receivedMessage))
 		HeaderIncomplete = !_parseHeaderField(receivedMessage);
-	}
 
 	if (!receivedMessage.empty())
 	{
@@ -281,11 +271,7 @@ void	Methods::_parseCGIResponse(std::string & receivedMessage)
 		receivedMessage.clear();
 	}
 	else if (!size)
-	{
 		HeaderIncomplete = true;
-		// CGIField = 0;
-		// genericField = 0;
-	}
 }
 
 void	Methods::_createEnvpMap(void)
