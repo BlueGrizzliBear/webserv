@@ -10,6 +10,18 @@
 
 class ConfigParser;
 
+struct Client
+{
+	Socket		socket;
+	Request		req;
+	Response 	resp;
+
+	bool				finishedReading;
+	bool				clientClosed;
+
+	// int 				request_no;
+};
+
 struct Select
 {
 	int		fd_max;
@@ -88,16 +100,16 @@ class ServerBloc
 		size_t &		getNo(void);
 		ConfigParser *	getParent(void);
 
-		bool	readClient(Socket & client);
-		void	parseException(const char * code);
+		bool	readClient(Client & client);
+		void	parseException(Client & client, const char * code);
 
-		bool	processRequest(Socket & client);
-		bool	sendResponse(Socket & client);
+		bool	processRequest(Client & client);
+		bool	sendResponse(Client & client);
 
 	private:
 		/* Response functions */
 		std::string	_getDate(void);
-		void		_addHeaderFields(void);
+		void		_addHeaderFields(Client & client);
 
 	/* Member Attributes */
 	public:
@@ -111,11 +123,7 @@ class ServerBloc
 		Socket			serv_port;
 		Select			serv_select;
 
-		std::list<Socket> clientList;
-
-		/* Attributes from RequestParsing */
-		Request		req;
-		Response 	resp;
+		std::list<Client> clientList;
 
 		/* Process Attributes */
 		pid_t	pid;

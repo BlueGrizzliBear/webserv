@@ -4,6 +4,8 @@
 # include "./webserv.hpp"
 # include "./ServerDictionary.hpp"
 
+struct Client;
+
 /* Response Class Declaration */
 class Response
 {
@@ -26,8 +28,7 @@ class Response
 	/* Member Functions */
 	public:
 		void	concatenateResponse(void);
-		bool	sendMsg(int client_socket, std::string & message);
-		bool	sendMsgCGI(int client_socket, std::string & message);
+		bool	sendResptoClient(Client & client);
 
 		void	cleanResponse(void);
 
@@ -42,7 +43,9 @@ class Response
 
 		/* Write/Send utilities */
 		std::string	msg;
-		bool		isComplete;
+
+		size_t	writtenBytes;
+		bool	isComplete;
 };
 
 #endif

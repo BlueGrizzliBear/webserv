@@ -1,9 +1,10 @@
-#include "./Response.hpp"
+# include "./Response.hpp"
+# include "./ServerBloc.hpp"
 
 /* Response Class Declaration */
 /* Constructor */
 /*	default		(1)	*/
-Response::Response(void) : status_code(""), reason_phrase(""), header_fields(), body(""), msg(""), isComplete(0) {}
+Response::Response(void) : status_code(""), reason_phrase(""), header_fields(), body(""), msg(""), writtenBytes(0), isComplete(0) {}
 
 /*	copy		(2)	*/
 Response::Response(Response const & cpy)
@@ -29,6 +30,7 @@ Response &	Response::operator=(Response const & rhs)
 
 	msg = rhs.msg;
 
+	writtenBytes = rhs.writtenBytes;
 	isComplete = rhs.isComplete;
 
 	return (*this);
@@ -48,14 +50,13 @@ void	Response::concatenateResponse(void)
 		begin++;
 	}
 
-	/* Display Temporary msg */
-	// CME << "> RESPONSE\n" << msg << EME;
-
 	/* New line */
 	msg += "\r\n";
 
+	// CME << "> RESPONSE\n" << msg << EME;
+
 	/* Body */
-	if (body.size())
+	if (!body.empty())
 	{
 		msg += body;
 		// CME << "-- with Body --\n" << EME;
@@ -63,54 +64,28 @@ void	Response::concatenateResponse(void)
 
 	/* Initialisation de count */
 	isComplete = 1;
-
 }
 
-bool	Response::sendMsg(int client_socket, std::string & message)
+bool	Response::sendResptoClient(Client & client)
 {
-	static size_t	count = 0;
+	ssize_t sentBytes = send(client.socket.fd, &client.resp.msg.data()[writtenBytes], client.resp.msg.length() - writtenBytes, MSG_DONTWAIT);
 
-	ssize_t writtenBytes = send(client_socket, &message.data()[count], message.length() - count, MSG_DONTWAIT);
-
-	if (writtenBytes < 0)
+	if (sentBytes < 0)
 	{
-		CERR << "Error in write(): " << strerror(errno) << ENDL;
+		if (sentBytes < 0)
+			CERR << "Error in send(): " << strerror(errno) << ENDL;
+		// else
+		// 	CERR << "Error in send(): client closed connection" << ENDL;
+		// client.clientClosed = true;
 		return (true);
 	}
-	count += static_cast<size_t>(writtenBytes);
 
-	if (count == message.length())
+	if ((writtenBytes += static_cast<size_t>(sentBytes)) == client.resp.msg.length())
 	{
-		count = 0;
 		// COUT << "------------------Complete message sent-------------------" << ENDL;
-
 		return (true);
 	}
-	// COUT << "Sent|" << count << "/" << message.length() << "|bytes" << ENDL;
-	return (false);
-}
-
-bool	Response::sendMsgCGI(int fd, std::string & message)
-{
-	static size_t	count = 0;
-
-	ssize_t writtenBytes = write(fd, &message.data()[count], message.length() - count);
-
-	if (writtenBytes < 0)
-	{
-		CERR << "Error in write(): " << strerror(errno) << ENDL;
-		return (true);
-	}
-	count += static_cast<size_t>(writtenBytes);
-
-	if (count == message.length())
-	{
-		count = 0;
-		// COUT << "------------------Complete message sent-------------------" << ENDL;
-
-		return (true);
-	}
-	// COUT << "Sent|" << count << "/" << message.length() << "|bytes" << ENDL;
+	// COUT << "Sent|" << writtenBytes << "/" << client.resp.msg.length() << "|bytes" << ENDL;
 	return (false);
 }
 

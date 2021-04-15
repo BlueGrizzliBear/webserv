@@ -20,7 +20,7 @@ class ConfigParser
 
 	/* Constructor */
 		/*	default		(1)	*/	ConfigParser(void);
-		/*	argument	(2)	*/	ConfigParser(const char * path);
+		/*	argument	(2)	*/	ConfigParser(const char * path, char const ** envp);
 		/*	copy		(3)	*/	ConfigParser(ConfigParser const & cpy);
 
 	/* Destructor */
@@ -86,10 +86,10 @@ class ConfigParser
 
 	/* Member Functions */
 	public:
+		ServerDictionary &	getDictionary(void);
 		Servers &			getServers(void);
 		Directives &		getMainDirs(void);
-		ServerDictionary &	getDictionary(void);
-		int &				getStatus(void);
+		const char **		getEnvp(void);
 
 	private:
 		bool	_is_in_dictionnary(Dic dic, std::string word);
@@ -119,29 +119,27 @@ class ConfigParser
 		/* Clean-up functions */
 		void	abortServers(const char * main_err, const char * err);
 
-	public:
 		/* Debug utility functions */
 		void	display_config(void);
 
 	/* Member Attributes */
-	public:
-		const char **	envp;
-	
 	private:
 		/* Parsing utilities */
 		ServerDictionary	_dic;
+
 		std::string			_path;
 		std::string			_line;
 		size_t				_line_no;
 		size_t				_count;
 		size_t				_bracket;
 
-	protected:
+		const char **	_envp;
+
 		Directives	_main_dir;
 		Servers		_servers;
 
-		/* Fork() utilities */
-		int			_status;
+		// /* Fork() utilities */
+		// int			_status;
 
 	/* Static Functions for Debug */
 		static void	_display_string(std::string const & str);

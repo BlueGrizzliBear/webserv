@@ -3,7 +3,7 @@
 /* Request Class Declaration */
 /* Constructor */
 /*	default		(1)	*/
-Request::Request(void) : headerComplete(0), headerParsed(0), client(nullptr), _req(""), _pos(0) {}
+Request::Request(void) : headerComplete(0), headerParsed(0), method(""), uri(""), protocol_v(""), body(""), _req(""), _pos(0) {}
 
 /*	copy		(2)	*/
 Request::Request(Request const & cpy)
@@ -19,8 +19,6 @@ Request &	Request::operator=(Request const & rhs)
 {
 	headerComplete = rhs.headerComplete;
 	headerParsed = rhs.headerParsed;
-
-	client = rhs.client;
 
 	method = rhs.method;
 	uri = rhs.uri;
@@ -106,7 +104,7 @@ void	Request::_passUntilChar(char c)
 /* A function which strictly passes 1 char from the dictionary dic, and if not, throws */
 bool	Request::_passStrictOneChar(char c)
 {
-	if (_req.find_first_of(c, _pos) == _pos)
+	if (_req.find(c, _pos) == _pos)
 	{
 		_pos++;
 		return (true);
@@ -136,8 +134,8 @@ std::string	Request::_getWord(const char * delimiter_dic)
 	}
 	else
 	{
-		_pos = _req.size();
-		return ("");
+		// _pos = _req.size() - 1;
+		return (std::string());
 	}
 	return (word);
 }
@@ -156,9 +154,10 @@ bool	Request::parseRequestLine(void) throw(NotImplemented, BadRequest)
 	/* Request-Line = Method SP Request-URI SP HTTP-Version CRLF */
 
 	/* Check Method */
-	method = _getWord("\t ");
+	method = _getWord(" ");
 	if (_dic.methodDic.find(method) == _dic.methodDic.end())
 	{
+		COUT << "_req|" << _req << "|\n";
 		COUT << "METHOD NON IMPLEMENTEE BORDEL |" << method << "|\n";
 		throw NotImplemented();		/* Or 405 (Method Not Allowed), if it doesnt have the rights */
 	}
@@ -166,22 +165,22 @@ bool	Request::parseRequestLine(void) throw(NotImplemented, BadRequest)
 	/* Pass 1 Space */
 	if (!_passStrictOneChar(' '))
 	{
-		// COUT << "1\n";
+		COUT << "1\n";
 		throw BadRequest();
 	}
 
 	/* Check Request-URI */
-	uri = _getWord("\t ");
+	uri = _getWord(" ");
 	if (!_isLegitPath(uri))
 	{
-		// COUT << "1\n";
+		COUT << "1\n";
 		throw BadRequest();
 	}
 
 	/* Pass 1 Space */
 	if (!_passStrictOneChar(' '))
 	{
-		// COUT << "1\n";
+		COUT << "1\n";
 		throw BadRequest();
 	}
 
@@ -189,7 +188,7 @@ bool	Request::parseRequestLine(void) throw(NotImplemented, BadRequest)
 	protocol_v = _getWord("\r");
 	if (protocol_v != "HTTP/1.1")
 	{
-		// COUT << "1\n";
+		COUT << "1\n";
 		throw BadRequest();
 	}
 
@@ -197,12 +196,12 @@ bool	Request::parseRequestLine(void) throw(NotImplemented, BadRequest)
 	/* Check if end of the line (CRLF = \r\n) */
 	if (!_passStrictOneChar('\r'))
 	{
-		// COUT << "1\n";
+		COUT << "1\n";
 		throw BadRequest();
 	}
 	if (!_passStrictOneChar('\n'))
 	{
-		// COUT << "1\n";
+		COUT << "1\n";
 		throw BadRequest();
 	}
 
@@ -226,7 +225,7 @@ bool	Request::parseHeaders(void) throw(BadRequest)
 		{
 			if (!_passStrictOneChar(':'))	/* Check is ':' is present */
 			{
-				// COUT << "missing:\n";
+				COUT << "missing :\n";
 				throw BadRequest();
 			}
 
@@ -254,12 +253,12 @@ bool	Request::parseHeaders(void) throw(BadRequest)
 
 		if (!_passStrictOneChar('\r'))
 		{
-			// COUT << "ici3\n";
+			COUT << "ici3\n";
 			throw BadRequest();
 		}
 		if (!_passStrictOneChar('\n'))
 		{
-			// COUT << "ici4\n";
+			COUT << "ici4\n";
 			throw BadRequest();
 		}
 	}
@@ -267,12 +266,12 @@ bool	Request::parseHeaders(void) throw(BadRequest)
 	/* Check if new line */
 	if (!_passStrictOneChar('\r'))
 	{
-		// COUT << "ici5\n";
+		COUT << "ici5\n";
 		throw BadRequest();
 	}
 	if (!_passStrictOneChar('\n'))
 	{
-		// COUT << "ici6\n";
+		COUT << "ici6\n";
 		throw BadRequest();
 	}
 	return (true);

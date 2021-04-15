@@ -5,7 +5,7 @@
 void	Methods::_findPath(void)
 {
 	// std::vector<std::string>	methods;
-	std::string	req_uri = serv->req.uri;
+	std::string	req_uri = client->req.uri;
 	// size_t		max_body_size = 1000000; /* 1 GB by default */
 
 	_autoindex = true;
@@ -117,7 +117,7 @@ void	Methods::_findClientMaxBodySize(std::map< T, U > & dir, size_t * max_size)
 template< typename T, typename U >
 std::string	Methods::_findRewrite(std::map< T, U > & dir)
 {
-	std::string		req_uri = serv->req.uri;
+	std::string		req_uri = client->req.uri;
 
 	if (dir.find("rewrite") != dir.end())
 	{
@@ -134,32 +134,32 @@ std::string	Methods::_uriWithoutFirstPart(void)
 	std::string	uri_path;
 	size_t		i = 0;
 
-	if ((i = serv->req.uri.find("/", 1)) == std::string::npos)
+	if ((i = client->req.uri.find("/", 1)) == std::string::npos)
 		return ("");
 	i++;
-	uri_path = serv->req.uri.substr(i, serv->req.uri.size() - i);
+	uri_path = client->req.uri.substr(i, client->req.uri.size() - i);
 	return (uri_path);
 }
 
 	/* (2) find location bloc config */
 bool	Methods::_matchingLocationDir(std::map<std::vector<std::string>, LocationBloc>::iterator & it, std::map<std::vector<std::string>, LocationBloc>::iterator & tmp)
 {
-	if (it->first[0] == "=" && ((_uriFirstPart() == it->first[1]) || (serv->req.uri == it->first[1])))
+	if (it->first[0] == "=" && ((_uriFirstPart() == it->first[1]) || (client->req.uri == it->first[1])))
 	{
 		tmp = it;
 		return true;
 	}
-	else if (it->first[0] == "^~" && _compareCapturingGroup(serv->req.uri, it->first[1]))
+	else if (it->first[0] == "^~" && _compareCapturingGroup(client->req.uri, it->first[1]))
 	{
 		tmp = it;
 		return true;
 	}
-	else if (it->first[0] == "~" && _compareCapturingGroup(serv->req.uri, it->first[1]))
+	else if (it->first[0] == "~" && _compareCapturingGroup(client->req.uri, it->first[1]))
 	{
 		tmp = it;
 		return true;
 	}
-	else if (it->first[0] == "~*" && _compareCapturingGroup(serv->req.transform(serv->req.uri, tolower), serv->req.transform(it->first[1], tolower)))
+	else if (it->first[0] == "~*" && _compareCapturingGroup(client->req.transform(client->req.uri, tolower), client->req.transform(it->first[1], tolower)))
 	{
 		tmp = it;
 		return true;
@@ -255,10 +255,10 @@ std::string	Methods::_uriFirstPart(void)
 	std::string	uri_path;
 	size_t		i = 0;
 
-	if ((i = serv->req.uri.find("/", 1)) == std::string::npos)
-		uri_path = serv->req.uri;
+	if ((i = client->req.uri.find("/", 1)) == std::string::npos)
+		uri_path = client->req.uri;
 	else
-		uri_path = serv->req.uri.substr(0, i);
+		uri_path = client->req.uri.substr(0, i);
 	if (!uri_path.empty() && *(uri_path.rbegin()) != '/')
 		return (uri_path + '/');
 	return (uri_path);
@@ -271,12 +271,12 @@ void	Methods::_checkRequiredAuthentication(void)
 	_envp["REMOTE_USER"] = "";
 	if (!_authenticate.empty())
 	{
-		if (serv->req.headers.find("Authorization") != serv->req.headers.end())
+		if (client->req.headers.find("Authorization") != client->req.headers.end())
 		{
-			if (_checkUserExist(serv->req.headers.find("Authorization")->second, _authenticate[1]))
+			if (_checkUserExist(client->req.headers.find("Authorization")->second, _authenticate[1]))
 				return ;
 		}
-		serv->resp.header_fields.insert(std::make_pair("WWW-Authenticate", "Basic realm=" + _authenticate[0] + ", charset=\"UTF-8\""));
+		client->resp.header_fields.insert(std::make_pair("WWW-Authenticate", "Basic realm=" + _authenticate[0] + ", charset=\"UTF-8\""));
 		_envp["AUTH_TYPE"] = "Basic";
 		throw ServerBloc::Unauthorized();
 	}
@@ -289,9 +289,9 @@ bool	Methods::_checkUserExist(std::string & user, std::string & auth_path)
 	std::fstream				user_file(auth_path);
 
 	_envp["AUTH_TYPE"] = user.substr(0, user.find(' ') - 1);
-	if (serv->req.strFindCaseinsensitive(user, "Basic") != std::string::npos && user_file.good())
+	if (client->req.strFindCaseinsensitive(user, "Basic") != std::string::npos && user_file.good())
 	{
-		user.erase(serv->req.strFindCaseinsensitive(user, "Basic"), 6);
+		user.erase(client->req.strFindCaseinsensitive(user, "Basic"), 6);
 		user = _decodeUser(user);
 		while (std::getline(user_file, line))
 			users.push_back(line);
@@ -363,14 +363,14 @@ void	Methods::_checkAllowedMethods(void)
 	{
 		for (std::vector<std::string>::iterator it = _methods.begin(); it != _methods.end(); ++it)
 		{
-			if (serv->req.method == *it)
+			if (client->req.method == *it)
 				return ;
 			if (*it != *(_methods.rbegin()))
 				cat_meth += *it + ", ";
 			else
 				cat_meth += *it;
 		}
-		serv->resp.header_fields.insert(std::make_pair("Allow", cat_meth));
+		client->resp.header_fields.insert(std::make_pair("Allow", cat_meth));
 		throw ServerBloc::MethodNotAllowed();
 	}
 }
@@ -378,6 +378,6 @@ void	Methods::_checkAllowedMethods(void)
 	/* (5) max_body_size */
 void	Methods::_checkMaxBodySize(void)
 {
-	if (serv->req.body.length() > _max_body_size)
+	if (client->req.body.length() > _max_body_size)
 		throw ServerBloc::PayloadTooLarge();
 }

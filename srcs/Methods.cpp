@@ -3,11 +3,11 @@
 /* Methods Class Declaration */
 /* Constructor */
 /*	default		(1)	*/
-Methods::Methods(void) : serv(NULL) {}
+Methods::Methods(void) : serv(nullptr), client(nullptr) {}
 
 /*	parent	(2)	*/
-Methods::Methods(ServerBloc & server, std::string const & code, std::string const & phrase)
-: serv(&server), _max_body_size(1000000)
+Methods::Methods(ServerBloc & server, Client & client, std::string const & code, std::string const & phrase)
+: serv(&server), client(&client), _max_body_size(1000000), _writtenBytes(0)
 {
 	/* uri resolution process (treat ../ and ./) */
 	_URIResolutionProcess();
@@ -45,16 +45,16 @@ Methods &	Methods::operator=(Methods const & rhs)
 /* Member Functions */
 void	Methods::execute(void)
 {
-	if (serv->req.method == "GET")
+	if (client->req.method == "GET")
 		_applyGet();
-	else if (serv->req.method == "HEAD")
+	else if (client->req.method == "HEAD")
 		_applyHead();
-	else if (serv->req.method == "POST")
+	else if (client->req.method == "POST")
 		_applyPost();
-	else if (serv->req.method == "PUT")
+	else if (client->req.method == "PUT")
 		_applyPut();
 
-	// serv->req.display();
+	// client->req.display();
 }
 
 void	Methods::customError(std::string const & status_code, std::string const & reason_phrase)
@@ -64,27 +64,26 @@ void	Methods::customError(std::string const & status_code, std::string const & r
 	_findVect(serv->dir, "error_page", &error_pages);
 	if (!error_pages.empty() && _ErrorNbInErrorPageList(error_pages, status_code))
 	{
-		serv->req.uri = error_pages.back();
+		client->req.uri = error_pages.back();
 		_findPath();
 		if (_fileExist(_path) == true)
 		{
 			_checkContentType();
-			_fillStrFromFile(serv->resp.body, _path);
+			_fillStrFromFile(client->resp.body, _path);
 		}
 		else
 		{
 			_fillDefaultExceptionBody(status_code, reason_phrase);
-			serv->resp.header_fields.insert(std::make_pair("Content-Type", "text/html"));
+			client->resp.header_fields.insert(std::make_pair("Content-Type", "text/html"));
 		}
 	}
 	else
 	{
 		_fillDefaultExceptionBody(status_code, reason_phrase);
-		serv->resp.header_fields.insert(std::make_pair("Content-Type", "text/html"));
+		client->resp.header_fields.insert(std::make_pair("Content-Type", "text/html"));
 	}
-	serv->resp.header_fields.insert(std::make_pair("Content-Length", _getSizeOfStr(serv->resp.body)));
-	serv->resp.header_fields.insert(std::make_pair("Transfer-Encoding", "identity"));
-	serv->req.clear();
+	client->resp.header_fields.insert(std::make_pair("Content-Length", _getSizeOfStr(client->resp.body)));
+	client->resp.header_fields.insert(std::make_pair("Transfer-Encoding", "identity"));
 }
 
 bool		Methods::_ErrorNbInErrorPageList(std::vector<std::string> & list, std::string const & status)
@@ -99,10 +98,10 @@ bool		Methods::_ErrorNbInErrorPageList(std::vector<std::string> & list, std::str
 
 void	Methods::_fillDefaultExceptionBody(std::string const & status, std::string const & reason)
 {
-	serv->resp.body = "<html>\n";
-	serv->resp.body += "<head><title>" + status + " " + reason + "</title></head>\n";
-	serv->resp.body += "<body>\n";
-	serv->resp.body += "<center><h1>" + status + " " + reason + "</h1></center>\n";
+	client->resp.body = "<html>\n";
+	client->resp.body += "<head><title>" + status + " " + reason + "</title></head>\n";
+	client->resp.body += "<body>\n";
+	client->resp.body += "<center><h1>" + status + " " + reason + "</h1></center>\n";
 }
 
 void	Methods::_URIResolutionProcess(void)
@@ -112,35 +111,35 @@ void	Methods::_URIResolutionProcess(void)
 	std::string new_uri;
 
 	/* Alorithm from RFC */
-	while (!serv->req.uri.empty())
+	while (!client->req.uri.empty())
 	{
 		/* 1st */
-		if (!serv->req.uri.find(tmp = "../") || !serv->req.uri.find(tmp = "./"))
-			serv->req.uri.erase(0, tmp.size());
+		if (!client->req.uri.find(tmp = "../") || !client->req.uri.find(tmp = "./"))
+			client->req.uri.erase(0, tmp.size());
 		/* 3rd */
-		else if (!serv->req.uri.find(tmp = "/../") || !serv->req.uri.find(tmp = "/.."))
+		else if (!client->req.uri.find(tmp = "/../") || !client->req.uri.find(tmp = "/.."))
 		{
-			serv->req.uri.replace(0, tmp.size(), "/");
+			client->req.uri.replace(0, tmp.size(), "/");
 			if ((pos = new_uri.rfind("/")) != std::string::npos)
 				new_uri.erase(pos, pos - new_uri.size());
 		}
 		/* 2nd */
-		else if (!serv->req.uri.find(tmp = "/./") || !serv->req.uri.find(tmp = "/."))
-			serv->req.uri.replace(0, tmp.size(), "/");
+		else if (!client->req.uri.find(tmp = "/./") || !client->req.uri.find(tmp = "/."))
+			client->req.uri.replace(0, tmp.size(), "/");
 		/* 4th */
-		else if (!serv->req.uri.find(tmp = ".") || !serv->req.uri.find(tmp = ".."))
-			serv->req.uri.erase(0, tmp.size());
+		else if (!client->req.uri.find(tmp = ".") || !client->req.uri.find(tmp = ".."))
+			client->req.uri.erase(0, tmp.size());
 		/* 5th */
 		else
 		{
-			size_t i = (serv->req.uri.find("/") == 0) ? 1 : 0;
-			if ((pos = serv->req.uri.find("/", i)) == std::string::npos)
-				pos = serv->req.uri.size();
-			new_uri += serv->req.uri.substr(0, pos);
-			serv->req.uri.erase(0, pos);
+			size_t i = (client->req.uri.find("/") == 0) ? 1 : 0;
+			if ((pos = client->req.uri.find("/", i)) == std::string::npos)
+				pos = client->req.uri.size();
+			new_uri += client->req.uri.substr(0, pos);
+			client->req.uri.erase(0, pos);
 		}
 	}
-	serv->req.uri = new_uri;
+	client->req.uri = new_uri;
 }
 
 void	Methods::_queryResolutionProcess(void)
@@ -152,11 +151,11 @@ void	Methods::_queryResolutionProcess(void)
 	/*    \_________/ \_______________________/ \__/  */
 	/*        |            |                     |    */
 	/*       path        query               fragment */
-	if ((begin = serv->req.uri.find('?')) != std::string::npos)
+	if ((begin = client->req.uri.find('?')) != std::string::npos)
 	{
-		end = serv->req.uri.find('#');	/* jusqu'au # ou fin de l'uri */
-		_query = serv->req.uri.substr(begin + 1, end);
-		serv->req.uri.erase(begin, std::string::npos);
+		end = client->req.uri.find('#');	/* jusqu'au # ou fin de l'uri */
+		_query = client->req.uri.substr(begin + 1, end);
+		client->req.uri.erase(begin, std::string::npos);
 	}
 	_query = "";
 }
@@ -171,7 +170,7 @@ void	Methods::_applyGet(void)
 		_checkContentType();
 		/* Fill body with file content */
 		if (_path != "./dir_listing.html")
-			_fillStrFromFile(serv->resp.body, _path);
+			_fillStrFromFile(client->resp.body, _path);
 		/* Fill header informations */
 		/* (1) Fill Status Line */
 		_GetHeaderStatusCode();
@@ -180,19 +179,19 @@ void	Methods::_applyGet(void)
 		if (_path != "./dir_listing.html")
 			_lastModifiedHeader(_getFileTime());
 		/* (3) Fill Transfer-Encoding */
-		serv->resp.header_fields.insert(std::make_pair("Transfer-Encoding", "identity"));
+		client->resp.header_fields.insert(std::make_pair("Transfer-Encoding", "identity"));
 	}
 	else
 		_launchCGI();
 	/* (4) Fill Content-lenght */
-	serv->resp.header_fields.insert(std::make_pair("Content-Length", _getSizeOfStr(serv->resp.body)));
+	client->resp.header_fields.insert(std::make_pair("Content-Length", _getSizeOfStr(client->resp.body)));
 }
 
 void	Methods::_applyHead(void)
 {
 	/* Same as GET method but don't send body part */
 	_applyGet();
-	serv->resp.body.clear();
+	client->resp.body.clear();
 }
 
 void	Methods::_applyPost()
@@ -208,13 +207,13 @@ void	Methods::_applyPost()
 	else
 		_launchCGI();
 	// /* (2) Fill Content-length */
-	serv->resp.header_fields.insert(std::make_pair("Content-Length", _getSizeOfStr(serv->resp.body)));
+	client->resp.header_fields.insert(std::make_pair("Content-Length", _getSizeOfStr(client->resp.body)));
 }
 
 void	Methods::_applyPut(void)
 {
 	/* MUST send a 400 (Bad Request) response to a PUT request that contains a Content-Range header field */
-	if (serv->req.headers.find("Content-Range") != serv->req.headers.end())
+	if (client->req.headers.find("Content-Range") != client->req.headers.end())
 		throw ServerBloc::BadRequest();
 
 	/* Indepotent method check (execute request only if changes are made */
@@ -224,7 +223,7 @@ void	Methods::_applyPut(void)
 	value reflects the new representation. */
 	if (_cmpTimeInfo(_getHeaderIfUnmodifiedSinceTime(), _getFileTime()) == 0)
 		throw ServerBloc::PreconditionFailed();
-	else if (serv->req.body == _readFileToStr() && _cmpTimeInfo(_getHeaderIfUnmodifiedSinceTime(), _getFileTime()) == 1)
+	else if (client->req.body == _readFileToStr() && _cmpTimeInfo(_getHeaderIfUnmodifiedSinceTime(), _getFileTime()) == 1)
 		_lastModifiedHeader(_getFileTime());
 	else	/* execute specific to PUT request */
 	{
@@ -298,7 +297,7 @@ void	Methods::_createHTMLListing(DIR * dir)
 	dir_list << "<html>\n";
 	dir_list << "<head><title>Index of /</title></head>\n";
 	dir_list << "<body bgcolor=\"white\">\n";
-	dir_list << "<h1>Index of " << serv->req.uri << "</h1><hr><pre>\n";
+	dir_list << "<h1>Index of " << client->req.uri << "</h1><hr><pre>\n";
 	while ((dp = readdir(dir)) != NULL)
 	{
 		if (strcmp(dp->d_name, "."))
@@ -306,8 +305,8 @@ void	Methods::_createHTMLListing(DIR * dir)
 			std::string		points(30 - strlen(dp->d_name), '.');
 
 			file_path = _path + dp->d_name;
-			dir_list << "<a href=\"" << serv->req.uri;
-			if (!serv->req.uri.empty() && *(serv->req.uri.rbegin()) != '/')
+			dir_list << "<a href=\"" << client->req.uri;
+			if (!client->req.uri.empty() && *(client->req.uri.rbegin()) != '/')
 				dir_list << '/';
 			dir_list << dp->d_name << "\">" << dp->d_name;
 			if (dp->d_type == DT_DIR)
@@ -331,7 +330,7 @@ void	Methods::_createHTMLListing(DIR * dir)
 	}
 	dir_list << "</pre><hr></body>\n";
 	dir_list << "</html>";
-	serv->resp.body = dir_list.str();
+	client->resp.body = dir_list.str();
 }
 
 void	Methods::_findIndex(std::vector<std::string> & indexes)
@@ -365,7 +364,7 @@ void	Methods::_executePutReq(void)
 {
 	std::ofstream	file(_path);
 
-	file << serv->req.body;
+	file << client->req.body;
 	file.close();
 }
 
@@ -374,7 +373,7 @@ void	Methods::_executePostReq(void)
 {
 	std::ofstream	file(_path, std::ios_base::app);
 
-	file << serv->req.body;
+	file << client->req.body;
 	file.close();
 }
 
@@ -393,12 +392,12 @@ void	Methods::_checkContentType(void)
 	else
 		contentType = serv->getParent()->getDictionary().mimeDic.find("txt")->second;
 	/* check if content-type exist if the request content-type */
-	if (serv->req.headers.find("Content-Type") != serv->req.headers.end())
+	if (client->req.headers.find("Content-Type") != client->req.headers.end())
 	{
-		if (serv->req.headers.find("Content-Type")->second != contentType)
+		if (client->req.headers.find("Content-Type")->second != contentType)
 			throw ServerBloc::UnsupportedMediaType();
 	}
-	serv->resp.header_fields.insert(std::make_pair("Content-Type", contentType));
+	client->resp.header_fields.insert(std::make_pair("Content-Type", contentType));
 }
 
 std::string	Methods::_pathExtension(const std::string & path)

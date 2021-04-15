@@ -22,9 +22,12 @@ ServerBloc &	ServerBloc::operator=(ServerBloc const & rhs)
 {
 	dir = rhs.dir;
 	loc = rhs.loc;
+
 	serv_port = rhs.serv_port;
 	serv_select = rhs.serv_select;
+
 	pid = rhs.pid;
+	
 	_server_no = rhs._server_no;
 	_parent = rhs._parent;
 	return (*this);
@@ -42,7 +45,7 @@ ConfigParser *	ServerBloc::getParent(void)
 }
 
 /* Member Functions */
-void	ServerBloc::parseException(const char * code)
+void	ServerBloc::parseException(Client & client, const char * code)
 {
 	std::string str(code);
 	std::map<std::string, std::string>::iterator it = _parent->getDictionary().errorDic.find(str);
@@ -50,83 +53,68 @@ void	ServerBloc::parseException(const char * code)
 	if (it != _parent->getDictionary().errorDic.end())
 	{
 		/* Fill Status Line */
-		resp.status_code = it->first;
-		resp.reason_phrase = it->second;
+		client.resp.status_code = it->first;
+		client.resp.reason_phrase = it->second;
 
-		Methods	implementedMethods(*this, resp.status_code, resp.reason_phrase);
-
+		Methods	implementedMethods(*this, client, client.resp.status_code, client.resp.reason_phrase);
+		client.req.clear();	/* Clean Client Request - need to answer client now */
 	}
 }
 
-bool	ServerBloc::readClient(Socket & client)
+bool	ServerBloc::readClient(Client & client)
 {
 	char	recv_buffer[MAX_HEADER_SIZE];
 
-	ssize_t receivedBytes = recv(client.fd, &recv_buffer, MAX_HEADER_SIZE, MSG_DONTWAIT);
+	ssize_t receivedBytes = recv(client.socket.fd, &recv_buffer, MAX_HEADER_SIZE, MSG_DONTWAIT);
 
-	if (receivedBytes < 0)
+	if (receivedBytes <= 0)
 	{
-		std::cerr << "Error in read(): " << strerror(errno) << ENDL;
-		return (false);
-	}
-	else if (receivedBytes == 0)	/* client connection closed or EOF ! */
-	{
+		if (receivedBytes < 0)
+			CERR << "Error in recv(): " << strerror(errno) << ENDL;
+		else
+			CERR << "Error in recv(): client closed connection" << ENDL;
 		client.clientClosed = true;
-		CERR << MAGENTA << "Client connection closed or EOF" << RESET << ENDL;
 		return (true);
 	}
 
-	size_t old_pos = req.getData().size() > 4 ? req.getData().size() - 4 : 0;
+	size_t old_pos = client.req.getData().size() > 4 ? client.req.getData().size() - 4 : 0;
 
-	req.getData().append(recv_buffer, static_cast<size_t>(receivedBytes));
+	client.req.getData().append(recv_buffer, static_cast<size_t>(receivedBytes));
 
-	// if (req.headerComplete || receivedBytes == 0)	/* Headers seems complete || client connection closed or EOF ! */
-	if (req.headerComplete)	/* Headers seems complete */
+	if (client.req.headerComplete)	/* Headers seems complete */
 		return (true);
-	// else if (receivedBytes == 0)	/* client connection closed or EOF ! */
-	// {
-	// 	client.clientClosed = true;
-	// 	CERR << MAGENTA << "Client connection closed or EOF" << RESET << ENDL;
-	// 	return (true);
-	// }
-	else if ((req.getData().find("\r\n\r\n", old_pos) == std::string::npos))
-	{
-		// COUT << MAGENTA << "Not Found ending sequence" << RESET << ENDL;
+	else if ((client.req.getData().find("\r\n\r\n", old_pos) == std::string::npos))
 		return (false); /* Not found ending sequence */
-	}
-
-	// COUT << MAGENTA << "Found request ending sequence" << RESET << ENDL;
-	/* Request is complete */
-	req.headerComplete = 1;
+	client.req.headerComplete = 1;
 	return (true);
 }
 
-bool	ServerBloc::processRequest(Socket & client)
+bool	ServerBloc::processRequest(Client & client)
 {
-	if (!req.headerParsed)
+	if (!client.req.headerParsed)
 	{
-		req.client = &client;
+		// client.req.client = &client;
 
-		if (req.parseRequestLine())
+		if (client.req.parseRequestLine())
 			// CME << "> Parsed Request-line: COMPLETE !" << EME;
-		if (req.parseHeaders())
+		if (client.req.parseHeaders())
 			// CME << "> Parsed Headers: COMPLETE !" << EME;
-		req.headerParsed = true;
+		client.req.headerParsed = true;
 
-		req.getData().erase(0, req.getData().find("\r\n\r\n") + 4);
+		client.req.getData().erase(0, client.req.getData().find("\r\n\r\n") + 4);
 	}
-	if (req.parseBody())
+	if (client.req.parseBody())
 	{
 		client.finishedReading = 1;
 		// CME << "> Parsed Body: COMPLETE !" << EME;
 
 		/* Cleaning */
 		// COUT << "_req.Capacity()|" << req.getData().capacity() << "|" << ENDL;
-		req.getData().clear();			/* Clearing _req buffer */
-		req.getData().reserve();
+		client.req.getData().clear();			/* Clearing _req buffer */
+		client.req.getData().reserve();
 
-		req.headerComplete = false;		/* Reseting bool indicator if header is complete or not */
-		req.headerParsed = false;			/* Reseting bool indicator if header is parsed or not */
+		client.req.headerComplete = false;		/* Reseting bool indicator if header is complete or not */
+		client.req.headerParsed = false;			/* Reseting bool indicator if header is parsed or not */
 
 		// COUT << MAGENTA << "Avant Exec" << RESET << ENDL;
 
@@ -135,9 +123,8 @@ bool	ServerBloc::processRequest(Socket & client)
 		// t = static_cast<float>((client.mytime2.tv_sec - client.mytime1.tv_sec) * 1000000 + ((client.mytime2.tv_usec - client.mytime1.tv_usec)));
 		// COUT << RED << "PARSE Time elapsed: " << t << " ms." << RESET << ENDL;
 
-
 		/* Execute the parsed request */
-		Methods	implementedMethods(*this);
+		Methods	implementedMethods(*this, client);
 		implementedMethods.execute();
 
 		// gettimeofday(&client.mytime3, NULL);
@@ -146,38 +133,38 @@ bool	ServerBloc::processRequest(Socket & client)
 
 		// COUT << MAGENTA << "AFter Exec" << RESET << ENDL;
 
-		/* Clean Request */
-		req.clear();
+		client.req.clear();	/* Clean Client Request - need to answer client now */
 
 		return (true);
 	}
 	return (false);
 }
 
-void	ServerBloc::_addHeaderFields(void)
+void	ServerBloc::_addHeaderFields(Client & client)
 {
 	/* Create corresponding header fields */
-	resp.header_fields.insert(std::make_pair("Date", _getDate()));
-	resp.header_fields.insert(std::make_pair("Server", dir.find("server_name")->second[0]));
+	client.resp.header_fields.insert(std::make_pair("Date", _getDate()));
+	client.resp.header_fields.insert(std::make_pair("Server", dir.find("server_name")->second[0]));
 
 	/* Cache indications */
-	resp.header_fields.insert(std::make_pair("Cache-Control", "no-store"));
+	client.resp.header_fields.insert(std::make_pair("Cache-Control", "no-store"));
 	// resp.header_fields.insert(std::make_pair("Cache-Control", "max-age=10"));
 
-	resp.header_fields.insert(std::make_pair("Connection", "close"));
+	client.resp.header_fields.insert(std::make_pair("Connection", "close"));
 }
 
-bool	ServerBloc::sendResponse(Socket & client)
+bool	ServerBloc::sendResponse(Client & client)
 {
-	if (!resp.isComplete)
+	if (!client.resp.isComplete)
 	{
-		_addHeaderFields();	/* Add the right header fields */
-		resp.concatenateResponse();	/* Fill response msg */
+		_addHeaderFields(client);	/* Add the right header fields */
+		client.resp.concatenateResponse();	/* Fill response msg */
 	}
-	if (resp.sendMsg(client.fd, resp.msg) == true)
+	// COUT << "Sending to Client|" << client.request_no << "|\n";
+	if (client.resp.sendResptoClient(client) == true)
 	{
 		// COUT << "Cleaning now\n";
-		resp.cleanResponse();
+		client.resp.cleanResponse();
 		return (true);
 	}
 	return (false);

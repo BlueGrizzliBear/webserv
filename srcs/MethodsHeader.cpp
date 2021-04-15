@@ -14,33 +14,33 @@ void	Methods::_PutHeaderStatusCode(void)
 	if (!_fileExist(_path))
 	{
 		/* Fill Status Line */
-		serv->resp.status_code = "201";
-		serv->resp.reason_phrase = "Created";
+		client->resp.status_code = "201";
+		client->resp.reason_phrase = "Created";
 		/* Add Header Content-Location pointing to the path of newly created file */
-		serv->resp.header_fields.insert(std::make_pair("Content-Location", serv->req.uri));
+		client->resp.header_fields.insert(std::make_pair("Content-Location", client->req.uri));
 	}
 	else
 	{
-		if (serv->req.body.empty())
+		if (client->req.body.empty())
 		{
 			/* Fill Status Line */
-			serv->resp.status_code = "204";
-			serv->resp.reason_phrase = "No Content";
-			serv->resp.header_fields.insert(std::make_pair("Content-Location", serv->req.uri));
+			client->resp.status_code = "204";
+			client->resp.reason_phrase = "No Content";
+			client->resp.header_fields.insert(std::make_pair("Content-Location", client->req.uri));
 		}
 		else
 		{
 			/* Fill Status Line */
-			serv->resp.status_code = "200";
-			serv->resp.reason_phrase = "OK";
+			client->resp.status_code = "200";
+			client->resp.reason_phrase = "OK";
 		}
 	}
 }
 
 void	Methods::_GetHeaderStatusCode(void)
 {
-	serv->resp.status_code = "200";
-	serv->resp.reason_phrase = "OK";
+	client->resp.status_code = "200";
+	client->resp.reason_phrase = "OK";
 }
 
 struct tm	*Methods::_getFileTime(void)
@@ -60,7 +60,7 @@ void	Methods::_lastModifiedHeader(struct tm * timeinfo)
 	if (timeinfo)
 	{
 		strftime(date, 30, "%a, %d %b %Y %H:%M:%S GMT", timeinfo);
-			serv->resp.header_fields.insert(std::make_pair("Last-Modified", date));
+			client->resp.header_fields.insert(std::make_pair("Last-Modified", date));
 	}
 }
 
@@ -69,8 +69,8 @@ struct tm *	Methods::_getHeaderIfUnmodifiedSinceTime(void)
 	std::string		date;
 	struct tm		*timeinfo = NULL;
 
-	if (serv->req.headers.find("If-Unmodified-Since") != serv->req.headers.end())
-		date = serv->req.headers.find("If-Unmodified-Since")->second;
+	if (client->req.headers.find("If-Unmodified-Since") != client->req.headers.end())
+		date = client->req.headers.find("If-Unmodified-Since")->second;
 	else
 		return timeinfo;
 	strptime(date.c_str(), "%a, %d %b %Y %H:%M:%S GMT", timeinfo);

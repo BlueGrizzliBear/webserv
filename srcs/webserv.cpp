@@ -18,21 +18,21 @@ void	displayError(const char * main_err, const char * err)
 // 	exit(EXIT_FAILURE);
 // }
 
-bool	parseClientRequest(ServerBloc & server, Socket & client)
+bool	parseClientRequest(ServerBloc & server, Client & client)
 {
 	try
 	{
 		/* Read Client Request with recv */
 		if (server.readClient(client))
 		{
-			if (client.clientClosed)
-				return (true);
 			// std::cerr << "Displaying header|" << GREEN;
-			// for (size_t i = 0; i != server.req.getData().find("\r\n\r\n") + 4; i++)
-			// 	std::cerr << server.req.getData()[i];
+			// std::cerr << client.req.getData().substr(0, client.req.getData().find("\r\n\r\n") + 4);
 			// std::cerr << RESET << "|" << std::endl;
 
 			// std::cerr << "Displaying all data|" << GREEN << server.req.getData() << RESET << "|" << std::endl;
+
+			if (client.clientClosed)
+				return (true);
 
 			/* Parse Client Request first */
 			if (server.processRequest(client))
@@ -43,25 +43,16 @@ bool	parseClientRequest(ServerBloc & server, Socket & client)
 	{
 		/* Catching exception from parsing request or execute request */
 		std::cerr << RED << e.what() << RESET << std::endl; // Display Exception what() for debug
-		server.parseException(e.what());
+		server.parseException(client, e.what());
 		return (true);	/* send true to execute the error msg to Response */
 	}
 	return (false);
 }
 
-bool	parseServerResponse(ServerBloc & server, Socket & client)
+bool	parseServerResponse(ServerBloc & server, Client & client)
 {
 	if (server.sendResponse(client))
 		return (true);
-	// try
-	// {
-	// 	if (server.sendResponse(client))
-	// 		return (true);
-	// }
-	// catch(const std::exception& e)
-	// {
-	// 	std::cerr << RED << e.what() << RESET << '\n';
-	// }
 	return (false);
 }
 
@@ -105,6 +96,11 @@ void	displayDebug(const char * str, int request_no)
 		yes = (mystatic != 6) ? 1 : 0;
 		mystatic = 6;
 	}
+	else if (!strcmp(str, "Read or Write"))
+	{
+		yes = (mystatic != 7) ? 1 : 0;
+		mystatic = 7;
+	}
 
 	if (yes == 1)
 		CERR << str << ENDL;
@@ -119,15 +115,10 @@ int	getMaxFd(ServerBloc & server)
 {
 	int result = server.serv_port.fd;
 
-	for (std::list<Socket>::iterator it = server.clientList.begin(); it != server.clientList.end(); ++it)
+	for (std::list<Client>::iterator it = server.clientList.begin(); it != server.clientList.end(); ++it)
 	{
-		// if (!(it->finishedReading && it->finishedWriting))
-		// {
-		// 	if (result < it->fd)
-		// 		result = it->fd;
-		// }
-		if (result < it->fd)
-			result = it->fd;
+		if (it->socket.fd > result)
+			result = it->socket.fd;
 	}
 	return (result);
 }
@@ -135,8 +126,7 @@ int	getMaxFd(ServerBloc & server)
 int	launchServer(ServerBloc & server)
 {
 	static int i = 0;
-	// static float t = 0.;
-
+	
 	/* Setting time-out */
 	server.serv_select.timeout.tv_sec = 1;
 	server.serv_select.timeout.tv_usec = 0;
@@ -148,38 +138,23 @@ int	launchServer(ServerBloc & server)
 
 		FD_SET(STDIN_FILENO, &server.serv_select.readfds);
 		FD_SET(server.serv_port.fd, &server.serv_select.readfds);
+		server.serv_select.fd_max = server.serv_port.fd;
 
-		for (std::list<Socket>::iterator it = server.clientList.begin(); it != server.clientList.end(); it++)
+		for (std::list<Client>::iterator it = server.clientList.begin(); it != server.clientList.end(); it++)
 		{
 			if (it->finishedReading)
-			{
-				// COUT << "Lets write\n";
-				// if (!it->finishedWriting)
-				// 	FD_SET(it->fd, &server.serv_select.writefds);
-				FD_SET(it->fd, &server.serv_select.writefds);
-			}
+				FD_SET(it->socket.fd, &server.serv_select.writefds);
 			else
-			{
-				// COUT << "Lets read\n";
-				FD_SET(it->fd, &server.serv_select.readfds);
-			}
+				FD_SET(it->socket.fd, &server.serv_select.readfds);
+			if (server.serv_select.fd_max < it->socket.fd)
+				server.serv_select.fd_max = it->socket.fd;
 		}
-		server.serv_select.fd_max = getMaxFd(server);
 
 		switch (select(server.serv_select.fd_max + 1, &server.serv_select.readfds, &server.serv_select.writefds, NULL, &server.serv_select.timeout))
 		{
 			case 0:
 			{
 				displayDebug("Time Out", -1);
-
-				// for (std::list<Socket>::iterator it = server.clientList.begin(); it != server.clientList.end(); ++it)
-				// {
-				// 	if (it->finishedReading && it->finishedWriting)
-				// 	{
-				// 		close(it->fd);
-				// 		server.clientList.erase(it);
-				// 	}
-				// }
 				break ;
 			}
 			case -1:
@@ -196,85 +171,60 @@ int	launchServer(ServerBloc & server)
 					FD_ZERO(&server.serv_select.readfds);
 					FD_ZERO(&server.serv_select.writefds);
 					FD_ZERO(&server.serv_select.exceptfds);
-					for (std::list<Socket>::iterator it = server.clientList.begin(); it != server.clientList.end(); ++it)
-						close (it->fd);
+					for (std::list<Client>::iterator it = server.clientList.begin(); it != server.clientList.end(); ++it)
+						close (it->socket.fd);
 					close(server.serv_port.fd);
-					server.getParent()->abortServers("Aborting", "");
-					// while (1);
+					// server.getParent()->abortServers("Aborting", "");
 					exit(EXIT_SUCCESS);
 				}
 	/* NEW */	else if (FD_ISSET(server.serv_port.fd, &server.serv_select.readfds))
 				{
-					COUT << GREEN << "Request #" << i++ << RESET << ENDL;
+					COUT << GREEN << "Request #" << ++i << RESET << ENDL;
 					// displayDebug("New", i);
 
 					/* Opening socket for new client */
-					Socket new_client;
+					Client new_client;
 
-					new_client.request_no = i;
-					new_client.fd = accept(server.serv_port.fd, reinterpret_cast<struct sockaddr *>(&new_client.address), reinterpret_cast<socklen_t *>(&new_client.addrlen));
-					if (new_client.fd == -1)
+					// new_client.request_no = i;
+					new_client.socket.fd = accept(server.serv_port.fd, reinterpret_cast<struct sockaddr *>(&new_client.socket.address), reinterpret_cast<socklen_t *>(&new_client.socket.addrlen));
+					if (new_client.socket.fd == -1)
 					{
 						displayError("Error in accept()", strerror(errno));
 						break ;
 					}
-					fcntl(new_client.fd, F_SETFL, O_NONBLOCK);	/* Set the socket to non blocking */
-
-					// gettimeofday(&new_client.mytime1, NULL); // to display the time consumption of request
+					fcntl(new_client.socket.fd, F_SETFL, O_NONBLOCK);	/* Set the socket to non blocking */
 
 					new_client.finishedReading = 0;
-					// new_client.finishedWriting = 0;
 
 					server.clientList.push_back(new_client);
-					// COUT << "clientList.size()|" << server.clientList.size() << "|\n";
-
-					// if (i == 96)
-					// 	gettimeofday(&new_client.mytime1, NULL); // to display the time consumption of request
 				}
  /* R OR W */	else if (!server.clientList.empty())
 				{
-					// displayDebug("Read or Write");
-					for (std::list<Socket>::iterator it = server.clientList.begin(); it != server.clientList.end(); ++it)
+					for (std::list<Client>::iterator it = server.clientList.begin(); it != server.clientList.end(); it++)
 					{
-			/* READ */	if (FD_ISSET(it->fd, &server.serv_select.readfds))
+			/* READ */	if (FD_ISSET(it->socket.fd, &server.serv_select.readfds))
 						{
 							// displayDebug("Reading", it->request_no);
 							if (parseClientRequest(server, *it))	/* Parsing Client Request */
 							{
 								if (it->clientClosed)
 								{
-									COUT << "Closing prematurely Client\n";
-									// COUT << "clientList.size()|" << server.clientList.size() << "|\n";
-									close(it->fd);
-									server.clientList.erase(it);
-									server.req.clear();
-									break;
+									COUT << MAGENTA << "Closing prematurely Client" << RESET << ENDL;
+									close(it->socket.fd);
+									server.clientList.erase(it--);
 								}
-								it->finishedReading = 1;
+								else
+									it->finishedReading = 1;
 							}
 							break;
 						}
-			/* WRITE */	else if (FD_ISSET(it->fd, &server.serv_select.writefds))
+			/* WRITE */	else if (FD_ISSET(it->socket.fd, &server.serv_select.writefds))
 						{
 							// displayDebug("Writing", it->request_no);
 							if (parseServerResponse(server, *it))	/* Parsing Server Response */
 							{
-								it->finishedWriting = true;
-
-								// if (i > 96)
-								// {
-								// 	gettimeofday(&it->mytime2, NULL);
-								// 	if (t < static_cast<float>((it->mytime2.tv_sec - it->mytime1.tv_sec) * 1000 + ((it->mytime2.tv_usec - it->mytime1.tv_usec) / 1000)))
-								// 	{
-								// 		t = static_cast<float>((it->mytime2.tv_sec - it->mytime1.tv_sec) * 1000 + ((it->mytime2.tv_usec - it->mytime1.tv_usec) / 1000));
-								// 		COUT << RED << "Time elapsed: " << t << " ms." << RESET << ENDL;
-								// 	}
-								// }
-								
-								close(it->fd);
-								std::list<Socket>::iterator other_it = it;
-								server.clientList.erase(other_it);
-								// COUT << "clientList.size() ?|" << server.clientList.size() << "|\n";
+								close(it->socket.fd);
+								server.clientList.erase(it--);
 							}
 							break;
 						}
@@ -293,20 +243,6 @@ int	launchServer(ServerBloc & server)
 int	initServer(ServerBloc & server)
 {
 	launchServer(server);
-
-	/* Fork() the program for each server bloc */
-	// if ((server.pid = fork()) == -1)
-	// 	server.getParent()->abortServers("Error in fork()", strerror(errno));
-	// /* Child program */
-	// else if (server.pid == 0)
-	// {
-	// 	CME << "Launching Server #" << server.getNo() <<  ". . ." << EME;
-	// 	launchServer(server);
-	// }
-	/* Parent program */
-	// else
-	// {
-	// }
 	return (0);
 }
 
@@ -318,22 +254,14 @@ int main(int argc, char const ** argv, char const ** envp)
 		try
 		{
 			std::string path = (argc == 1 ? "./configuration/default.conf" : argv[1]);
-			ConfigParser	config(path.c_str());
+			ConfigParser	config(path.c_str(), envp);
 			CME << "Parsing Complete !" << EME;
-			config.envp = envp;
 			// config.display_config();
 
 			CME << "Launching All Servers . . ." << EME;
-			// unsigned long size = config.getServers().size();
+
 			std::for_each(config.getServers().begin(), config.getServers().end(), initServer);
 
-			// while (size-- > 0)
-			// {
-			// 	CME << "Waiting for Servers . . ." << EME;
-			// 	waitpid(-1, &config.getStatus(), 0);
-			// 	CME << "One server came back . . ." << EME;
-			// 	CME << "Status of return|" << config.getStatus() << "|" << EME;
-			// }
 			CME << "All servers came back . . ." << EME;
 		}
 		catch(const std::exception& e)

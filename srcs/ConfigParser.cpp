@@ -5,7 +5,7 @@
 ConfigParser::ConfigParser() {}
 
 /*	argument	(2)	*/
-ConfigParser::ConfigParser(const char * path) : _path(path), _line_no(0), _count(0), _bracket(0), _status(0)
+ConfigParser::ConfigParser(const char * path, char const ** envp) : _path(path), _line_no(0), _count(0), _bracket(0), _envp(envp)
 {
 	_try_open_file(path);	/* Parse the .conf file to create de server objects */
 
@@ -13,7 +13,7 @@ ConfigParser::ConfigParser(const char * path) : _path(path), _line_no(0), _count
 }
 
 /*	copy		(3)	*/
-ConfigParser::ConfigParser(ConfigParser const & cpy)
+ConfigParser::ConfigParser(ConfigParser const & cpy) : _envp(cpy._envp)
 {
 	*this = cpy;
 }
@@ -33,7 +33,6 @@ ConfigParser &ConfigParser::operator=(ConfigParser const & rhs)
 	_main_dir = rhs._main_dir;
 	_servers = rhs._servers;
 
-	_status = rhs._status;
 	return (*this);
 }
 
@@ -48,9 +47,9 @@ ConfigParser::Directives &	ConfigParser::getMainDirs(void)
 	return (_main_dir);
 }
 
-int &	ConfigParser::getStatus(void)
+const char **	ConfigParser::getEnvp(void)
 {
-	return (_status);
+	return (_envp);
 }
 
 ServerDictionary &	ConfigParser::getDictionary(void)
@@ -144,7 +143,6 @@ void	ConfigParser::_try_open_file(const char * path)
 {
 	struct stat	file_stat;
 	std::string config(path);
-	errno = 0;
 
 	if (stat(path, &file_stat))
 		throw FileAccess();

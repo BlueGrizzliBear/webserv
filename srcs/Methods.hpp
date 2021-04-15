@@ -8,6 +8,7 @@
 # include "./Response.hpp"
 
 class ServerBloc;
+struct Client;
 
 /* ServerBloc Class Declaration */
 class Methods
@@ -20,7 +21,7 @@ class Methods
 	/* Constructor */
 	public:
 		/*	default		(1)	*/	Methods(void);
-		/*	parent		(2)	*/	Methods(ServerBloc & server, std::string const & code = "", std::string const & phrase = "");
+		/*	parent		(2)	*/	Methods(ServerBloc & server, Client & client, std::string const & code = "", std::string const & phrase = "");
 		/*	copy		(3)	*/	Methods(Methods const & cpy);
 
 	/* Destructor */
@@ -127,6 +128,8 @@ class Methods
 		std::string	_readFileToStr(void);
 
 	/* MethodsCGI.cpp */
+
+
 		void		_launchCGI(void);
 
 		void 		_createEnvpMap(void);
@@ -139,17 +142,19 @@ class Methods
 
 		void		_communicateWithCGI(int fd_in, int fd_out, pid_t pid);
 
+		bool		_writeReqtoCGI(int & fd_out);
+		bool		_readCGItoResp(int & fd_in);
+
 		/* Utitilies */
 		bool		_str_is(std::string str, int func(int));
 
-		bool		_parseHeaderField(std::string & receivedMessage);
-		bool		_parseBody(std::string & receivedMessage);
-
-		void		_parseCGIResponse(std::string & receivedMessage);
+		void		_parseCGIResponse(void);
+		bool		_parseHeaderField(void);
 
 	/* Member Attributes */
 	public:
 		ServerBloc	* serv;
+		Client		* client;
 
 	private:
 		/* Method Utilities */
@@ -166,6 +171,9 @@ class Methods
 
 		std::map<std::string, std::string, ci_less>	_envp;
 		std::vector<std::string>					_argv;
+
+		size_t	_writtenBytes;
+		std::string _receivedMessage;
 
 };
 

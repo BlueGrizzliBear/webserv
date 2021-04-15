@@ -66,13 +66,6 @@ struct Socket
 	int					fd;
 	struct sockaddr_in	address;
 	int					addrlen;
-	bool				finishedReading;
-	bool				clientClosed;
-	bool				finishedWriting;
-	struct timeval 		mytime1;
-	struct timeval 		mytime2;
-	struct timeval 		mytime3;
-	int 				request_no;
 };
 
 struct ci_less : std::binary_function < std::string, std::string, bool >
