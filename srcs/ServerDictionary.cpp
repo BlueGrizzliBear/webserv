@@ -179,9 +179,9 @@ void	ServerDictionary::_createDic(std::map< std::string, std::string, Compare > 
 
 void	ServerDictionary::_parseMimeTypes(void)
 {
-	std::string							mime_value;
-	std::string							mime_key;
-	std::string							line;
+	std::string		mime_value;
+	std::string		mime_key;
+	std::string		line;
 
 	std::ifstream	file("./configuration/mime.types");
 	if (file.good())
@@ -189,15 +189,15 @@ void	ServerDictionary::_parseMimeTypes(void)
 		while (getline(file, line))
 		{
 			std::string::iterator	it = line.begin();
-			for ( ; it != line.end() && isspace(*it) == false; ++it)
+			for ( ; it != line.end() && *it != ' ' && *it != '\t'; ++it)
 				mime_value += *it;
-			while (it != line.end() && isspace(*it) == true)
+			while (it != line.end() && *it == ' ' && *it == '\t')
 				++it;
 			for ( ; it != line.end(); ++it)
 			{
-				for ( ; it != line.end() && isspace(*it) == false && *it != ';'; ++it)
+				for ( ; it != line.end() && *it != ' ' && *it != '\t' && *it != ';'; ++it)
 					mime_key += *it;
-				if (mime_value.empty() == false)
+				if (mime_value.empty() == false && mime_key.empty() == false)
 					mimeDic.insert(std::make_pair(mime_key, mime_value));
 				mime_key.clear();
 			}
@@ -205,8 +205,4 @@ void	ServerDictionary::_parseMimeTypes(void)
 			mime_value.clear();
 		}
 	}
-
-	/* to optimise if necessary */
-	// for (std::map<std::string, std::string, ci_less>::iterator it = mimeDic.begin(); it != mimeDic.end(); ++it)
-	// 	COUT << "mime_key:|" << (*it).first << "|" << ", mime_value:|" << (*it).second << "|" << ENDL;
 }
