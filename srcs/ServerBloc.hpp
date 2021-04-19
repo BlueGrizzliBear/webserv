@@ -18,7 +18,6 @@ struct Client
 
 	bool				finishedReading;
 	bool				clientClosed;
-
 	// int 				request_no;
 };
 
@@ -120,6 +119,8 @@ class ServerBloc
 		/* Attributes from initialization */
 		unsigned short	port_no;
 		bool			is_default;
+		bool			is_unique;
+
 		Socket			serv_port;
 		Select			serv_select;
 

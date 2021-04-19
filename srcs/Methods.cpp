@@ -256,6 +256,8 @@ void	Methods::_executeGetReq(void)
 			throw ServerBloc::Forbidden();
 		if (_fileExist(_path) == false)
 			throw ServerBloc::NotFound();
+		else
+			client->resp.header_fields.insert(std::make_pair("Content-Location", _path));
 	}
 	// COUT << "_path|" << _path << "|" << ENDL;
 }

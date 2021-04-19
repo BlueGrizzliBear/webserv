@@ -108,8 +108,10 @@ class ConfigParser
 		void	_verify_uniqueness(ServerBloc & serv, std::string str);
 		void	_verify_serverbloc(ServerBloc & serv);
 
+		void	_setPortNo(void);
+		void	_initDefaultServer(ServerBloc & serv);
 		void	_initPort(ServerBloc & serv);
-		// void	_initLocationPath(ServerBloc & serv);
+		void	_setNonDefaultServers(void);
 		void	_initServers(void);
 
 	// public:

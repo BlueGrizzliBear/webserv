@@ -386,15 +386,9 @@ bool	Request::parseBody(void) throw(BadRequest)
 			errno = 0;
 			throw BadRequest();
 		}
-		// COUT << "size|" << size << "|\n";
-		// COUT << "_req.size|" << _req.size() << "|\n";
-		// COUT << "_pos|" << _pos << "|\n";
 		if (size > _req.size() - _pos)
 			return (false);
-		// COUT << "BEFORE body.size|" << body.size() << "|\n";
 		body.append(_req, _pos, size - _pos);
-		// COUT << "AFTER body.size|" << body.size() << "|\n";
-
 		// COUT << "Content-Length: BODY IS COMPLETE" << ENDL;
 		return (true);
 	}

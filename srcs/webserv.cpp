@@ -127,110 +127,113 @@ int	getMaxFd(ServerBloc & server)
 
 void	selectServer(ServerBloc & server)
 {
-	// COUT << "Server #" << server.getNo() << ENDL;
-	server.serv_select.timeout.tv_sec = 1;
-	server.serv_select.timeout.tv_usec = 0;
-
-	FD_ZERO(&server.serv_select.readfds);
-	FD_ZERO(&server.serv_select.writefds);
-
-	FD_SET(STDIN_FILENO, &server.serv_select.readfds);
-	FD_SET(server.serv_port.fd, &server.serv_select.readfds);
-	server.serv_select.fd_max = server.serv_port.fd;
-
-	for (std::list<Client>::iterator it = server.clientList.begin(); it != server.clientList.end(); it++)
+	if (server.is_default)
 	{
-		if (it->finishedReading)
-			FD_SET(it->socket.fd, &server.serv_select.writefds);
-		else
-			FD_SET(it->socket.fd, &server.serv_select.readfds);
-		if (server.serv_select.fd_max < it->socket.fd)
-			server.serv_select.fd_max = it->socket.fd;
-	}
+		// COUT << "Server #" << server.getNo() << ENDL;
+		server.serv_select.timeout.tv_sec = 0;
+		server.serv_select.timeout.tv_usec = 0;
 
-	switch (select(server.serv_select.fd_max + 1, &server.serv_select.readfds, &server.serv_select.writefds, NULL, &server.serv_select.timeout))
-	{
-		case 0:
+		FD_ZERO(&server.serv_select.readfds);
+		FD_ZERO(&server.serv_select.writefds);
+
+		FD_SET(STDIN_FILENO, &server.serv_select.readfds);
+		FD_SET(server.serv_port.fd, &server.serv_select.readfds);
+		server.serv_select.fd_max = server.serv_port.fd;
+
+		for (std::list<Client>::iterator it = server.clientList.begin(); it != server.clientList.end(); it++)
 		{
-			// displayDebug("Time Out", -1);
-			break ;
+			if (it->finishedReading)
+				FD_SET(it->socket.fd, &server.serv_select.writefds);
+			else
+				FD_SET(it->socket.fd, &server.serv_select.readfds);
+			if (server.serv_select.fd_max < it->socket.fd)
+				server.serv_select.fd_max = it->socket.fd;
 		}
-		case -1:
+
+		switch (select(server.serv_select.fd_max + 1, &server.serv_select.readfds, &server.serv_select.writefds, NULL, &server.serv_select.timeout))
 		{
-			displayError("Error in Select()", strerror(errno));
-			break ;
-		}
-		default:
-		{
-			/* Keyboard was pressed, exiting server properly */
-/* STOP */	if (FD_ISSET(STDIN_FILENO, &server.serv_select.readfds))
+			case 0:
 			{
-				COUT << "Keyboard was pressed, exiting server properly\n";
-				FD_ZERO(&server.serv_select.readfds);
-				FD_ZERO(&server.serv_select.writefds);
-				FD_ZERO(&server.serv_select.exceptfds);
-				for (std::list<Client>::iterator it = server.clientList.begin(); it != server.clientList.end(); ++it)
-					close (it->socket.fd);
-				close(server.serv_port.fd);
-				// server.getParent()->abortServers("Aborting", "");
-				exit(EXIT_SUCCESS);
+				// displayDebug("Time Out", -1);
+				break ;
 			}
-/* NEW */	else if (FD_ISSET(server.serv_port.fd, &server.serv_select.readfds))
+			case -1:
 			{
-				static int i = 0;
-				COUT << GREEN << "Request #" << ++i << RESET << ENDL;
-				// displayDebug("New", i);
-
-				/* Opening socket for new client */
-				Client new_client;
-
-				// new_client.request_no = i;
-				new_client.socket.fd = accept(server.serv_port.fd, reinterpret_cast<struct sockaddr *>(&new_client.socket.address), reinterpret_cast<socklen_t *>(&new_client.socket.addrlen));
-				if (new_client.socket.fd == -1)
+				displayError("Error in Select()", strerror(errno));
+				break ;
+			}
+			default:
+			{
+				/* Keyboard was pressed, exiting server properly */
+	/* STOP */	if (FD_ISSET(STDIN_FILENO, &server.serv_select.readfds))
 				{
-					displayError("Error in accept()", strerror(errno));
-					break ;
+					COUT << "Keyboard was pressed, exiting server properly\n";
+					FD_ZERO(&server.serv_select.readfds);
+					FD_ZERO(&server.serv_select.writefds);
+					FD_ZERO(&server.serv_select.exceptfds);
+					for (std::list<Client>::iterator it = server.clientList.begin(); it != server.clientList.end(); ++it)
+						close (it->socket.fd);
+					close(server.serv_port.fd);
+					// server.getParent()->abortServers("Aborting", "");
+					exit(EXIT_SUCCESS);
 				}
-				fcntl(new_client.socket.fd, F_SETFL, O_NONBLOCK);	/* Set the socket to non blocking */
-
-				new_client.finishedReading = 0;
-				new_client.clientClosed = 0;
-
-				server.clientList.push_back(new_client);
-			}
-/* R | W */	else if (!server.clientList.empty())
-			{
-				for (std::list<Client>::iterator it = server.clientList.begin(); it != server.clientList.end(); it++)
+	/* NEW */	else if (FD_ISSET(server.serv_port.fd, &server.serv_select.readfds))
 				{
-		/* READ */	if (FD_ISSET(it->socket.fd, &server.serv_select.readfds))
+					static int i = 0;
+					COUT << GREEN << "Request #" << ++i << RESET << ENDL;
+					// displayDebug("New", i);
+
+					/* Opening socket for new client */
+					Client new_client;
+
+					// new_client.request_no = i;
+					new_client.socket.fd = accept(server.serv_port.fd, reinterpret_cast<struct sockaddr *>(&new_client.socket.address), reinterpret_cast<socklen_t *>(&new_client.socket.addrlen));
+					if (new_client.socket.fd == -1)
 					{
-						// displayDebug("Reading", it->request_no);
-						if (parseClientRequest(server, *it))	/* Parsing Client Request */
+						displayError("Error in accept()", strerror(errno));
+						break ;
+					}
+					fcntl(new_client.socket.fd, F_SETFL, O_NONBLOCK);	/* Set the socket to non blocking */
+
+					new_client.finishedReading = 0;
+					new_client.clientClosed = 0;
+
+					server.clientList.push_back(new_client);
+				}
+	/* R | W */	else if (!server.clientList.empty())
+				{
+					for (std::list<Client>::iterator it = server.clientList.begin(); it != server.clientList.end(); it++)
+					{
+			/* READ */	if (FD_ISSET(it->socket.fd, &server.serv_select.readfds))
 						{
-							if (it->clientClosed)
+							// displayDebug("Reading", it->request_no);
+							if (parseClientRequest(server, *it))	/* Parsing Client Request */
 							{
-								COUT << MAGENTA << "Closing prematurely Client" << RESET << ENDL;
+								if (it->clientClosed)
+								{
+									COUT << MAGENTA << "Closing prematurely Client" << RESET << ENDL;
+									close(it->socket.fd);
+									server.clientList.erase(it--);
+								}
+								else
+									it->finishedReading = 1;
+							}
+							break;
+						}
+			/* WRITE */	else if (FD_ISSET(it->socket.fd, &server.serv_select.writefds))
+						{
+							// displayDebug("Writing", it->request_no);
+							if (parseServerResponse(server, *it))	/* Parsing Server Response */
+							{
 								close(it->socket.fd);
 								server.clientList.erase(it--);
 							}
-							else
-								it->finishedReading = 1;
+							break;
 						}
-						break;
-					}
-		/* WRITE */	else if (FD_ISSET(it->socket.fd, &server.serv_select.writefds))
-					{
-						// displayDebug("Writing", it->request_no);
-						if (parseServerResponse(server, *it))	/* Parsing Server Response */
-						{
-							close(it->socket.fd);
-							server.clientList.erase(it--);
-						}
-						break;
 					}
 				}
+				break ;
 			}
-			break ;
 		}
 	}
 }

@@ -409,7 +409,7 @@ bool	ConfigParser::_str_is_digit(std::string const & str)
 
 int		ConfigParser::_check_directive(std::string & key, std::vector<std::string> & values)
 {
-	static size_t default_server = 0;
+	// static size_t default_server = 0;
 	/* Check it has at least 1 argument */
 	if (key.empty())
 		return (1);
@@ -422,22 +422,21 @@ int		ConfigParser::_check_directive(std::string & key, std::vector<std::string> 
 		if (!_str_is_digit(values[0]))
 			return (1);
 		/* Check if 2nd argument is 'default_server' */
-		if (values.size() == 2)
-		{
-			if (default_server || values[1] != "default_server")
-				return (1);
-			default_server++;
-		}
+		// if (values.size() == 2)
+		// {
+		// 	if (default_server || values[1] != "default_server")
+		// 		return (1);
+		// 	default_server++;
+		// }
 		/* Check is port already exists in another server bloc */
-		std::vector<ServerBloc>::iterator it_base = _servers.begin();
-		std::vector<ServerBloc>::iterator ite_base = _servers.end();
-
-		while (it_base != ite_base)
-		{
-			if ((*it_base).dir.find(key)->second == values)
-				return (1);
-			it_base++;
-		}
+		// std::vector<ServerBloc>::iterator it_base = _servers.begin();
+		// std::vector<ServerBloc>::iterator ite_base = _servers.end();
+		// while (it_base != ite_base)
+		// {
+		// 	if ((*it_base).dir.find(key)->second == values)
+		// 		return (1);
+		// 	it_base++;
+		// }
 	}
 	// else if (key[0] == "server_name")
 	// {
@@ -487,6 +486,7 @@ void	ConfigParser::_verify_serverbloc(ServerBloc & serv)
 {
 	_verify_uniqueness(serv, "listen");
 	_verify_uniqueness(serv, "root");
+	_verify_uniqueness(serv, "server_name");
 }
 
 void	ConfigParser::abortServers(const char * main_err, const char * err)
@@ -507,6 +507,38 @@ void	ConfigParser::abortServers(const char * main_err, const char * err)
 
 void	ConfigParser::_initPort(ServerBloc & serv)
 {
+	if (serv.is_default)
+	{
+		/* Creating socket file descriptor */
+		if ((serv.serv_port.fd = socket(AF_INET, SOCK_STREAM, 0)) == 0)		/* AF_INET: Protocoles Internet IPv4	|	SOCK_STREAM: Virtual Circuit Service */
+			abortServers("Error in socket()", strerror(errno));
+
+		/* Set the socket to non blocking */
+		fcntl(serv.serv_port.fd, F_SETFL, O_NONBLOCK);
+
+		/* Defining address struct */
+		serv.serv_port.address.sin_family = AF_INET;						/* corresponding to IPv4 protocols */
+		serv.serv_port.address.sin_addr.s_addr = htonl(INADDR_ANY);			/* corresponding to 0.0.0.0 */
+		serv.serv_port.address.sin_port = htons(serv.port_no);	/* corresponding to the server port, must be > 1024 */
+
+		/* Defining address length */
+		serv.serv_port.addrlen = sizeof(serv.serv_port.address);
+
+		/* Initialising other adress attributes to 0 */
+		memset(serv.serv_port.address.sin_zero, '\0', sizeof(serv.serv_port.address.sin_zero));
+
+		/* Assigning adress to the socket */
+		if (bind(serv.serv_port.fd, reinterpret_cast<struct sockaddr *>(&serv.serv_port.address), sizeof(serv.serv_port.address)) < 0)
+			abortServers("Error in bind()", strerror(errno));
+
+		/* Enable socket to accept connections */
+		if (listen(serv.serv_port.fd, MAX_CLIENTS) < 0)
+			abortServers("Error in listen()", strerror(errno));
+	}
+}
+
+void	ConfigParser::_initDefaultServer(ServerBloc & serv)
+{
 	Directives::iterator d_it = serv.dir.begin();
 	Directives::iterator d_ite = serv.dir.end();
 
@@ -514,51 +546,107 @@ void	ConfigParser::_initPort(ServerBloc & serv)
 	{
 		if ((*d_it).first == "listen")
 		{
-			/* Convert port from std::string to unsigned short */
-			serv.port_no = static_cast<unsigned short>(std::atoi((*d_it).second[0].c_str()));
+			/* Check if default_server exists for this port */
+			Servers::iterator s_it = _servers.begin();
+			Servers::iterator s_ite = _servers.end();
+			bool defaultDetected = 0;
+			
+			while (s_it != s_ite)
+			{
+				if (&*s_it != &serv && s_it->port_no == serv.port_no)
+				{
+					serv.is_unique = false;
+					Directives::iterator sd_it = s_it->dir.begin();
+					Directives::iterator sd_ite = s_it->dir.end();
 
-			/* Assigns boolean for default_server */
-			if ((*d_it).second.size() > 1 && (*d_it).second[1] == "default_server")
+					while (sd_it != sd_ite)
+					{
+						if ((*sd_it).first == "listen" && (*sd_it).second.size() > 1 && (*sd_it).second[1] == "default_server")
+						{
+							if (defaultDetected)
+								throw UnexpectedToken();
+							defaultDetected = 1;
+						}
+						sd_it++;
+					}
+				}
+				s_it++;
+			}
+			if (defaultDetected)
+				serv.is_default = 0;
+			else
 				serv.is_default = 1;
-
-			/* Creating socket file descriptor */
-			if ((serv.serv_port.fd = socket(AF_INET, SOCK_STREAM, 0)) == 0)		/* AF_INET: Protocoles Internet IPv4	|	SOCK_STREAM: Virtual Circuit Service */
-				abortServers("Error in socket()", strerror(errno));
-
-			/* Set the socket to non blocking */
-			fcntl(serv.serv_port.fd, F_SETFL, O_NONBLOCK);
-
-			/* Defining address struct */
-			serv.serv_port.address.sin_family = AF_INET;						/* corresponding to IPv4 protocols */
-			serv.serv_port.address.sin_addr.s_addr = htonl(INADDR_ANY);			/* corresponding to 0.0.0.0 */
-			serv.serv_port.address.sin_port = htons(serv.port_no);	/* corresponding to the server port, must be > 1024 */
-
-			/* Defining address length */
-			serv.serv_port.addrlen = sizeof(serv.serv_port.address);
-
-			/* Initialising other adress attributes to 0 */
-			memset(serv.serv_port.address.sin_zero, '\0', sizeof(serv.serv_port.address.sin_zero));
-
-			/* Assigning adress to the socket */
-			if (bind(serv.serv_port.fd, reinterpret_cast<struct sockaddr *>(&serv.serv_port.address), sizeof(serv.serv_port.address)) < 0)
-				abortServers("Error in bind()", strerror(errno));
-
-			/* Enable socket to accept connections */
-			if (listen(serv.serv_port.fd, MAX_CLIENTS) < 0)
-				abortServers("Error in listen()", strerror(errno));
 		}
 		d_it++;
 	}
 }
 
-void	ConfigParser::_initServers(void)
+void	ConfigParser::_setPortNo(void)
 {
 	Servers::iterator s_it = _servers.begin();
 	Servers::iterator s_ite = _servers.end();
 
 	while (s_it != s_ite)
 	{
-		_initPort(*s_it);
+		Directives::iterator d_it = s_it->dir.begin();
+		Directives::iterator d_ite = s_it->dir.end();
+
+		while (d_it != d_ite)
+		{
+			if ((*d_it).first == "listen")
+			{
+				s_it->port_no = static_cast<unsigned short>(std::atoi((*d_it).second[0].c_str()));
+			}
+			d_it++;
+		}
 		s_it++;
 	}
+}
+
+void	ConfigParser::_setNonDefaultServers(void)
+{
+	Servers::iterator s_it = _servers.begin();
+	Servers::iterator s_ite = _servers.end();
+
+	while (s_it != s_ite)
+	{
+		if (!s_it->is_default)
+		{
+			Servers::iterator other_it = _servers.begin();
+			Servers::iterator other_ite = _servers.end();
+
+			while (other_it != other_ite)
+			{
+				if (other_it->is_default && other_it->port_no == s_it->port_no)
+				{
+					// COUT << "socket.fd|" << s_it->serv_port.fd << "|\n";
+					// COUT << "s_addr|" << s_it->serv_port.address.sin_addr.s_addr << "|\n";
+					s_it->serv_port = other_it->serv_port;
+					// COUT << "APRES socket.fd|" << s_it->serv_port.fd << "| et other|" << other_it->serv_port.fd << "|\n";
+					// COUT << "APRES s_addr|" << s_it->serv_port.address.sin_addr.s_addr << "| et other|" << other_it->serv_port.address.sin_addr.s_addr << "|\n";
+					break ;
+				}
+				other_it++;
+			}
+		}
+		s_it++;
+	}
+}
+
+void	ConfigParser::_initServers(void)
+{
+	_setPortNo();
+	
+	Servers::iterator s_it = _servers.begin();
+	Servers::iterator s_ite = _servers.end();
+
+	while (s_it != s_ite)
+	{
+		_initDefaultServer(*s_it);
+		_initPort(*s_it);
+		// COUT << "Server.port #" << s_it->port_no << "| and isdefault|" << s_it->is_default << "|\n";
+		s_it++;
+	}
+
+	_setNonDefaultServers();
 }

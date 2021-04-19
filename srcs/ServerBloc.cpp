@@ -3,15 +3,16 @@
 /* ServerBloc Class Declaration */
 /* Constructor */
 /*	default		(1)	*/
-ServerBloc::ServerBloc(void) : pid(0), _server_no(0), _parent(NULL) {}
+ServerBloc::ServerBloc(void) : port_no(0), is_default(false), is_unique(true), pid(0), _server_no(0), _parent(NULL) {}
 
 /*	default		(1)	*/
-ServerBloc::ServerBloc(ConfigParser * parent) : pid(0), _server_no(0), _parent(parent) {}
+ServerBloc::ServerBloc(ConfigParser * parent) : port_no(0), is_default(false), is_unique(true), pid(0), _server_no(0), _parent(parent) {}
 
 /*	copy		(2)	*/
 ServerBloc::ServerBloc(ServerBloc const & cpy)
 {
 	*this = cpy;
+	COUT << "CONSTRUCTION BY COPY\n";
 }
 
 /* Destructor */
@@ -22,6 +23,10 @@ ServerBloc &	ServerBloc::operator=(ServerBloc const & rhs)
 {
 	dir = rhs.dir;
 	loc = rhs.loc;
+
+	port_no = rhs.port_no;
+	is_default = rhs.is_default;
+	is_unique = rhs.is_unique;
 
 	serv_port = rhs.serv_port;
 	serv_select = rhs.serv_select;
@@ -107,30 +112,54 @@ bool	ServerBloc::processRequest(Client & client)
 	if (client.req.parseBody())
 	{
 		client.finishedReading = 1;
-		// CME << "> Parsed Body: COMPLETE !" << EME;
 
 		/* Cleaning */
-		// COUT << "_req.Capacity()|" << req.getData().capacity() << "|" << ENDL;
 		client.req.getData().clear();			/* Clearing _req buffer */
 		client.req.getData().reserve();
 
 		client.req.headerComplete = false;		/* Reseting bool indicator if header is complete or not */
-		client.req.headerParsed = false;			/* Reseting bool indicator if header is parsed or not */
+		client.req.headerParsed = false;		/* Reseting bool indicator if header is parsed or not */
 
 		// COUT << MAGENTA << "Avant Exec" << RESET << ENDL;
+		ServerBloc * ptr = nullptr;
+		if (!is_unique && client.req.headers.find("Host") != client.req.headers.end())
+		{
+			bool found = 0;
+			std::string server_name = client.req.headers.find("Host")->second.substr(0, client.req.headers.find("Host")->second.rfind(":"));
 
-		// static float t = 0.;
-		// gettimeofday(&client.mytime2, NULL);
-		// t = static_cast<float>((client.mytime2.tv_sec - client.mytime1.tv_sec) * 1000000 + ((client.mytime2.tv_usec - client.mytime1.tv_usec)));
-		// COUT << RED << "PARSE Time elapsed: " << t << " ms." << RESET << ENDL;
+			ConfigParser::Servers::iterator it = getParent()->getServers().begin();
 
-		/* Execute the parsed request */
-		Methods	implementedMethods(*this, client);
+			while (!found && it != getParent()->getServers().end())
+			{
+				if (it->port_no == port_no)
+				{
+					if (!it->is_default && it->dir.find("server_name") != it->dir.end())
+					{
+						std::vector<std::string>::iterator vec_it = it->dir.find("server_name")->second.begin();
+						std::vector<std::string>::iterator vec_ite = it->dir.find("server_name")->second.end();
+
+						while (!found && vec_it != vec_ite)
+						{
+							if (*vec_it == server_name)
+							{
+								ptr = &(*it);
+								found = true;
+							}
+							vec_it++;
+						}
+					}
+					else
+						ptr = &(*it);
+				}
+				it++;
+			}
+		}
+		else
+			ptr = this;
+
+		// /* Execute the parsed request */
+		Methods	implementedMethods(*ptr, client);
 		implementedMethods.execute();
-
-		// gettimeofday(&client.mytime3, NULL);
-		// t = static_cast<float>((client.mytime3.tv_sec - client.mytime2.tv_sec) * 1000000 + ((client.mytime3.tv_usec - client.mytime2.tv_usec)));
-		// COUT << RED << "EXEC Time elapsed: " << t << " ms." << RESET << ENDL;
 
 		// COUT << MAGENTA << "AFter Exec" << RESET << ENDL;
 

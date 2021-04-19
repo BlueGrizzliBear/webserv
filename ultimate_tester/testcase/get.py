@@ -25,9 +25,9 @@ def test_get_dir_autoindex() -> str:
             str(http_response.status), "200"
         )
     body = http_response.read().decode("UTF-8")
-    index = body.find("file.html")
+    index = body.find("html")
     if index == -1:
-        return "Bad auto index: {}, expected: {}".format(str(body), "file.html")
+        return "Bad auto index: {}, expected: {}".format(str(body), "html")
     return ""
 
 
