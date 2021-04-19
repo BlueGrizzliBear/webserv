@@ -38,6 +38,11 @@ std::string &	Request::getData(void)
 	return (_req);
 }
 
+size_t &	Request::getPos(void)
+{
+	return (_pos);
+}
+
 /* Member Functions */
 void	Request::display(void)	/* Display request for debugging purposes */
 {
@@ -365,9 +370,7 @@ bool	Request::parseBody(void) throw(BadRequest)
 			while (_parseChunkedBody(size))
 			{
 				if (size == 0)
-				{
 					return (true);
-				}
 			}
 			return (false);
 		}
@@ -383,10 +386,14 @@ bool	Request::parseBody(void) throw(BadRequest)
 			errno = 0;
 			throw BadRequest();
 		}
+		// COUT << "size|" << size << "|\n";
+		// COUT << "_req.size|" << _req.size() << "|\n";
+		// COUT << "_pos|" << _pos << "|\n";
 		if (size > _req.size() - _pos)
 			return (false);
-		while (size--)
-			body += _req[_pos++];
+		// COUT << "BEFORE body.size|" << body.size() << "|\n";
+		body.append(_req, _pos, size - _pos);
+		// COUT << "AFTER body.size|" << body.size() << "|\n";
 
 		// COUT << "Content-Length: BODY IS COMPLETE" << ENDL;
 		return (true);

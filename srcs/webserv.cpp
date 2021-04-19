@@ -25,11 +25,13 @@ bool	parseClientRequest(ServerBloc & server, Client & client)
 		/* Read Client Request with recv */
 		if (server.readClient(client))
 		{
-			std::cerr << "Displaying header|" << GREEN;
-			std::cerr << client.req.getData().substr(0, client.req.getData().find("\r\n\r\n") + 4);
-			std::cerr << RESET << "|" << std::endl;
+			// std::cerr << "Displaying header|" << GREEN;
+			// std::cerr << client.req.getData().substr(0, client.req.getData().find("\r\n\r\n") + 4);
+			// std::cerr << RESET << "|" << std::endl;
 
 			// std::cerr << "Displaying all data|" << GREEN << client.req.getData() << RESET << "|" << std::endl;
+
+			// std::cerr << "Displaying data.length|" << GREEN << client.req.getData().length() << RESET << "|" << std::endl;
 
 			if (client.clientClosed)
 				return (true);
@@ -123,127 +125,114 @@ int	getMaxFd(ServerBloc & server)
 	return (result);
 }
 
-int	launchServer(ServerBloc & server)
+void	selectServer(ServerBloc & server)
 {
-	static int i = 0;
-
-	/* Setting time-out */
+	// COUT << "Server #" << server.getNo() << ENDL;
 	server.serv_select.timeout.tv_sec = 1;
 	server.serv_select.timeout.tv_usec = 0;
 
-    while (1)
-    {
-		FD_ZERO(&server.serv_select.readfds);
-		FD_ZERO(&server.serv_select.writefds);
+	FD_ZERO(&server.serv_select.readfds);
+	FD_ZERO(&server.serv_select.writefds);
 
-		FD_SET(STDIN_FILENO, &server.serv_select.readfds);
-		FD_SET(server.serv_port.fd, &server.serv_select.readfds);
-		server.serv_select.fd_max = server.serv_port.fd;
+	FD_SET(STDIN_FILENO, &server.serv_select.readfds);
+	FD_SET(server.serv_port.fd, &server.serv_select.readfds);
+	server.serv_select.fd_max = server.serv_port.fd;
 
-		for (std::list<Client>::iterator it = server.clientList.begin(); it != server.clientList.end(); it++)
+	for (std::list<Client>::iterator it = server.clientList.begin(); it != server.clientList.end(); it++)
+	{
+		if (it->finishedReading)
+			FD_SET(it->socket.fd, &server.serv_select.writefds);
+		else
+			FD_SET(it->socket.fd, &server.serv_select.readfds);
+		if (server.serv_select.fd_max < it->socket.fd)
+			server.serv_select.fd_max = it->socket.fd;
+	}
+
+	switch (select(server.serv_select.fd_max + 1, &server.serv_select.readfds, &server.serv_select.writefds, NULL, &server.serv_select.timeout))
+	{
+		case 0:
 		{
-			if (it->finishedReading)
-				FD_SET(it->socket.fd, &server.serv_select.writefds);
-			else
-				FD_SET(it->socket.fd, &server.serv_select.readfds);
-			if (server.serv_select.fd_max < it->socket.fd)
-				server.serv_select.fd_max = it->socket.fd;
+			// displayDebug("Time Out", -1);
+			break ;
 		}
-
-		switch (select(server.serv_select.fd_max + 1, &server.serv_select.readfds, &server.serv_select.writefds, NULL, &server.serv_select.timeout))
+		case -1:
 		{
-			case 0:
+			displayError("Error in Select()", strerror(errno));
+			break ;
+		}
+		default:
+		{
+			/* Keyboard was pressed, exiting server properly */
+/* STOP */	if (FD_ISSET(STDIN_FILENO, &server.serv_select.readfds))
 			{
-				displayDebug("Time Out", -1);
-				break ;
+				COUT << "Keyboard was pressed, exiting server properly\n";
+				FD_ZERO(&server.serv_select.readfds);
+				FD_ZERO(&server.serv_select.writefds);
+				FD_ZERO(&server.serv_select.exceptfds);
+				for (std::list<Client>::iterator it = server.clientList.begin(); it != server.clientList.end(); ++it)
+					close (it->socket.fd);
+				close(server.serv_port.fd);
+				// server.getParent()->abortServers("Aborting", "");
+				exit(EXIT_SUCCESS);
 			}
-			case -1:
+/* NEW */	else if (FD_ISSET(server.serv_port.fd, &server.serv_select.readfds))
 			{
-				displayError("Error in Select()", strerror(errno));
-				break ;
+				static int i = 0;
+				COUT << GREEN << "Request #" << ++i << RESET << ENDL;
+				// displayDebug("New", i);
+
+				/* Opening socket for new client */
+				Client new_client;
+
+				// new_client.request_no = i;
+				new_client.socket.fd = accept(server.serv_port.fd, reinterpret_cast<struct sockaddr *>(&new_client.socket.address), reinterpret_cast<socklen_t *>(&new_client.socket.addrlen));
+				if (new_client.socket.fd == -1)
+				{
+					displayError("Error in accept()", strerror(errno));
+					break ;
+				}
+				fcntl(new_client.socket.fd, F_SETFL, O_NONBLOCK);	/* Set the socket to non blocking */
+
+				new_client.finishedReading = 0;
+				new_client.clientClosed = 0;
+
+				server.clientList.push_back(new_client);
 			}
-			default:
+/* R | W */	else if (!server.clientList.empty())
 			{
-				/* Keyboard was pressed, exiting server properly */
-	/* STOP */	if (FD_ISSET(STDIN_FILENO, &server.serv_select.readfds))
+				for (std::list<Client>::iterator it = server.clientList.begin(); it != server.clientList.end(); it++)
 				{
-					COUT << "Keyboard was pressed, exiting server properly\n";
-					FD_ZERO(&server.serv_select.readfds);
-					FD_ZERO(&server.serv_select.writefds);
-					FD_ZERO(&server.serv_select.exceptfds);
-					for (std::list<Client>::iterator it = server.clientList.begin(); it != server.clientList.end(); ++it)
-						close (it->socket.fd);
-					close(server.serv_port.fd);
-					// server.getParent()->abortServers("Aborting", "");
-					exit(EXIT_SUCCESS);
-				}
-	/* NEW */	else if (FD_ISSET(server.serv_port.fd, &server.serv_select.readfds))
-				{
-					COUT << GREEN << "Request #" << ++i << RESET << ENDL;
-					// displayDebug("New", i);
-
-					/* Opening socket for new client */
-					Client new_client;
-
-					// new_client.request_no = i;
-					new_client.socket.fd = accept(server.serv_port.fd, reinterpret_cast<struct sockaddr *>(&new_client.socket.address), reinterpret_cast<socklen_t *>(&new_client.socket.addrlen));
-					if (new_client.socket.fd == -1)
+		/* READ */	if (FD_ISSET(it->socket.fd, &server.serv_select.readfds))
 					{
-						displayError("Error in accept()", strerror(errno));
-						break ;
-					}
-					fcntl(new_client.socket.fd, F_SETFL, O_NONBLOCK);	/* Set the socket to non blocking */
-
-					new_client.finishedReading = 0;
-
-					server.clientList.push_back(new_client);
-				}
- /* R OR W */	else if (!server.clientList.empty())
-				{
-					for (std::list<Client>::iterator it = server.clientList.begin(); it != server.clientList.end(); it++)
-					{
-			/* READ */	if (FD_ISSET(it->socket.fd, &server.serv_select.readfds))
+						// displayDebug("Reading", it->request_no);
+						if (parseClientRequest(server, *it))	/* Parsing Client Request */
 						{
-							// displayDebug("Reading", it->request_no);
-							if (parseClientRequest(server, *it))	/* Parsing Client Request */
+							if (it->clientClosed)
 							{
-								if (it->clientClosed)
-								{
-									COUT << MAGENTA << "Closing prematurely Client" << RESET << ENDL;
-									close(it->socket.fd);
-									server.clientList.erase(it--);
-								}
-								else
-									it->finishedReading = 1;
-							}
-							break;
-						}
-			/* WRITE */	else if (FD_ISSET(it->socket.fd, &server.serv_select.writefds))
-						{
-							// displayDebug("Writing", it->request_no);
-							if (parseServerResponse(server, *it))	/* Parsing Server Response */
-							{
+								COUT << MAGENTA << "Closing prematurely Client" << RESET << ENDL;
 								close(it->socket.fd);
 								server.clientList.erase(it--);
 							}
-							break;
+							else
+								it->finishedReading = 1;
 						}
+						break;
+					}
+		/* WRITE */	else if (FD_ISSET(it->socket.fd, &server.serv_select.writefds))
+					{
+						// displayDebug("Writing", it->request_no);
+						if (parseServerResponse(server, *it))	/* Parsing Server Response */
+						{
+							close(it->socket.fd);
+							server.clientList.erase(it--);
+						}
+						break;
 					}
 				}
-				else
-					COUT << "WTF\n";
-				break ;
 			}
+			break ;
 		}
-    }
-	CME << "Error in the Server: exiting now" << EME;
-	exit(1);
-}
-
-int	initServer(ServerBloc & server)
-{
-	launchServer(server);
-	return (0);
+	}
 }
 
 int main(int argc, char const ** argv, char const ** envp)
@@ -259,8 +248,8 @@ int main(int argc, char const ** argv, char const ** envp)
 			// config.display_config();
 
 			CME << "Launching All Servers . . ." << EME;
-
-			std::for_each(config.getServers().begin(), config.getServers().end(), initServer);
+			while (1)
+				std::for_each(config.getServers().begin(), config.getServers().end(), selectServer);
 
 			CME << "All servers came back . . ." << EME;
 		}

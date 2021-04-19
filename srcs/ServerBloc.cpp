@@ -102,6 +102,7 @@ bool	ServerBloc::processRequest(Client & client)
 		client.req.headerParsed = true;
 
 		client.req.getData().erase(0, client.req.getData().find("\r\n\r\n") + 4);
+		client.req.getPos() = 0;
 	}
 	if (client.req.parseBody())
 	{

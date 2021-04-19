@@ -71,7 +71,7 @@ def test_double_length() -> str:
 
 
 def test_big_put() -> str:
-    len = 1000000  # 10M
+    len = 100000000  # 10M
     request_header = (
         "PUT /put/long.txt HTTP/1.1\r\nHost:{}\r\nContent-Length: {}\r\n\r\n{}".format(
             config.SERVER_NAME, len, ("X" * len)

@@ -60,8 +60,8 @@ def cleanup() -> None:
     """
     Remove file created by the tester to make sure the test is new every run.
     """
-    os.system("rm -rf ../webserv_group/ulti_tester/tmp/*")
-    os.system("rm -rf ../webserv_group/ulti_tester/long.txt")
+    os.system("rm -rf ./ulti_tester/tmp/*")
+    os.system("rm -rf ./ulti_tester/long.txt")
 
 
 def run_test(test_name: str, test: Callable) -> None:

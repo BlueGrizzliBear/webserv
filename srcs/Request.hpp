@@ -44,6 +44,7 @@ class Request
 
 	/* Gets and Sets */
 		std::string &	getData(void);
+		size_t &		getPos(void);
 
 	/* Member Functions */
 		bool	parseRequestLine(void) throw(NotImplemented, BadRequest, URITooLong);
