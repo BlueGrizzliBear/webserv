@@ -12,7 +12,6 @@ ServerBloc::ServerBloc(ConfigParser * parent) : port_no(0), is_default(false), i
 ServerBloc::ServerBloc(ServerBloc const & cpy)
 {
 	*this = cpy;
-	COUT << "CONSTRUCTION BY COPY\n";
 }
 
 /* Destructor */
@@ -121,6 +120,7 @@ bool	ServerBloc::processRequest(Client & client)
 		client.req.headerParsed = false;		/* Reseting bool indicator if header is parsed or not */
 
 		// COUT << MAGENTA << "Avant Exec" << RESET << ENDL;
+		
 		ServerBloc * ptr = nullptr;
 		if (!is_unique && client.req.headers.find("Host") != client.req.headers.end())
 		{
