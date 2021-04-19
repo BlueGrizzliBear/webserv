@@ -53,7 +53,7 @@ void	Response::concatenateResponse(void)
 	/* New line */
 	msg += "\r\n";
 
-	// CME << "> RESPONSE\n" << msg << EME;
+	CME << "> RESPONSE\n" << msg << EME;
 
 	/* Body */
 	if (!body.empty())

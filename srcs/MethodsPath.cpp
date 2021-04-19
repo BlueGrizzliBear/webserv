@@ -29,6 +29,7 @@ void	Methods::_findPath(void)
 	/* if location bloc found applying corresponding config */
 	if (tmp != serv->loc.end())
 	{
+		COUT << "location bloc found\n";
 		_findAuthenticate(tmp->second.loc_dir);
 		_findRoot(tmp->second.loc_dir);
 		_findAutoIndex(tmp->second.loc_dir);
@@ -144,6 +145,7 @@ std::string	Methods::_uriWithoutFirstPart(void)
 	/* (2) find location bloc config */
 bool	Methods::_matchingLocationDir(std::map<std::vector<std::string>, LocationBloc>::iterator & it, std::map<std::vector<std::string>, LocationBloc>::iterator & tmp)
 {
+	COUT << "it->first[0]:" << it->first[0] << ",_uriFirstPart():" << _uriFirstPart() << ENDL;
 	if (it->first[0] == "=" && ((_uriFirstPart() == it->first[1]) || (client->req.uri == it->first[1])))
 	{
 		tmp = it;
@@ -164,7 +166,7 @@ bool	Methods::_matchingLocationDir(std::map<std::vector<std::string>, LocationBl
 		tmp = it;
 		return true;
 	}
-	else if (it->first[0] == _uriFirstPart())
+	else if ((it->first[0] == "/" && *(client->req.uri.begin()) == '/') || it->first[0] == _uriFirstPart())
 		tmp = it;
 	return false;
 }

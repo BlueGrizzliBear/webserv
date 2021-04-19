@@ -82,6 +82,20 @@ size_t	Request::strFindCaseinsensitive(std::string str, char const * to_find)
 	return (tmp.find(tmp_to_find));
 }
 
+
+bool	Request::str_is(std::string str, int func(int))
+{
+	std::string::iterator begin = str.begin();
+
+	while (begin != str.end())
+	{
+		if (!func(*begin))
+			return (false);
+		++begin;
+	}
+	return (true);
+}
+
 /* A function which passes until char is found */
 void	Request::_passUntilChar(char c)
 {
@@ -140,6 +154,26 @@ std::string	Request::_getWord(const char * delimiter_dic)
 	return (word);
 }
 
+std::string	Request::_getURI(const char * delimiter_dic) throw(URITooLong)
+{
+	std::string word;
+	size_t pos;
+
+	if ((pos = _req.find_first_of(delimiter_dic, _pos)) != std::string::npos)
+	{
+		if ((pos - _pos) > PATH_MAX)
+			throw URITooLong();
+		word = _req.substr(_pos, pos - _pos);
+		_pos = pos;
+	}
+	else
+	{
+		// _pos = _req.size() - 1;
+		return (std::string());
+	}
+	return (word);
+}
+
 bool	Request::_isLegitPath(std::string const & path)
 {
 	/* Request-URI = "*" | absoluteURI | abs_path | authority */
@@ -149,7 +183,7 @@ bool	Request::_isLegitPath(std::string const & path)
 	return (true);
 }
 
-bool	Request::parseRequestLine(void) throw(NotImplemented, BadRequest)
+bool	Request::parseRequestLine(void) throw(NotImplemented, BadRequest, URITooLong)
 {
 	/* Request-Line = Method SP Request-URI SP HTTP-Version CRLF */
 
@@ -170,7 +204,8 @@ bool	Request::parseRequestLine(void) throw(NotImplemented, BadRequest)
 	}
 
 	/* Check Request-URI */
-	uri = _getWord(" ");
+	// uri = _getWord(" ");
+	uri = _getURI(" ");
 	if (!_isLegitPath(uri))
 	{
 		COUT << "1\n";
@@ -221,11 +256,16 @@ bool	Request::parseHeaders(void) throw(BadRequest)
 
 		if (header_key == "")
 			break ;
+		if (header_key.find_first_of(" \t") != std::string::npos)	// is token A FAIRE
+		{
+			CERR << "whitespace between header-name and colon\n";
+			throw BadRequest();
+		}
 		else if (_dic.headerDic.find(header_key) != _dic.headerDic.end() || (header_key.find("X-", 0) == 0))
 		{
 			if (!_passStrictOneChar(':'))	/* Check is ':' is present */
 			{
-				COUT << "missing :\n";
+				CERR << "missing :\n";
 				throw BadRequest();
 			}
 
@@ -239,8 +279,8 @@ bool	Request::parseHeaders(void) throw(BadRequest)
 			std::string header_val = _getWord("\r");	/* Gather Header Values */
 
 			// COUT << "&_req[_pos]|" << &_req[_pos] << "|\n";
-			headers.insert(std::make_pair(header_key, header_val));
-
+			if (!headers.insert(std::make_pair(header_key, header_val)).second)
+				throw BadRequest();
 			// COUT << "&_req[_pos]|" << &_req[_pos] << "|\n";
 			// _passOptionalChars("\t ");
 			// COUT << "&_req[_pos]|" << &_req[_pos] << "|\n";
@@ -295,15 +335,16 @@ bool	Request::_parseChunkedBody(size_t & size) throw(BadRequest)
 	if (_req.size() - pos - 2 < size + 2)
 		return (false);
 
-	size_t body_pos = 0;
-	if ((body_pos = _req.find("\r\n", size + pos + 2, 2)) == std::string::npos)
+	// size_t body_pos = 0;
+	if (_req.find("\r\n", size + pos + 2) == std::string::npos)
 	{
 		body.clear();
 		_req.clear();
 		throw BadRequest();
 	}
 
-	body.append(_req, pos + 2, size);
+	if (size != 0)
+		body.append(_req, pos + 2, size);
 
 	_req.erase(0, pos + 2 + size + 2);
 
@@ -333,9 +374,15 @@ bool	Request::parseBody(void) throw(BadRequest)
 	}
 	else if (headers.find("Content-Length") != headers.end())
 	{
-		CERR << "Content-length" << ENDL;
-		size_t size = static_cast<size_t>(std::atoi(headers.find("Content-Length")->second.c_str()));
-
+		// CERR << "Content-length" << ENDL;
+		if (!str_is(headers.find("Content-Length")->second, isnumber))
+			throw BadRequest();
+		size_t size = static_cast<size_t>(std::strtol(headers.find("Content-Length")->second.c_str(), nullptr, 10));
+		if (errno == ERANGE)
+		{
+			errno = 0;
+			throw BadRequest();
+		}
 		if (size > _req.size() - _pos)
 			return (false);
 		while (size--)

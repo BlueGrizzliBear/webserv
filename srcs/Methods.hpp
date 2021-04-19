@@ -146,7 +146,7 @@ class Methods
 		bool		_readCGItoResp(int & fd_in);
 
 		/* Utitilies */
-		bool		_str_is(std::string str, int func(int));
+		// bool		_str_is(std::string str, int func(int));
 
 		void		_parseCGIResponse(void);
 		bool		_parseHeaderField(void);

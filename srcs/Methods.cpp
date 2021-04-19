@@ -9,6 +9,7 @@ Methods::Methods(void) : serv(nullptr), client(nullptr) {}
 Methods::Methods(ServerBloc & server, Client & client, std::string const & code, std::string const & phrase)
 : serv(&server), client(&client), _max_body_size(1000000), _writtenBytes(0)
 {
+	COUT << "Execute Methods\n";
 	/* uri resolution process (treat ../ and ./) */
 	_URIResolutionProcess();
 	_queryResolutionProcess();
@@ -247,8 +248,10 @@ void	Methods::_executeGetReq(void)
 	}
 	else	/* copy asked file to body if exist */
 	{
-		if (!_path.empty() && *(_path.rbegin()) == '/')
+		COUT << "before index _path:|" << _path << "|\n";
+		if (!_indexes.empty() && !_path.empty() && *(_path.rbegin()) == '/')
 			_findIndex(_indexes);
+		COUT << "after index _path:|" << _path << "|\n";
 		if (!_path.empty() && *(_path.rbegin()) == '/')
 			throw ServerBloc::Forbidden();
 		if (_fileExist(_path) == false)
@@ -335,6 +338,7 @@ void	Methods::_createHTMLListing(DIR * dir)
 
 void	Methods::_findIndex(std::vector<std::string> & indexes)
 {
+	COUT << "In find index\n";
 	for (std::vector<std::string>::iterator it = indexes.begin(); it != indexes.end(); ++it)
 	{
 		if (_fileExist(_path + *it) == true)

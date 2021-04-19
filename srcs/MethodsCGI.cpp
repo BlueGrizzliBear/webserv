@@ -204,18 +204,18 @@ bool	Methods::_readCGItoResp(int & fd_in)
 	return (false);
 }
 
-bool	Methods::_str_is(std::string str, int func(int))
-{
-	std::string::iterator begin = str.begin();
+// bool	Methods::_str_is(std::string str, int func(int))
+// {
+// 	std::string::iterator begin = str.begin();
 
-	while (begin != str.end())
-	{
-		if (!func(*begin))
-			return (false);
-		++begin;
-	}
-	return (true);
-}
+// 	while (begin != str.end())
+// 	{
+// 		if (!func(*begin))
+// 			return (false);
+// 		++begin;
+// 	}
+// 	return (true);
+// }
 
 bool	Methods::_parseHeaderField(void)
 {
@@ -241,7 +241,7 @@ bool	Methods::_parseHeaderField(void)
 		{
 			client->resp.status_code = _receivedMessage.substr(7 + osp, 3);
 			client->resp.reason_phrase = _receivedMessage.substr(11 + osp, size - 11 - osp);
-			if (!_str_is(client->resp.status_code, isdigit) || !_str_is(client->resp.reason_phrase, isprint))
+			if (!client->req.str_is(client->resp.status_code, isdigit) || !client->req.str_is(client->resp.reason_phrase, isprint))
 				return_value = true; // Status value is incorrect - return true to finish parsing
 		}
 		else

@@ -30,6 +30,11 @@ class Request
 				virtual const char *	what() const throw() { return ("400"); }
 		};
 
+		class URITooLong : public std::exception {
+			public:
+				virtual const char *	what() const throw() { return ("414"); }
+		};
+
 		class NotImplemented : public std::exception {
 			public:
 				virtual const char *	what() const throw() { return ("501"); }
@@ -41,7 +46,7 @@ class Request
 		std::string &	getData(void);
 
 	/* Member Functions */
-		bool	parseRequestLine(void) throw(NotImplemented, BadRequest);
+		bool	parseRequestLine(void) throw(NotImplemented, BadRequest, URITooLong);
 		bool	parseHeaders(void) throw(BadRequest);
 		bool	parseBody(void) throw(BadRequest);
 
@@ -50,6 +55,7 @@ class Request
 		void	display(void);
 
 		size_t	strFindCaseinsensitive(std::string str, char const * to_find);
+		bool	str_is(std::string str, int func(int));
 
 	private:
 		void	_passUntilChar(char c);
@@ -62,6 +68,7 @@ class Request
 		void	_passOptionalChars(const char * dic);
 
 		std::string	_getWord(const char * delimiter_dic);
+		std::string	_getURI(const char * delimiter_dic) throw(URITooLong);
 
 		bool	_parseChunkedBody(size_t & size) throw(BadRequest);
 

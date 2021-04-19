@@ -84,7 +84,7 @@ void	ConfigParser::_display_location_bloc(std::pair<const std::vector<std::strin
 	COUT << "* Location Arguments *\n";
 	std::for_each(pair.first.begin(), pair.first.end(), _display_arguments);
 	COUT << ENDL;
-	
+
 	COUT << "* Locaiton Directives *\n";
 	std::for_each(pair.second.loc_dir.begin(), pair.second.loc_dir.end(), _display_dir);
 	COUT << ENDL;
@@ -98,7 +98,7 @@ void	ConfigParser::_display_server_bloc(ServerBloc & serv)
 	COUT << "--- Server Directives ---\n";
 	std::for_each(serv.dir.begin(), serv.dir.end(), _display_dir);
 	COUT << ENDL;
-	
+
 	COUT << "--- Server Locations ---\n";
 	std::for_each(serv.loc.begin(), serv.loc.end(), _display_location_bloc);
 	COUT << ENDL;
@@ -273,7 +273,7 @@ void	ConfigParser::_parse_server(std::string & key, std::fstream & file, Servers
 		_display_parsing_error(_count);
 		throw MissingArgument();
 	}
-	// CME << "Finished parsing server" << EME << ENDL;	
+	// CME << "Finished parsing server" << EME << ENDL;
 }
 
 
@@ -330,7 +330,7 @@ void	ConfigParser::_parse_location(std::string & key, std::fstream & file, Serve
 		_display_parsing_error(_count);
 		throw MissingArgument();
 	}
-	// CME << "Finished parsing location" << EME << ENDL;	
+	// CME << "Finished parsing location" << EME << ENDL;
 }
 
 void	ConfigParser::_parse_directive(std::string & key, Directives & dir)
@@ -401,7 +401,7 @@ bool	ConfigParser::_str_is_digit(std::string const & str)
 {
 	std::string::const_iterator it = str.begin();
 	std::string::const_iterator ite = str.end();
-	
+
 	while (it != ite && std::isdigit(*it))
 		++it;
 	return (!str.empty() && it == ite);
@@ -516,9 +516,9 @@ void	ConfigParser::_initPort(ServerBloc & serv)
 		{
 			/* Convert port from std::string to unsigned short */
 			serv.port_no = static_cast<unsigned short>(std::atoi((*d_it).second[0].c_str()));
-			
+
 			/* Assigns boolean for default_server */
-			if ((*d_it).second[1] == "default_server")
+			if ((*d_it).second.size() > 1 && (*d_it).second[1] == "default_server")
 				serv.is_default = 1;
 
 			/* Creating socket file descriptor */
@@ -532,13 +532,13 @@ void	ConfigParser::_initPort(ServerBloc & serv)
 			serv.serv_port.address.sin_family = AF_INET;						/* corresponding to IPv4 protocols */
 			serv.serv_port.address.sin_addr.s_addr = htonl(INADDR_ANY);			/* corresponding to 0.0.0.0 */
 			serv.serv_port.address.sin_port = htons(serv.port_no);	/* corresponding to the server port, must be > 1024 */
-			
+
 			/* Defining address length */
 			serv.serv_port.addrlen = sizeof(serv.serv_port.address);
-			
+
 			/* Initialising other adress attributes to 0 */
 			memset(serv.serv_port.address.sin_zero, '\0', sizeof(serv.serv_port.address.sin_zero));
-			
+
 			/* Assigning adress to the socket */
 			if (bind(serv.serv_port.fd, reinterpret_cast<struct sockaddr *>(&serv.serv_port.address), sizeof(serv.serv_port.address)) < 0)
 				abortServers("Error in bind()", strerror(errno));

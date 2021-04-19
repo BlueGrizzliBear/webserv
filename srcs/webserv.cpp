@@ -25,11 +25,11 @@ bool	parseClientRequest(ServerBloc & server, Client & client)
 		/* Read Client Request with recv */
 		if (server.readClient(client))
 		{
-			// std::cerr << "Displaying header|" << GREEN;
-			// std::cerr << client.req.getData().substr(0, client.req.getData().find("\r\n\r\n") + 4);
-			// std::cerr << RESET << "|" << std::endl;
+			std::cerr << "Displaying header|" << GREEN;
+			std::cerr << client.req.getData().substr(0, client.req.getData().find("\r\n\r\n") + 4);
+			std::cerr << RESET << "|" << std::endl;
 
-			// std::cerr << "Displaying all data|" << GREEN << server.req.getData() << RESET << "|" << std::endl;
+			// std::cerr << "Displaying all data|" << GREEN << client.req.getData() << RESET << "|" << std::endl;
 
 			if (client.clientClosed)
 				return (true);
@@ -126,7 +126,7 @@ int	getMaxFd(ServerBloc & server)
 int	launchServer(ServerBloc & server)
 {
 	static int i = 0;
-	
+
 	/* Setting time-out */
 	server.serv_select.timeout.tv_sec = 1;
 	server.serv_select.timeout.tv_usec = 0;
