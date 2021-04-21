@@ -71,6 +71,9 @@ class Request
 		std::string	_getWord(const char * delimiter_dic);
 		std::string	_getURI(const char * delimiter_dic) throw(URITooLong);
 
+		bool	_isQuotedString(std::string str);
+		bool	_isToken(std::string str);
+		bool	_chunkedExtensionInvalid(std::string str);
 		bool	_parseChunkedBody(size_t & size) throw(BadRequest);
 
 	/* Member Attributes */

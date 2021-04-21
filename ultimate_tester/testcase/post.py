@@ -26,12 +26,12 @@ def test_post() -> str:
         return "Bad status code: {}, expected: {}".format(
             str(http_response.status), "201"
         )
-    if http_response.headers["Location"] != "/post/tmp/post.html":
+    if http_response.headers["Location"] != "/post/post.html":
         return "Bad Location header: {}, expected: {}".format(
-            http_response.headers["Location"], "/post/tmp/post.html"
+            http_response.headers["Location"], "/post/post.html"
         )
     try:
-        f = open("www/tmp/post.html", "r")
+        f = open("./ulti_tester/tmp/post.html", "r")
     except:
         return "Error: file not created"
     line = f.readline()
@@ -47,7 +47,7 @@ def test_post() -> str:
             str(http_response.status), "200"
         )
     try:
-        f = open("www/tmp/post.html", "r")
+        f = open("./ulti_tester/tmp/post.html", "r")
     except:
         return "Error: file not created"
     line = f.readline()
@@ -97,7 +97,7 @@ def test_cgi_auth_headers() -> str:
     # print(body)
     if (
         body.find("AUTH_TYPE=Basic") == -1
-        or body.find("REMOTE_IDENT=Admin") == -1
+        # or body.find("REMOTE_IDENT=Admin") == -1 /* should of type <port-on-server> , <port-on-client> : <resp-type> : <add-info> */
         or body.find("REMOTE_USER=Admin") == -1
         or body.find("QUERY_STRING=name=fredrika&age=22") == -1
     ):

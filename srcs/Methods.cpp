@@ -156,9 +156,11 @@ void	Methods::_queryResolutionProcess(void)
 	{
 		end = client->req.uri.find('#');	/* jusqu'au # ou fin de l'uri */
 		_query = client->req.uri.substr(begin + 1, end);
+		COUT << "query|" << _query << "|\n";
 		client->req.uri.erase(begin, std::string::npos);
 	}
-	_query = "";
+	else
+		_query = "";
 }
 
 void	Methods::_applyGet(void)
@@ -200,10 +202,10 @@ void	Methods::_applyPost()
 	/* execute specific to POST request */
 	if (_cgi_path.empty())
 	{
+		/* (1) Fill Status Line header */
+		_PostHeaderStatusCode();
+		/* Execute request */
 		_executePostReq();
-		/* Fill header informations */
-		/* (1) Fill Status Line */
-		_GetHeaderStatusCode();
 	}
 	else
 		_launchCGI();
@@ -240,24 +242,49 @@ void	Methods::_executeGetReq(void)
 {
 	if (!_path.empty() && *(_path.rbegin()) != '/' && _isDirectory(_path) == true)
 		_path.append("/");
-	/* create html list directory if autoindex off and copy to body */
-	if (_autoindex == false)
+	
+	if (_autoindex == false)	/* create html list directory if autoindex off and copy to body */
 	{
 		if (!_path.empty() && *(_path.rbegin()) == '/')
 			_createIndexHTML();
 	}
 	else	/* copy asked file to body if exist */
 	{
-		// COUT << "before index _path:|" << _path << "|\n";
-		if (!_indexes.empty() && !_path.empty() && *(_path.rbegin()) == '/')
-			_findIndex(_indexes);
-		// COUT << "after index _path:|" << _path << "|\n";
-		if (!_path.empty() && *(_path.rbegin()) == '/')
-			throw ServerBloc::Forbidden();
+		// COUT << "before _path:|" << _path << "|, _index.size()|" << _indexes.size() << "|\n";
+		if (!_path.empty() && (*(_path.rbegin()) == '/' ))	/* FOLDER */
+		{
+			COUT << "Searching for INDEX\n";
+			if (!_indexes.empty())
+			{
+				if ((client->req.headers.find("Accept-Language") != client->req.headers.end()))
+					_findFile("Accept-Language", _indexes);
+				else
+					_findIndex();
+				
+			}
+			else
+				throw ServerBloc::Forbidden();
+		}
+		else	/* FILE */
+		{
+			COUT << "Searching for FILE\n";
+			std::vector<std::string> files;
+			_createVectorFromCWD(files, _pathWithoutLastPart());
+
+			if ((client->req.headers.find("Accept-Charset") != client->req.headers.end()))
+			{
+				_findFile("Accept-Charset", files);
+			}
+			else if ((client->req.headers.find("Accept-Language") != client->req.headers.end()))
+			{
+				_findFile("Accept-Language", files);
+			}
+			// ici
+		}
 		if (_fileExist(_path) == false)
 			throw ServerBloc::NotFound();
-		else
-			client->resp.header_fields.insert(std::make_pair("Content-Location", _path));
+		// else
+		// 	client->resp.header_fields.insert(std::make_pair("Content-Location", _path));
 	}
 	// COUT << "_path|" << _path << "|" << ENDL;
 }
@@ -277,7 +304,7 @@ bool	Methods::_isDirectory(std::string const & path)
 
 void		Methods::_createIndexHTML()
 {
-	DIR				*dir;
+	DIR		*dir;
 
 	/* check if directory exist */
 	if ((dir = opendir(_path.c_str())))
@@ -338,18 +365,133 @@ void	Methods::_createHTMLListing(DIR * dir)
 	client->resp.body = dir_list.str();
 }
 
-void	Methods::_findIndex(std::vector<std::string> & indexes)
+void	Methods::_createVectorFromCWD(std::vector<std::string> & files, std::string path)
 {
-	// COUT << "In find index\n";
-	for (std::vector<std::string>::iterator it = indexes.begin(); it != indexes.end(); ++it)
+	DIR *dir;
+
+	COUT << "Before Createing Vector from cwd, path |" << path << "|\n";
+	if ((dir = opendir(path.c_str())))	/* list directory in html format*/
 	{
+		struct dirent		*dp;
+
+		while ((dp = readdir(dir)) != NULL)
+		{
+			if (dp->d_type == DT_REG)
+				files.push_back(dp->d_name);
+		}
+	}
+	else
+		throw ServerBloc::NotFound();
+}
+
+std::string	Methods::_trimExtension(std::string & str)
+{
+	std::string	fileWithoutExt;
+	size_t		i = 0;
+
+	if ((i = str.rfind(".")) == std::string::npos)
+		fileWithoutExt = str;
+	else
+		fileWithoutExt = str.substr(0, i);
+	return (fileWithoutExt);
+}
+
+void	Methods::_findFile(std::string header, std::vector<std::string> files)
+{
+	std::map<float, std::vector<std::string> > * storage = nullptr;
+	if (header == "Accept-Charset")
+		storage = &_charsets;	
+	else if (header == "Accept-Language")
+		storage = &_languages;
+
+	_createAcceptedMap(header, storage);
+	COUT << "Searching for exact match\n";
+	for (std::map<float, std::vector<std::string> >::reverse_iterator l_it = storage->rbegin(); l_it != storage->rend(); ++l_it)
+	{
+		COUT << "Iterating through language Map\n";
+		for (std::vector<std::string>::iterator lv_it = l_it->second.begin(); lv_it != l_it->second.end(); ++lv_it)
+		{
+			for (std::vector<std::string>::iterator it = files.begin(); it != files.end(); ++it)
+			{
+				COUT << "Searching for the right language|" << *lv_it << "| inside it|" << *it << "|\n";
+				if ((*lv_it == "*" || client->req.strFindCaseinsensitive(*it, lv_it->c_str()) != std::string::npos)
+				&& _fileExist(_pathWithoutLastPart() + *it) == true)
+				{
+					COUT << "Found the file\n";
+					_path = _pathWithoutLastPart() + *it;
+
+					COUT << "_path|" << _path << "|\n";
+
+					_checkContentType();
+					if (header == "Accept-Language")
+						client->resp.header_fields.insert(std::make_pair("Content-Language", *lv_it));
+					else
+					{
+						client->resp.header_fields["Content-Type"].append("; charset=" + *lv_it);
+					}
+					return ;
+				}
+			}
+		}
+	}
+	if (header == "Accept-Language")
+	{
+		COUT << "Searching for prefix\n";
+		for (std::map<float, std::vector<std::string> >::reverse_iterator l_it = storage->rbegin(); l_it != storage->rend(); ++l_it)
+		{
+			COUT << "Iterating through language Map\n";
+			for (std::vector<std::string>::iterator lv_it = l_it->second.begin(); lv_it != l_it->second.end(); ++lv_it)
+			{
+				for (std::vector<std::string>::iterator it = files.begin(); it != files.end(); ++it)
+				{
+					COUT << "Searching for the right language|" << *lv_it << "| inside it|" << *it << "|\n";
+					if (lv_it->find("-") != std::string::npos && client->req.strFindCaseinsensitive(*it, lv_it->substr(0, lv_it->find("-")).c_str()) != std::string::npos
+					&& _fileExist(_pathWithoutLastPart() + *it) == true)
+					{
+						COUT << "Found the file\n";
+						_path = _pathWithoutLastPart() + *it;
+						// COUT << "path|" << _path << "|\n";
+						_checkContentType();
+						if (header == "Accept-Language")
+							client->resp.header_fields.insert(std::make_pair("Content-Language", *lv_it));
+						return ;
+					}
+				}
+			}
+		}
+	}
+
+	for (std::vector<std::string>::iterator files_v = files.begin(); files_v != files.end(); ++files_v)
+	{
+		if (_trimExtension(*files_v) == _pathLastPart())
+		{
+			COUT << "Found the file\n";
+			_path = _pathWithoutLastPart() + *files_v;
+			COUT << "_path|" << _path << "|\n";
+			break ;
+		}
+	}
+	_checkContentType();
+	if (header == "Accept-Charset")
+		client->resp.header_fields["Content-Type"].append("; charset=utf-8");
+}
+
+void	Methods::_findIndex(void)
+{
+	COUT << MAGENTA << "Searching for normal index" << RESET << ENDL;
+	for (std::vector<std::string>::iterator it = _indexes.begin(); it != _indexes.end(); ++it)
+	{
+		COUT << "Searching index|" << _path + *it << "|\n";
 		if (_fileExist(_path + *it) == true)
 		{
 			_path += *it;
+			// COUT << "PATH ICI |" << _path << "|\n";
+			_checkContentType();
 			return ;
 		}
 	}
-	_path += *(indexes.begin());
+	_path += *(_indexes.begin());
+	_checkContentType();
 }
 
 bool	Methods::_fileExist(const std::string & name)
@@ -366,21 +508,44 @@ bool	Methods::_fileExist(const std::string & name)
 }
 
 /* Execute Put request */
+void	Methods::_createDirectories(void)
+{
+	std::string final_path;
+	size_t i = 1;
+
+	// COUT << "path|" << _path << "|\n";
+	while (final_path != _pathWithoutLastPart())
+	{
+		final_path = _pathIterateThroughFolders(i);
+		// COUT << "final_path|" << final_path << "|\n";
+		if (mkdir(final_path.c_str(), 0755) < 0 && errno != EEXIST)
+		{
+			CERR << "Error in mkdir(): " << strerror(errno) << ENDL;
+			throw ServerBloc::InternalServerError();
+		}
+		i++;
+	}
+}
+
 void	Methods::_executePutReq(void)
 {
+	_createDirectories();
+
+	COUT << "PUT path|" << _path << "|\n";
 	std::ofstream	file(_path);
 
-	file << client->req.body;
-	file.close();
+	_fillFileFromStr(file, client->req.body);
 }
 
 /* Execute Post request */
 void	Methods::_executePostReq(void)
 {
+	_createDirectories();
+
+	COUT << "POST path|" << _path << "|\n";
 	std::ofstream	file(_path, std::ios_base::app);
 
-	file << client->req.body;
-	file.close();
+	_fillFileFromStr(file, client->req.body);
 }
 
 /* Check content type */
@@ -430,8 +595,30 @@ void	Methods::_fillStrFromFile(std::string & body, std::string const & path)
 {
 	std::ifstream		file(path.c_str());
 
-	body.assign(std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>());
-	file.close();
+	if (file.good())
+	{
+		body.assign(std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>());
+		file.close();
+	}
+	else
+	{
+		COUT << "_fillStrFromFile\n";
+		throw ServerBloc::InternalServerError();
+	}
+}
+
+void	Methods::_fillFileFromStr(std::ofstream & file, std::string const & body)
+{
+	if (file.good())
+	{
+		file << body;
+		file.close();
+	}
+	else
+	{
+		COUT << "_fillFileFromStr\n";
+		throw ServerBloc::InternalServerError();
+	}
 }
 
 std::string	Methods::_getSizeOfStr(std::string const & str)

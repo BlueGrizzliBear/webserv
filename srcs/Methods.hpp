@@ -52,7 +52,12 @@ class Methods
 		bool	_isDirectory(std::string const & path);
 		void	_createIndexHTML(void);
 		void	_createHTMLListing(DIR * dir);
-		void	_findIndex(std::vector<std::string> & indexes);
+
+		void		_findFile(std::string header, std::vector<std::string> files);
+		void		_createVectorFromCWD(std::vector<std::string> & files, std::string path);
+		std::string	_trimExtension(std::string & str);
+
+		void	_findIndex(void);
 		bool	_fileExist(std::string const & path);
 
 		/* Execute Put request */
@@ -67,6 +72,7 @@ class Methods
 
 		/* Fill Body */
 		void		_fillStrFromFile(std::string & body, std::string const & path);
+		void		_fillFileFromStr(std::ofstream & file, std::string const & body);
 		std::string	_getSizeOfStr(std::string const & str);
 
 	/* MethodsPath.cpp */
@@ -95,7 +101,6 @@ class Methods
 		template< typename T, typename U >
 		std::string	_findRewrite(std::map< T, U > & dir);
 
-		std::string	_uriWithoutFirstPart();
 			/* (2) find location bloc config */
 		bool		_matchingLocationDir(std::map<std::vector<std::string>, LocationBloc>::iterator & it, std::map<std::vector<std::string>, LocationBloc>::iterator & tmp);
 		bool		_applyLocationBloc(std::map<std::vector<std::string>, LocationBloc>::iterator & it);
@@ -105,6 +110,11 @@ class Methods
 		bool		_compareFromBegin(std::string & uri_path, std::vector<std::string> & path_set);
 
 		std::string	_uriFirstPart(void);
+		std::string	_uriWithoutFirstPart(void);
+
+		std::string	_pathWithoutLastPart(void);
+		std::string	_pathLastPart(void);
+		std::string	_pathIterateThroughFolders(size_t nb);
 
 			/* (3) authentication */
 		void		_checkRequiredAuthentication(void);
@@ -119,17 +129,20 @@ class Methods
 
 	/* MethodsHeader.cpp */
 		/* Header server response */
-		void	_PutHeaderStatusCode(void);
 		void	_GetHeaderStatusCode(void);
+		void	_PutHeaderStatusCode(void);
+		void	_PostHeaderStatusCode(void);
+
 		void	_lastModifiedHeader(struct tm * timeinfo);
 		struct tm	* _getFileTime(void);
 		struct tm	* _getHeaderIfUnmodifiedSinceTime(void);
 		int			_cmpTimeInfo(struct tm * t1, struct tm * t2);
 		std::string	_readFileToStr(void);
 
+		void	_createAcceptedMap(std::string header, std::map<float, std::vector<std::string> > * storage);
+		void	_createDirectories(void);
+
 	/* MethodsCGI.cpp */
-
-
 		void		_launchCGI(void);
 
 		void 		_createEnvpMap(void);
@@ -168,6 +181,10 @@ class Methods
 		std::vector<std::string>	_authenticate;
 		std::vector<std::string>	_indexes;
 		bool						_autoindex;
+
+		/* Implemented Headers utilities */
+		std::map<float, std::vector<std::string> >	_languages;
+		std::map<float, std::vector<std::string> >	_charsets;
 
 		std::map<std::string, std::string, ci_less>	_envp;
 		std::vector<std::string>					_argv;

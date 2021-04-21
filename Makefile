@@ -36,9 +36,17 @@ clean			:
 
 fclean			:		clean
 						rm -f $(NAME)
+						
 						rm -f ./YoupiBanane/post_body
+
 						rm -f ./data/youpi_put_test/file_should_exist_after
 						rm -f ./data/youpi_put_test/multiple_same
+
+						rm -rf ./ultimate_tester/__pycache__
+						rm -rf ./ultimate_tester/testcase/__pycache__
+						
+						rm -rf ./ulti_tester/long.txt
+						rm -rf ./ulti_tester/tmp
 
 re				:      	fclean all
 

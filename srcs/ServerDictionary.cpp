@@ -57,7 +57,7 @@ ServerDictionary::ServerDictionary()
 
 	// case insensitive
 	/* Dictionary for implemented Headers in requests */
-	std::string headers[] = {	"Accept-Charsets",
+	std::string headers[] = {	"Accept-Charset",
 								"Accept-Language",
 								"Allow",
 								"Authorization",

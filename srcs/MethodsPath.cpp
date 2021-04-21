@@ -266,6 +266,52 @@ std::string	Methods::_uriFirstPart(void)
 	return (uri_path);
 }
 
+std::string	Methods::_pathWithoutLastPart(void)
+{
+	std::string	uri_path;
+	size_t		i = 0;
+
+	if ((i = _path.rfind("/")) == std::string::npos)
+		uri_path = _path;
+	else
+		uri_path = _path.substr(0, i);
+	if (!uri_path.empty() && *(uri_path.rbegin()) != '/')
+		return (uri_path + '/');
+	return (uri_path);
+}
+
+std::string	Methods::_pathLastPart(void)
+{
+	std::string	uri_path;
+	size_t		i = 0;
+
+	if ((i = _path.rfind("/")) == std::string::npos)
+		uri_path = _path;
+	else
+		uri_path = _path.substr(i + 1);
+	return (uri_path);
+}
+
+std::string	Methods::_pathIterateThroughFolders(size_t nb)
+{
+	std::string	uri_path;
+	// int 		pos = -1;
+	size_t 		pos = 0;
+
+	while (nb != 0)
+	{
+		if ((pos = _path.find("/", pos + 1)) == std::string::npos)
+		{
+			uri_path = _path;
+			break;
+		}
+		else
+			uri_path = _path.substr(0, pos + 1);
+		nb--;
+	}
+	return (uri_path);
+}
+
 	/* (3) authentication */
 void	Methods::_checkRequiredAuthentication(void)
 {
@@ -290,7 +336,7 @@ bool	Methods::_checkUserExist(std::string & user, std::string & auth_path)
 	std::string					line;
 	std::fstream				user_file(auth_path);
 
-	_envp["AUTH_TYPE"] = user.substr(0, user.find(' ') - 1);
+	_envp["AUTH_TYPE"] = user.substr(0, user.find(' '));
 	if (client->req.strFindCaseinsensitive(user, "Basic") != std::string::npos && user_file.good())
 	{
 		user.erase(client->req.strFindCaseinsensitive(user, "Basic"), 6);
@@ -301,7 +347,7 @@ bool	Methods::_checkUserExist(std::string & user, std::string & auth_path)
 		{
 			if (*it == user)
 			{
-				_envp["REMOTE_USER"] = user.substr(0, user.find(':') - 1);
+				_envp["REMOTE_USER"] = user.substr(0, user.find(':'));
 				return true;
 			}
 		}
@@ -383,3 +429,4 @@ void	Methods::_checkMaxBodySize(void)
 	if (client->req.body.length() > _max_body_size)
 		throw ServerBloc::PayloadTooLarge();
 }
+

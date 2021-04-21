@@ -152,7 +152,7 @@ void	Methods::_communicateWithCGI(int fd_in, int fd_out, pid_t pid)
 	/* READ */	else if (FD_ISSET(fd_in, &cgi.readfds))
 				{
 					if (_readCGItoResp(fd_in) == true)
-					{
+					{						
 						if (client->clientClosed)
 						{
 							close(fd_in);
@@ -200,66 +200,77 @@ bool	Methods::_readCGItoResp(int & fd_in)
 		return (true);
 	}
 	_receivedMessage.append(recv_buffer, static_cast<size_t>(receivedBytes));
+	// COUT << RED << "Received MEssage From CGI|" << _receivedMessage << "|" << RESET << ENDL;
 	_parseCGIResponse();
 	return (false);
 }
 
-// bool	Methods::_str_is(std::string str, int func(int))
-// {
-// 	std::string::iterator begin = str.begin();
-
-// 	while (begin != str.end())
-// 	{
-// 		if (!func(*begin))
-// 			return (false);
-// 		++begin;
-// 	}
-// 	return (true);
-// }
-
 bool	Methods::_parseHeaderField(void)
 {
-	size_t size = _receivedMessage.find("\r\n");
+	bool	lf = false;
+	size_t	size;
+
+	if ((size = _receivedMessage.find("\r\n")) == std::string::npos)
+	{
+		size = _receivedMessage.find("\n");
+		lf = true;
+	}
+	// COUT << "Size|" << size << "|\n";
 
 	if (size == 0)
 	{
-		_receivedMessage.erase(0, 2);
+		(lf == true) ? _receivedMessage.erase(0, 1) : _receivedMessage.erase(0, 2);
 		return (true);
 	}
 
 	size_t	pos = 0;
 	bool	return_value = 0;
-	size_t	osp = 0;
+	size_t	first_osp = 0;
+
 	if ((pos = _receivedMessage.find(":")) != std::string::npos)
 	{
 		if (_receivedMessage.find(": ", pos) == pos || _receivedMessage.find(":\t", pos) == pos)
-			osp = 1;
+			first_osp = 1;
 
 		std::string key = _receivedMessage.substr(0, pos);
 
 		if (client->req.strFindCaseinsensitive(key, "Status") == 0)
 		{
-			client->resp.status_code = _receivedMessage.substr(7 + osp, 3);
-			client->resp.reason_phrase = _receivedMessage.substr(11 + osp, size - 11 - osp);
+			size_t	second_osp = 1;
+
+			client->resp.status_code = _receivedMessage.substr(7 + first_osp, 3);
+			if (10 + first_osp == size)
+				second_osp = 0;
+			client->resp.reason_phrase = _receivedMessage.substr(10 + first_osp + second_osp, size - 10 - first_osp - second_osp);
+			
+			// COUT << "status_code|" << client->resp.status_code << "|\n";
+			// COUT << "reason_phrase|" << client->resp.reason_phrase << "|\n";
+
 			if (!client->req.str_is(client->resp.status_code, isdigit) || !client->req.str_is(client->resp.reason_phrase, isprint))
+			{
+				// COUT << "Status seems broken\n";
 				return_value = true; // Status value is incorrect - return true to finish parsing
+			}
 		}
 		else
 		{
-			if (client->req.strFindCaseinsensitive(key, "Location") == 0) // a implementer davantage
+			if (client->resp.status_code.empty())
 			{
-				client->resp.status_code = "301";
-				client->resp.reason_phrase = "Found";
+				if (client->req.strFindCaseinsensitive(key, "Location") == 0) // a implementer davantage
+				{
+					client->resp.status_code = "301";
+					client->resp.reason_phrase = "Found";
+				}
+				else if (client->req.strFindCaseinsensitive(key, "Content-Type") == 0)
+				{
+					client->resp.status_code = "200";
+					client->resp.reason_phrase = "OK";
+				}
 			}
-			else if (client->req.strFindCaseinsensitive(key, "Content-Type") == 0)
-			{
-				client->resp.status_code = "200";
-				client->resp.reason_phrase = "OK";
-			}
-			client->resp.header_fields.insert(std::make_pair(key, _receivedMessage.substr(pos + 1 + osp, size - pos - 1 - osp)));
+			client->resp.header_fields.insert(std::make_pair(key, _receivedMessage.substr(pos + 1 + first_osp, size - pos - 1 - first_osp)));
 		}
 	}
-	_receivedMessage.erase(0, size + 2);
+	_receivedMessage.erase(0, size + (lf == true ? 1 : 2));
 	return (return_value);
 }
 
@@ -268,7 +279,7 @@ void	Methods::_parseCGIResponse(void)
 	size_t size = _receivedMessage.size();
 	static bool	HeaderIncomplete = true;
 
-	while (HeaderIncomplete && _receivedMessage.find("\r\n") != std::string::npos)
+	while (HeaderIncomplete && (_receivedMessage.find("\r\n") != std::string::npos || _receivedMessage.find("\n") != std::string::npos))
 		HeaderIncomplete = !_parseHeaderField();
 
 	if (!_receivedMessage.empty())
@@ -343,13 +354,13 @@ void	Methods::_createEnvpMap(void)
 // ADDITIONAL IMPLEMENTATION-DEFINED CGI HEADER FIELDS
 	for (std::map<std::string, std::string, ci_less>::iterator it = client->req.headers.begin(); it != client->req.headers.end(); ++it)
 	{
-		if (client->req.strFindCaseinsensitive(it->first.substr(0, 2), "X-") != std::string::npos)
-		{
+		// if (client->req.strFindCaseinsensitive(it->first.substr(0, 2), "X-") != std::string::npos)
+		// {
 			std::string result = "HTTP_" + it->first;
 			result = client->req.transform(result, toupper);
 			result = client->req.transform(result, client->req.tounderscore);
 			_envp[result] = it->second;
-		}
+		// }
 	}
 // REDIRECT_STATUS
 	_envp["REDIRECT_STATUS"] = "1";

@@ -146,7 +146,8 @@ std::string	Request::_getWord(const char * delimiter_dic)
 	std::string word;
 	size_t pos;
 
-	if ((pos = _req.find_first_of(delimiter_dic, _pos)) != std::string::npos)
+	// if ((pos = _req.find_first_of(delimiter_dic, _pos)) != std::string::npos)
+	if ((pos = _req.find(delimiter_dic, _pos)) != std::string::npos)
 	{
 		word = _req.substr(_pos, pos - _pos);
 		_pos = pos;
@@ -254,19 +255,18 @@ bool	Request::parseHeaders(void) throw(BadRequest)
 
 	while (1)
 	{
-		// COUT << "BEGIN &_req[_pos]|" << &_req[_pos] << "|\n";
+		if (_req.find("\r\n", _pos) == _pos)
+			break ;
+		std::string header_key = _getWord(":");	/* Check Header Key */
 
-		// std::string header_key = _getWord("(),/:;<=>?@[\\]{}\" \t\r\f\n\v");	/* Check Header Key */
-		std::string header_key = _getWord(":\r");	/* Check Header Key */
-
-		if (header_key == "")
+		if (header_key == "" && (header_key = _getWord("\r")) == "")	/* Check Header Key */
 			break ;
 		if (header_key.find_first_of(" \t") != std::string::npos)	// is token A FAIRE
 		{
 			CERR << "whitespace between header-name and colon\n";
 			throw BadRequest();
 		}
-		else if (_dic.headerDic.find(header_key) != _dic.headerDic.end() || (header_key.find("X-", 0) == 0))
+		else
 		{
 			if (!_passStrictOneChar(':'))	/* Check is ':' is present */
 			{
@@ -275,27 +275,21 @@ bool	Request::parseHeaders(void) throw(BadRequest)
 			}
 
 			_passOptionalChars("\t ");
+			std::string header_val = _getWord("\r\n");
 
-			// COUT << MAGENTA << "New Header\n" << RESET;
+			if (header_val.size())
+			{
+				if ((header_val.rfind(" ") == header_val.size() - 1) || (header_val.rfind("\t") == header_val.size() - 1))
+					header_val.erase(header_val.size() - 1, 1);
+			}
 
-			// COUT << "&_req[_pos]|" << &_req[_pos] << "|\n";
-
-			// std::string header_val = _getWord("\t \r");	/* Gather Header Values */
-			std::string header_val = _getWord("\r");	/* Gather Header Values */
-
-			// COUT << "&_req[_pos]|" << &_req[_pos] << "|\n";
+			COUT << "HEADER|" << header_key << ":" << header_val << "|\n";
 			if (!headers.insert(std::make_pair(header_key, header_val)).second)
+			{
+				CERR << "Header already exists :\n";
 				throw BadRequest();
-			// COUT << "&_req[_pos]|" << &_req[_pos] << "|\n";
-			// _passOptionalChars("\t ");
-			// COUT << "&_req[_pos]|" << &_req[_pos] << "|\n";
+			}
 		}
-		else
-		{
-			_passUntilChar('\r');	/* Header is not implemented: pass until the end of line */
-		}
-
-
 		if (!_passStrictOneChar('\r'))
 		{
 			COUT << "ici3\n";
@@ -322,38 +316,141 @@ bool	Request::parseHeaders(void) throw(BadRequest)
 	return (true);
 }
 
+bool	Request::_isQuotedString(std::string str)
+{
+	// quoted-string  = DQUOTE *( qdtext / quoted-pair ) DQUOTE
+    //  qdtext         = HTAB / SP /%x21 / %x23-5B / %x5D-7E / obs-text
+    //  obs-text       = %x80-FF
+    //  quoted-pair    = "\" ( HTAB / SP / VCHAR / obs-text )
+
+	if (str.find("\"") == 0 && str.rfind("\"") == str.size() - 1 && str.size() > 1)
+	{
+		str.erase(0, 1);
+		str.erase(str.size() - 1, 1);
+
+		std::string::iterator it = str.begin();
+		std::string::iterator ite = str.end();
+		
+		while (it != ite)
+		{
+			if (isprint(*it))
+			{
+				if (*it == '\\' && it + 1 == ite)
+					return (false);
+			}
+			else if (*it != '\t')
+				return (false);
+			it++;
+		}
+
+	}
+	return (true);
+}
+
+bool	Request::_isToken(std::string str)
+{
+	// TOKEN IS NOT => DQUOTE and "(),/:;<=>?@[\]{}"
+	if (str.find_first_of("(),/:;<=>?@[\\]{}\"") == std::string::npos)
+		return (true);
+	return (false);
+}
+
+bool	Request::_chunkedExtensionInvalid(std::string str)
+{
+	size_t pos;
+
+	while (!str.empty())
+	{
+		if (str.find(";") != 0)
+			return (true);
+		str.erase(0, 1);	/* Erase ";" */
+		pos = str.find_first_of("=;");
+		if (_isToken(str.substr(0, pos)))
+		{
+			str.erase(0, pos);	/* Erase until next "=" or ";" */
+			if (str.find("=") == 0)
+			{
+				str.erase(0, 1);	/* Erase "=" */
+				pos = str.find_first_of(";");
+				if (_isToken(str.substr(0, pos)) || _isQuotedString(str.substr(0, pos)))
+					str.erase(0, pos);	/* Erase until next ";" */
+				else
+					return (true);
+			}
+		}
+		else
+			return (true);
+	}
+	return (false);
+}
+
 bool	Request::_parseChunkedBody(size_t & size) throw(BadRequest)
 {
 	size_t pos = 0;
+	size_t nb = 0;
+	static bool foundEnd = false;
+
+	// COUT << "_req|" << _req << "|\n";
+
 	if ((pos = _req.find("\r\n")) == std::string::npos)
 		return (false);
 
-	if (_req.find_first_not_of("0123456789ABCDEFabcdef", 0) != pos)
+	if ((nb = _req.find_first_not_of("0123456789ABCDEFabcdef", 0)) != 0)
 	{
-		body.clear();
-		_req.clear();
-		throw BadRequest();
-	}
+		if (!(size = static_cast<unsigned long>(std::strtol((_req.substr(0, pos)).c_str(), NULL, 16))))
+			foundEnd = true;
 
-	size = static_cast<unsigned long>(std::strtol((_req.substr(0, pos)).c_str(), NULL, 16));
+		// if (nb != pos && _chunkedExtensionInvalid(_req.substr(_req.find(";", 0, pos), pos - _req.find(";", 0, pos))))
+		if (nb != pos && _chunkedExtensionInvalid(_req.substr(nb, pos)))
+		{
+			body.clear();
+			_req.clear();
+			throw BadRequest();
+		}
 
-	if (_req.size() - pos - 2 < size + 2)
-		return (false);
+		if (_req.size() - pos - 2 < size + 2)
+		{
+			// COUT << "Not enough size\n";
+			return (false);
+		}
 
-	// size_t body_pos = 0;
-	if (_req.find("\r\n", size + pos + 2) == std::string::npos)
-	{
-		body.clear();
-		_req.clear();
-		throw BadRequest();
-	}
+		if (foundEnd)
+		{
+			if (_req.find("\r\n") != pos + 2)
+			{
+				// COUT << "_req|" << _req << "|\n";
+				if (_req.find("\r\n\r\n") == std::string::npos)
+					return (false);
 
-	if (size != 0)
+				_req.erase(0, pos + 2);
+				// COUT << "ici\n";
+				// COUT << "_pos|" << _pos << "|\n";
+				parseHeaders();
+			}
+			_req.clear();
+			foundEnd = false;
+			// COUT << "FINISHED CHUNKED\n";
+			return (true);
+		}
+		else if (_req.find("\r\n", size + pos + 2) == std::string::npos)
+		{
+			body.clear();
+			_req.clear();
+			throw BadRequest();
+		}
 		body.append(_req, pos + 2, size);
 
-	_req.erase(0, pos + 2 + size + 2);
+		_req.erase(0, pos + 2 + size + 2);
 
-	return (true);
+		// COUT << "Returning here, _req|" << _req << "|\n";
+		return (true);
+	}
+	else
+	{
+		body.clear();
+		_req.clear();
+		throw BadRequest();
+	}
 }
 
 bool	Request::parseBody(void) throw(BadRequest)
@@ -372,8 +469,11 @@ bool	Request::parseBody(void) throw(BadRequest)
 				if (size == 0)
 					return (true);
 			}
+			// COUT << "AFTER CHUNEKD _req|" << _req << "|\n";
 			return (false);
 		}
+		else
+			throw BadRequest();
 	}
 	else if (headers.find("Content-Length") != headers.end())
 	{

@@ -93,6 +93,11 @@ class ServerBloc
 				virtual const char *	what() const throw() { return ("415"); }
 		};
 
+		class InternalServerError : public std::exception {
+			public:
+				virtual const char *	what() const throw() { return ("500"); }
+		};
+
 	/* Member Functions */
 	public:
 		/* Gets and Sets */

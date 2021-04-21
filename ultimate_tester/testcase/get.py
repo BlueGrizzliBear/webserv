@@ -12,7 +12,7 @@ def test_get_dir_no_index() -> str:
     http_response = send_request(request_header)
     if http_response.status != 404:
         return "Bad status code: {}, expected: {}".format(
-            str(http_response.status), "200"
+            str(http_response.status), "404"
         )
     return ""
 
