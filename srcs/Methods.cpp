@@ -3,7 +3,7 @@
 /* Methods Class Declaration */
 /* Constructor */
 /*	default		(1)	*/
-Methods::Methods(void) : serv(nullptr), client(nullptr) {}
+Methods::Methods(void) : serv(NULL), client(NULL) {}
 
 /*	parent	(2)	*/
 Methods::Methods(ServerBloc & server, Client & client, std::string const & code, std::string const & phrase)
@@ -398,7 +398,7 @@ std::string	Methods::_trimExtension(std::string & str)
 
 void	Methods::_findFile(std::string header, std::vector<std::string> files)
 {
-	std::map<float, std::vector<std::string> > * storage = nullptr;
+	std::map<float, std::vector<std::string> > * storage = NULL;
 	if (header == "Accept-Charset")
 		storage = &_charsets;	
 	else if (header == "Accept-Language")
@@ -532,7 +532,7 @@ void	Methods::_executePutReq(void)
 	_createDirectories();
 
 	COUT << "PUT path|" << _path << "|\n";
-	std::ofstream	file(_path);
+	std::ofstream	file(_path.c_str());
 
 	_fillFileFromStr(file, client->req.body);
 }
@@ -543,7 +543,7 @@ void	Methods::_executePostReq(void)
 	_createDirectories();
 
 	COUT << "POST path|" << _path << "|\n";
-	std::ofstream	file(_path, std::ios_base::app);
+	std::ofstream	file(_path.c_str(), std::ios_base::app);
 
 	_fillFileFromStr(file, client->req.body);
 }

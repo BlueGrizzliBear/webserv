@@ -334,7 +334,7 @@ bool	Methods::_checkUserExist(std::string & user, std::string & auth_path)
 {
 	std::vector<std::string>	users;
 	std::string					line;
-	std::fstream				user_file(auth_path);
+	std::fstream				user_file(auth_path.c_str());
 
 	_envp["AUTH_TYPE"] = user.substr(0, user.find(' '));
 	if (client->req.strFindCaseinsensitive(user, "Basic") != std::string::npos && user_file.good())

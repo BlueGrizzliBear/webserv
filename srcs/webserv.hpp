@@ -14,6 +14,7 @@
 # include <sys/wait.h>
 # include <dirent.h>
 # include <arpa/inet.h>
+# include <errno.h>
 
 /* C++ libraries */
 # include <cstdlib>

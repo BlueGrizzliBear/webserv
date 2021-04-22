@@ -480,9 +480,9 @@ bool	Request::parseBody(void) throw(BadRequest)
 	else if (headers.find("Content-Length") != headers.end())
 	{
 		// CERR << "Content-length" << ENDL;
-		if (!str_is(headers.find("Content-Length")->second, isnumber))
+		if (!str_is(headers.find("Content-Length")->second, std::isdigit))
 			throw BadRequest();
-		size_t size = static_cast<size_t>(std::strtol(headers.find("Content-Length")->second.c_str(), nullptr, 10));
+		size_t size = static_cast<size_t>(std::strtol(headers.find("Content-Length")->second.c_str(), NULL, 10));
 		if (errno == ERANGE)
 		{
 			errno = 0;

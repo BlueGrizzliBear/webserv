@@ -121,7 +121,7 @@ bool	ServerBloc::processRequest(Client & client)
 		// COUT << MAGENTA << "Avant Exec" << RESET << ENDL;
 		
 
-		ServerBloc * ptr = nullptr;
+		ServerBloc * ptr = NULL;
 		if (!is_unique && client.req.headers.find("Host") != client.req.headers.end())
 		{
 			bool found = 0;
@@ -206,7 +206,7 @@ std::string	ServerBloc::_getDate(void)
 	struct tm		*time;
 	char			buffer[30];
 
-	gettimeofday(&time_val, nullptr);
+	gettimeofday(&time_val, NULL);
 	time = gmtime(&time_val.tv_sec); // to check (time_t to struct tm)
 	strftime(buffer, 30, "%a, %d %b %Y %H:%M:%S GMT", time);
 	std::string	str(buffer);
