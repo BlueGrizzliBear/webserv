@@ -41,7 +41,6 @@ class Request
 		};
 
 	public:
-
 	/* Gets and Sets */
 		std::string &	getData(void);
 		size_t &		getPos(void);
@@ -98,6 +97,7 @@ class Request
 	public:
 		static int			tounderscore(int c);
 		static std::string	transform(std::string str, int func(int));
+		static int			isValidHost(int c);
 };
 
 #endif

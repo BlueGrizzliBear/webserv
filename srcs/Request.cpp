@@ -87,6 +87,14 @@ size_t	Request::strFindCaseinsensitive(std::string str, char const * to_find)
 	return (tmp.find(tmp_to_find));
 }
 
+int		Request::isValidHost(int c)
+{
+	std::string dic("/<>@\\{}^`|#\"");
+
+	if (dic.find(static_cast<char>(c)) == std::string::npos)
+		return (1);
+	return (0);
+}
 
 bool	Request::str_is(std::string str, int func(int))
 {
@@ -318,11 +326,6 @@ bool	Request::parseHeaders(void) throw(BadRequest)
 
 bool	Request::_isQuotedString(std::string str)
 {
-	// quoted-string  = DQUOTE *( qdtext / quoted-pair ) DQUOTE
-    //  qdtext         = HTAB / SP /%x21 / %x23-5B / %x5D-7E / obs-text
-    //  obs-text       = %x80-FF
-    //  quoted-pair    = "\" ( HTAB / SP / VCHAR / obs-text )
-
 	if (str.find("\"") == 0 && str.rfind("\"") == str.size() - 1 && str.size() > 1)
 	{
 		str.erase(0, 1);
@@ -342,7 +345,6 @@ bool	Request::_isQuotedString(std::string str)
 				return (false);
 			it++;
 		}
-
 	}
 	return (true);
 }

@@ -19,7 +19,7 @@ NAME			=		./webserv
 COMPIL			=		clang++
 
 # FLAGS			+=		-Wall -Wextra -Werror -Wconversion -std=c++98 -fsanitize=address -g3
-FLAGS			+=		-Wall -Wextra -Werror -Wconversion -std=c++98
+FLAGS			+=		-Wall -Wextra -Werror -Wconversion -std=c++98 -g3
 
 SRCS			=		$(addprefix $(SRC_PATH),$(SRCS_NAME))
 

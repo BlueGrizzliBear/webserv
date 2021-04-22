@@ -97,12 +97,11 @@ bool	ServerBloc::processRequest(Client & client)
 {
 	if (!client.req.headerParsed)
 	{
-		// client.req.client = &client;
-
-		if (client.req.parseRequestLine())
-			// CME << "> Parsed Request-line: COMPLETE !" << EME;
-		if (client.req.parseHeaders())
-			// CME << "> Parsed Headers: COMPLETE !" << EME;
+		client.req.parseRequestLine();
+		client.req.parseHeaders();
+		if (client.req.headers.find("Host") == client.req.headers.end()
+		|| !client.req.str_is(client.req.headers.find("Host")->second, client.req.isValidHost))
+			throw BadRequest();
 		client.req.headerParsed = true;
 
 		client.req.getData().erase(0, client.req.getData().find("\r\n\r\n") + 4);
@@ -121,6 +120,7 @@ bool	ServerBloc::processRequest(Client & client)
 
 		// COUT << MAGENTA << "Avant Exec" << RESET << ENDL;
 		
+
 		ServerBloc * ptr = nullptr;
 		if (!is_unique && client.req.headers.find("Host") != client.req.headers.end())
 		{

@@ -25,12 +25,12 @@ def test_put() -> str:
         return "Bad status code: {}, expected: {}".format(
             str(http_response.status), "201"
         )
-    if http_response.headers["Location"] != "/post/tmp/put.html":
+    if http_response.headers["Location"] != "/post/put.html":
         return "Bad Location header: {}, expected: {}".format(
-            http_response.headers["Location"], "/post/tmp/put.html"
+            http_response.headers["Location"], "/post/put.html"
         )
     try:
-        f = open("www/tmp/put.html", "r")
+        f = open("./ulti_tester/tmp/put.html", "r")
     except:
         return "Error: file not created"
     line = f.readline()
@@ -46,7 +46,7 @@ def test_put() -> str:
             str(http_response.status), "204"
         )
     try:
-        f = open("www/tmp/put.html", "r")
+        f = open("./ulti_tester/tmp/put.html", "r")
     except:
         return "Error: file not created"
     line = f.readline()

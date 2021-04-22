@@ -3,73 +3,38 @@
 /* Header server response */
 void	Methods::_PutHeaderStatusCode(void)
 {
-/*	If the target resource does not have a current representation and the
-	PUT successfully creates one, then the origin server MUST inform the
-	user agent by sending a 201 (Created) response.  If the target
-	resource does have a current representation and that representation
-	is successfully modified in accordance with the state of the enclosed
-	representation, then the origin server MUST send either a 200 (OK) or
-	a 204 (No Content) response to indicate successful completion of the
-	request. */
 	if (!_fileExist(_path))
 	{
-		/* Fill Status Line */
 		client->resp.status_code = "201";
 		client->resp.reason_phrase = "Created";
-		/* Add Header Content-Location pointing to the path of newly created file */
-		// client->resp.header_fields.insert(std::make_pair("Content-Location", client->req.uri));
+		client->resp.header_fields.insert(std::make_pair("Location", client->req.uri));
 	}
-	else
+	else /* if (client->resp.body.empty()) */
 	{
-		if (client->req.body.empty())
-		{
-			/* Fill Status Line */
-			client->resp.status_code = "204";
-			client->resp.reason_phrase = "No Content";
-			// client->resp.header_fields.insert(std::make_pair("Content-Location", client->req.uri));
-		}
-		else
-		{
-			/* Fill Status Line */
-			client->resp.status_code = "200";
-			client->resp.reason_phrase = "OK";
-		}
+		client->resp.status_code = "204";
+		client->resp.reason_phrase = "No Content";
 	}
 }
 
 void	Methods::_PostHeaderStatusCode(void)
 {
-/*	If the target resource does not have a current representation and the
-	PUT successfully creates one, then the origin server MUST inform the
-	user agent by sending a 201 (Created) response.  If the target
-	resource does have a current representation and that representation
-	is successfully modified in accordance with the state of the enclosed
-	representation, then the origin server MUST send either a 200 (OK) or
-	a 204 (No Content) response to indicate successful completion of the
-	request. */
 	if (!_fileExist(_path))
 	{
-		/* Fill Status Line */
 		client->resp.status_code = "201";
 		client->resp.reason_phrase = "Created";
-		/* Add Header Content-Location pointing to the path of newly created file */
 		client->resp.header_fields.insert(std::make_pair("Location", client->req.uri));
 	}
-	else
+	else /* if (client->resp.body.empty()) */
 	{
-		if (client->req.body.empty())
-		{
-			/* Fill Status Line */
-			client->resp.status_code = "204";
-			client->resp.reason_phrase = "No Content";
-		}
-		else
-		{
-			/* Fill Status Line */
-			client->resp.status_code = "200";
-			client->resp.reason_phrase = "OK";
-		}
+		client->resp.status_code = "200";
+		client->resp.reason_phrase = "No Content";
 	}
+	// else
+	// {
+	// 	client->resp.status_code = "200";
+	// 	client->resp.reason_phrase = "OK";
+	// }
+	
 }
 
 void	Methods::_GetHeaderStatusCode(void)

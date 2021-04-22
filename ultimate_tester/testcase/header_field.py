@@ -101,9 +101,9 @@ def test_header_too_long() -> str:
     )
     http_response = send_request(request_header)
     # print(http_response.status)
-    if http_response.status // 100 != 4:
+    if http_response.status // 100 != 2:
         return "Bad status code: {}, expected: {} (NOT MANDATORY)".format(
-            str(http_response.status), "4XX"
+            str(http_response.status), "2XX or 4XX"
         )
     return ""
 
