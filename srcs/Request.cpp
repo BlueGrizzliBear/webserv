@@ -291,7 +291,7 @@ bool	Request::parseHeaders(void) throw(BadRequest)
 					header_val.erase(header_val.size() - 1, 1);
 			}
 
-			COUT << "HEADER|" << header_key << ":" << header_val << "|\n";
+			// COUT << "HEADER|" << header_key << ":" << header_val << "|\n";
 			if (!headers.insert(std::make_pair(header_key, header_val)).second)
 			{
 				CERR << "Header already exists :\n";
@@ -333,7 +333,7 @@ bool	Request::_isQuotedString(std::string str)
 
 		std::string::iterator it = str.begin();
 		std::string::iterator ite = str.end();
-		
+
 		while (it != ite)
 		{
 			if (isprint(*it))
@@ -455,7 +455,7 @@ bool	Request::_parseChunkedBody(size_t & size) throw(BadRequest)
 	}
 }
 
-bool	Request::parseBody(void) throw(BadRequest)
+bool	Request::parseBody(void) throw(NotImplemented, BadRequest)
 {
 	if (headers.find("Transfer-Encoding") != headers.end())
 	{
@@ -475,7 +475,7 @@ bool	Request::parseBody(void) throw(BadRequest)
 			return (false);
 		}
 		else
-			throw BadRequest();
+			throw NotImplemented();
 	}
 	else if (headers.find("Content-Length") != headers.end())
 	{

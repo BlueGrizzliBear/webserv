@@ -31,7 +31,7 @@ ServerBloc &	ServerBloc::operator=(ServerBloc const & rhs)
 	serv_select = rhs.serv_select;
 
 	pid = rhs.pid;
-	
+
 	_server_no = rhs._server_no;
 	_parent = rhs._parent;
 	return (*this);
@@ -119,7 +119,7 @@ bool	ServerBloc::processRequest(Client & client)
 		client.req.headerParsed = false;		/* Reseting bool indicator if header is parsed or not */
 
 		// COUT << MAGENTA << "Avant Exec" << RESET << ENDL;
-		
+
 
 		ServerBloc * ptr = NULL;
 		if (!is_unique && client.req.headers.find("Host") != client.req.headers.end())
@@ -174,7 +174,7 @@ void	ServerBloc::_addHeaderFields(Client & client)
 {
 	/* Create corresponding header fields */
 	client.resp.header_fields.insert(std::make_pair("Date", _getDate()));
-	client.resp.header_fields.insert(std::make_pair("Server", dir.find("server_name")->second[0]));
+	client.resp.header_fields.insert(std::make_pair("Server", "URI Hunter/1.0 (Unix)"));
 
 	/* Cache indications */
 	client.resp.header_fields.insert(std::make_pair("Cache-Control", "no-store"));

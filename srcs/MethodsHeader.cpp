@@ -34,7 +34,7 @@ void	Methods::_PostHeaderStatusCode(void)
 	// 	client->resp.status_code = "200";
 	// 	client->resp.reason_phrase = "OK";
 	// }
-	
+
 }
 
 void	Methods::_GetHeaderStatusCode(void)
@@ -107,8 +107,6 @@ std::string	Methods::_readFileToStr(void)
 
 void	Methods::_createAcceptedMap(std::string header, std::map<float, std::vector<std::string> > * storage)
 {
-	COUT << "Creating Accepted Map\n";
-
 	std::string value = client->req.headers.find(header)->second;
 
 	while (!value.empty())
@@ -142,7 +140,7 @@ void	Methods::_createAcceptedMap(std::string header, std::map<float, std::vector
 			if (value.find_first_of(" \t", pos) == pos + 1)
 				pos++;
 			value.erase(0, pos + 1);
-			
+
 			if (language_range.find(";") != std::string::npos)
 			{
 				// pos = language_range.find(";q=");

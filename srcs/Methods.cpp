@@ -208,9 +208,16 @@ void	Methods::_applyPost()
 		_executePostReq();
 	}
 	else
+	{
 		_launchCGI();
-	// /* (2) Fill Content-length */
-	client->resp.header_fields.insert(std::make_pair("Content-Length", _getSizeOfStr(client->resp.body)));
+		// /* (2) Fill Content-length */
+		client->resp.header_fields.insert(std::make_pair("Content-Length", _getSizeOfStr(client->resp.body)));
+	}
+	// if header 201 creater ou content negotation header request (Accept, Accept-*)
+	if (client->resp.status_code == "201"
+	|| (client->req.headers.find("Accept-Charset") != client->req.headers.end())
+	|| (client->req.headers.find("Accept-Language") != client->req.headers.end()))
+		client->resp.header_fields.insert(std::make_pair("Content-Location", client->req.uri));
 }
 
 void	Methods::_applyPut(void)
@@ -227,7 +234,10 @@ void	Methods::_applyPut(void)
 	if (_cmpTimeInfo(_getHeaderIfUnmodifiedSinceTime(), _getFileTime()) == 0)
 		throw ServerBloc::PreconditionFailed();
 	else if (client->req.body == _readFileToStr() && _cmpTimeInfo(_getHeaderIfUnmodifiedSinceTime(), _getFileTime()) == 1)
+	{
 		_lastModifiedHeader(_getFileTime());
+		_GetHeaderStatusCode(); /* Fill with 200 OK status code */
+	}
 	else	/* execute specific to PUT request */
 	{
 		/* (1) Fill Status Line header */
@@ -235,6 +245,10 @@ void	Methods::_applyPut(void)
 		/* Execute request */
 		_executePutReq();
 	}
+	if (client->resp.status_code == "201"
+	|| (client->req.headers.find("Accept-Charset") != client->req.headers.end())
+	|| (client->req.headers.find("Accept-Language") != client->req.headers.end()))
+		client->resp.header_fields.insert(std::make_pair("Content-Location", client->req.uri));
 }
 
 /* Execute Get request */
@@ -242,7 +256,7 @@ void	Methods::_executeGetReq(void)
 {
 	if (!_path.empty() && *(_path.rbegin()) != '/' && _isDirectory(_path) == true)
 		_path.append("/");
-	
+
 	if (_autoindex == false)	/* create html list directory if autoindex off and copy to body */
 	{
 		if (!_path.empty() && *(_path.rbegin()) == '/')
@@ -253,21 +267,21 @@ void	Methods::_executeGetReq(void)
 		// COUT << "before _path:|" << _path << "|, _index.size()|" << _indexes.size() << "|\n";
 		if (!_path.empty() && (*(_path.rbegin()) == '/' ))	/* FOLDER */
 		{
-			COUT << "Searching for INDEX\n";
+			// COUT << "Searching for INDEX\n";
 			if (!_indexes.empty())
 			{
 				if ((client->req.headers.find("Accept-Language") != client->req.headers.end()))
 					_findFile("Accept-Language", _indexes);
 				else
 					_findIndex();
-				
+
 			}
 			else
 				throw ServerBloc::Forbidden();
 		}
 		else	/* FILE */
 		{
-			COUT << "Searching for FILE\n";
+			// COUT << "Searching for FILE\n";
 			std::vector<std::string> files;
 			_createVectorFromCWD(files, _pathWithoutLastPart());
 
@@ -283,8 +297,9 @@ void	Methods::_executeGetReq(void)
 		}
 		if (_fileExist(_path) == false)
 			throw ServerBloc::NotFound();
-		// else
-		// 	client->resp.header_fields.insert(std::make_pair("Content-Location", _path));
+		if ((client->req.headers.find("Accept-Charset") != client->req.headers.end())
+		|| (client->req.headers.find("Accept-Language") != client->req.headers.end()))
+			client->resp.header_fields.insert(std::make_pair("Content-Location", client->req.uri));
 	}
 	// COUT << "_path|" << _path << "|" << ENDL;
 }
@@ -369,7 +384,7 @@ void	Methods::_createVectorFromCWD(std::vector<std::string> & files, std::string
 {
 	DIR *dir;
 
-	COUT << "Before Createing Vector from cwd, path |" << path << "|\n";
+	// COUT << "Before Createing Vector from cwd, path |" << path << "|\n";
 	if ((dir = opendir(path.c_str())))	/* list directory in html format*/
 	{
 		struct dirent		*dp;
@@ -400,35 +415,31 @@ void	Methods::_findFile(std::string header, std::vector<std::string> files)
 {
 	std::map<float, std::vector<std::string> > * storage = NULL;
 	if (header == "Accept-Charset")
-		storage = &_charsets;	
+		storage = &_charsets;
 	else if (header == "Accept-Language")
 		storage = &_languages;
 
 	_createAcceptedMap(header, storage);
-	COUT << "Searching for exact match\n";
+	// COUT << "Searching for exact match\n";
 	for (std::map<float, std::vector<std::string> >::reverse_iterator l_it = storage->rbegin(); l_it != storage->rend(); ++l_it)
 	{
-		COUT << "Iterating through language Map\n";
+		// COUT << "Iterating through language Map\n";
 		for (std::vector<std::string>::iterator lv_it = l_it->second.begin(); lv_it != l_it->second.end(); ++lv_it)
 		{
 			for (std::vector<std::string>::iterator it = files.begin(); it != files.end(); ++it)
 			{
-				COUT << "Searching for the right language|" << *lv_it << "| inside it|" << *it << "|\n";
+				// COUT << "Searching for the right language|" << *lv_it << "| inside it|" << *it << "|\n";
 				if ((*lv_it == "*" || client->req.strFindCaseinsensitive(*it, lv_it->c_str()) != std::string::npos)
 				&& _fileExist(_pathWithoutLastPart() + *it) == true)
 				{
-					COUT << "Found the file\n";
+					// COUT << "Found the file\n";
 					_path = _pathWithoutLastPart() + *it;
-
-					COUT << "_path|" << _path << "|\n";
-
+					// COUT << "_path|" << _path << "|\n";
 					_checkContentType();
 					if (header == "Accept-Language")
 						client->resp.header_fields.insert(std::make_pair("Content-Language", *lv_it));
 					else
-					{
 						client->resp.header_fields["Content-Type"].append("; charset=" + *lv_it);
-					}
 					return ;
 				}
 			}
@@ -436,19 +447,19 @@ void	Methods::_findFile(std::string header, std::vector<std::string> files)
 	}
 	if (header == "Accept-Language")
 	{
-		COUT << "Searching for prefix\n";
+		// COUT << "Searching for prefix\n";
 		for (std::map<float, std::vector<std::string> >::reverse_iterator l_it = storage->rbegin(); l_it != storage->rend(); ++l_it)
 		{
-			COUT << "Iterating through language Map\n";
+			// COUT << "Iterating through language Map\n";
 			for (std::vector<std::string>::iterator lv_it = l_it->second.begin(); lv_it != l_it->second.end(); ++lv_it)
 			{
 				for (std::vector<std::string>::iterator it = files.begin(); it != files.end(); ++it)
 				{
-					COUT << "Searching for the right language|" << *lv_it << "| inside it|" << *it << "|\n";
+					// COUT << "Searching for the right language|" << *lv_it << "| inside it|" << *it << "|\n";
 					if (lv_it->find("-") != std::string::npos && client->req.strFindCaseinsensitive(*it, lv_it->substr(0, lv_it->find("-")).c_str()) != std::string::npos
 					&& _fileExist(_pathWithoutLastPart() + *it) == true)
 					{
-						COUT << "Found the file\n";
+						// COUT << "Found the file\n";
 						_path = _pathWithoutLastPart() + *it;
 						// COUT << "path|" << _path << "|\n";
 						_checkContentType();
@@ -465,9 +476,9 @@ void	Methods::_findFile(std::string header, std::vector<std::string> files)
 	{
 		if (_trimExtension(*files_v) == _pathLastPart())
 		{
-			COUT << "Found the file\n";
+			// COUT << "Found the file\n";
 			_path = _pathWithoutLastPart() + *files_v;
-			COUT << "_path|" << _path << "|\n";
+			// COUT << "_path|" << _path << "|\n";
 			break ;
 		}
 	}
@@ -478,14 +489,11 @@ void	Methods::_findFile(std::string header, std::vector<std::string> files)
 
 void	Methods::_findIndex(void)
 {
-	COUT << MAGENTA << "Searching for normal index" << RESET << ENDL;
 	for (std::vector<std::string>::iterator it = _indexes.begin(); it != _indexes.end(); ++it)
 	{
-		COUT << "Searching index|" << _path + *it << "|\n";
 		if (_fileExist(_path + *it) == true)
 		{
 			_path += *it;
-			// COUT << "PATH ICI |" << _path << "|\n";
 			_checkContentType();
 			return ;
 		}
@@ -513,11 +521,9 @@ void	Methods::_createDirectories(void)
 	std::string final_path;
 	size_t i = 1;
 
-	// COUT << "path|" << _path << "|\n";
 	while (final_path != _pathWithoutLastPart())
 	{
 		final_path = _pathIterateThroughFolders(i);
-		// COUT << "final_path|" << final_path << "|\n";
 		if (mkdir(final_path.c_str(), 0755) < 0 && errno != EEXIST)
 		{
 			CERR << "Error in mkdir(): " << strerror(errno) << ENDL;
@@ -531,7 +537,6 @@ void	Methods::_executePutReq(void)
 {
 	_createDirectories();
 
-	COUT << "PUT path|" << _path << "|\n";
 	std::ofstream	file(_path.c_str());
 
 	_fillFileFromStr(file, client->req.body);
@@ -542,7 +547,6 @@ void	Methods::_executePostReq(void)
 {
 	_createDirectories();
 
-	COUT << "POST path|" << _path << "|\n";
 	std::ofstream	file(_path.c_str(), std::ios_base::app);
 
 	_fillFileFromStr(file, client->req.body);
@@ -601,10 +605,7 @@ void	Methods::_fillStrFromFile(std::string & body, std::string const & path)
 		file.close();
 	}
 	else
-	{
-		COUT << "_fillStrFromFile\n";
 		throw ServerBloc::InternalServerError();
-	}
 }
 
 void	Methods::_fillFileFromStr(std::ofstream & file, std::string const & body)
@@ -615,10 +616,7 @@ void	Methods::_fillFileFromStr(std::ofstream & file, std::string const & body)
 		file.close();
 	}
 	else
-	{
-		COUT << "_fillFileFromStr\n";
 		throw ServerBloc::InternalServerError();
-	}
 }
 
 std::string	Methods::_getSizeOfStr(std::string const & str)

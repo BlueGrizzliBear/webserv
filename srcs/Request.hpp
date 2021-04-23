@@ -48,7 +48,7 @@ class Request
 	/* Member Functions */
 		bool	parseRequestLine(void) throw(NotImplemented, BadRequest, URITooLong);
 		bool	parseHeaders(void) throw(BadRequest);
-		bool	parseBody(void) throw(BadRequest);
+		bool	parseBody(void) throw(NotImplemented, BadRequest);
 
 		void	clear(void);
 
