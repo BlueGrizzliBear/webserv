@@ -121,6 +121,7 @@ def run() -> None:
     run_test("POST /", test_wrong_post)
     run_test("/", test_post_not_allowed)
     run_test("/post/post.html * 2", test_post)
+    run_test("/post/post_encoding.html", test_post_encoding)
     run_test("POST /post/test too big payload", test_too_big_request)
     run_test("POST /test.cgi ", test_cgi_headers)
     run_test("GET /protected/print.cgi ", test_cgi_auth_headers)

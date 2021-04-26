@@ -59,6 +59,89 @@ def test_post() -> str:
         )
     return ""
 
+def test_post_encoding() -> str:
+    request_header = "POST /post/post_encoding.html HTTP/1.1\r\nHost: xx\r\nTransfer-Encoding: identity\r\n\r\n"
+    http_response = send_request(request_header)
+    if http_response.status != 201:
+        return "Bad status code: {}, expected: {}".format(
+            str(http_response.status), "201"
+        )
+    if http_response.headers["Location"] != "/post/post_encoding.html":
+        return "1Bad Location header: {}, expected: {}".format(
+            http_response.headers["Location"], "/post/post_encoding.html"
+        )
+    try:
+        f = open("./ulti_tester/tmp/post_encoding.html", "r")
+    except:
+        return "Error: file not created"
+    line = f.readline()
+    # print(line)
+    f.close()
+
+    request_header = "POST /post/post_encoding.html HTTP/1.1\r\nHost: xx\r\nTransfer-Encoding: identity\r\nContent-Length: 12\r\n\r\nPOST REQUEST"
+    http_response = send_request(request_header)
+    if http_response.status != 200:
+        return "Bad status code: {}, expected: {}".format(
+            str(http_response.status), "200"
+        )
+    try:
+        f = open("./ulti_tester/tmp/post_encoding.html", "r")
+    except:
+        return "Error: file not created"
+    line = f.readline()
+    # print(line)
+    f.close()
+    if line != "POST REQUEST":
+        return "Bad content: {}, expected: {}".format(line, "POST REQUEST")
+
+    request_header = "POST /post/post_encoding.html HTTP/1.1\r\nHost: xx\r\nTransfer-Encoding: divers\r\nContent-Length: 12\r\n\r\nPOST REQUEST"
+    http_response = send_request(request_header)
+    if http_response.status != 501:
+        return "Bad status code: {}, expected: {}".format(
+            str(http_response.status), "501"
+        )
+
+    request_header = "POST /post/post_encoding.html HTTP/1.1\r\nHost: xx\r\nTransfer-Encoding: identity, identity\r\nContent-Length: 12\r\n\r\nPOST REQUEST"
+    http_response = send_request(request_header)
+    if http_response.status != 200:
+        return "Bad status code: {}, expected: {}".format(
+            str(http_response.status), "200"
+        )
+    try:
+        f = open("./ulti_tester/tmp/post_encoding.html", "r")
+    except:
+        return "Error: file not created"
+    line = f.readline()
+    # print(line)
+    f.close()
+    if line != "POST REQUESTPOST REQUEST":
+        return "Bad content: {}, expected: {}".format(line, "POST REQUESTPOST REQUEST")
+
+    request_header = "POST /post/post_encoding.html HTTP/1.1\r\nHost: xx\r\nTransfer-Encoding: identity, chunked\r\nContent-Length: 12\r\n\r\nc\r\nPOST REQUEST\r\n0\r\n\r\n"
+    http_response = send_request(request_header)
+    if http_response.status != 200:
+        return "Bad status code: {}, expected: {}".format(
+            str(http_response.status), "200"
+        )
+    try:
+        f = open("./ulti_tester/tmp/post_encoding.html", "r")
+    except:
+        return "Error: file not created"
+    line = f.readline()
+    # print(line)
+    f.close()
+    if line != "POST REQUESTPOST REQUESTPOST REQUEST":
+        return "Bad content: {}, expected: {}".format(line, "POST REQUESTPOST REQUESTPOST REQUEST")
+
+    request_header = "POST /post/post_encoding.html HTTP/1.1\r\nHost: xx\r\nTransfer-Encoding: identity, salut, chunked\r\nContent-Length: 12\r\n\r\nPOST REQUEST"
+    http_response = send_request(request_header)
+    if http_response.status != 501:
+        return "Bad status code: {}, expected: {}".format(
+            str(http_response.status), "501"
+        )
+
+    return ""
+
 
 def test_cgi_headers() -> str:
     request_header = "POST /post/test.cgi HTTP/1.1\r\nHost: xx\r\nEvery-Letter-Should-Change-To_Upcase: HELLOOOOO\r\nContent-Length: 16\r\n\r\nHello from body!"

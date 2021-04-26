@@ -550,7 +550,7 @@ void	ConfigParser::_initDefaultServer(ServerBloc & serv)
 			Servers::iterator s_it = _servers.begin();
 			Servers::iterator s_ite = _servers.end();
 			bool defaultDetected = 0;
-			
+
 			while (s_it != s_ite)
 			{
 				if (&*s_it != &serv && s_it->port_no == serv.port_no)
@@ -561,7 +561,8 @@ void	ConfigParser::_initDefaultServer(ServerBloc & serv)
 
 					while (sd_it != sd_ite)
 					{
-						if ((*sd_it).first == "listen" && (*sd_it).second.size() > 1 && (*sd_it).second[1] == "default_server")
+						if ((*sd_it).first == "listen"
+						&& ((((*sd_it).second.size() > 1 && (*sd_it).second[1] == "default_server")) || (*s_it).is_default == true))
 						{
 							if (defaultDetected)
 								throw UnexpectedToken();
@@ -636,7 +637,7 @@ void	ConfigParser::_setNonDefaultServers(void)
 void	ConfigParser::_initServers(void)
 {
 	_setPortNo();
-	
+
 	Servers::iterator s_it = _servers.begin();
 	Servers::iterator s_ite = _servers.end();
 

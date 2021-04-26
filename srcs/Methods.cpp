@@ -75,14 +75,15 @@ void	Methods::customError(std::string const & status_code, std::string const & r
 		else
 		{
 			_fillDefaultExceptionBody(status_code, reason_phrase);
-			client->resp.header_fields.insert(std::make_pair("Content-Type", "text/html"));
+			client->resp.header_fields["Content-Type"] = "text/html";
 		}
 	}
 	else
 	{
 		_fillDefaultExceptionBody(status_code, reason_phrase);
-		client->resp.header_fields.insert(std::make_pair("Content-Type", "text/html"));
+		client->resp.header_fields["Content-Type"] = "text/html";
 	}
+	client->resp.header_fields["Content-Type"].append("; charset=utf-8");
 	client->resp.header_fields.insert(std::make_pair("Content-Length", _getSizeOfStr(client->resp.body)));
 	client->resp.header_fields.insert(std::make_pair("Transfer-Encoding", "identity"));
 }
@@ -117,18 +118,18 @@ void	Methods::_URIResolutionProcess(void)
 		/* 1st */
 		if (!client->req.uri.find(tmp = "../") || !client->req.uri.find(tmp = "./"))
 			client->req.uri.erase(0, tmp.size());
+		/* 2nd */
+		else if (!client->req.uri.find(tmp = "/./") || client->req.uri == (tmp = "/."))
+			client->req.uri.replace(0, tmp.size(), "/");
 		/* 3rd */
-		else if (!client->req.uri.find(tmp = "/../") || !client->req.uri.find(tmp = "/.."))
+		else if (!client->req.uri.find(tmp = "/../") || client->req.uri == (tmp = "/.."))
 		{
 			client->req.uri.replace(0, tmp.size(), "/");
 			if ((pos = new_uri.rfind("/")) != std::string::npos)
 				new_uri.erase(pos, pos - new_uri.size());
 		}
-		/* 2nd */
-		else if (!client->req.uri.find(tmp = "/./") || !client->req.uri.find(tmp = "/."))
-			client->req.uri.replace(0, tmp.size(), "/");
 		/* 4th */
-		else if (!client->req.uri.find(tmp = ".") || !client->req.uri.find(tmp = ".."))
+		else if (client->req.uri == "." || client->req.uri == "..")
 			client->req.uri.erase(0, tmp.size());
 		/* 5th */
 		else
@@ -156,7 +157,6 @@ void	Methods::_queryResolutionProcess(void)
 	{
 		end = client->req.uri.find('#');	/* jusqu'au # ou fin de l'uri */
 		_query = client->req.uri.substr(begin + 1, end);
-		COUT << "query|" << _query << "|\n";
 		client->req.uri.erase(begin, std::string::npos);
 	}
 	else
@@ -181,8 +181,6 @@ void	Methods::_applyGet(void)
 		/* (2) Fill Last-Modified */
 		if (_path != "./dir_listing.html")
 			_lastModifiedHeader(_getFileTime());
-		/* (3) Fill Transfer-Encoding */
-		client->resp.header_fields.insert(std::make_pair("Transfer-Encoding", "identity"));
 	}
 	else
 		_launchCGI();
@@ -261,13 +259,16 @@ void	Methods::_executeGetReq(void)
 	{
 		if (!_path.empty() && *(_path.rbegin()) == '/')
 			_createIndexHTML();
+		else
+		{
+			if (_fileExist(_path) == false)
+				throw ServerBloc::NotFound();
+		}
 	}
 	else	/* copy asked file to body if exist */
 	{
-		// COUT << "before _path:|" << _path << "|, _index.size()|" << _indexes.size() << "|\n";
 		if (!_path.empty() && (*(_path.rbegin()) == '/' ))	/* FOLDER */
 		{
-			// COUT << "Searching for INDEX\n";
 			if (!_indexes.empty())
 			{
 				if ((client->req.headers.find("Accept-Language") != client->req.headers.end()))
@@ -281,7 +282,6 @@ void	Methods::_executeGetReq(void)
 		}
 		else	/* FILE */
 		{
-			// COUT << "Searching for FILE\n";
 			std::vector<std::string> files;
 			_createVectorFromCWD(files, _pathWithoutLastPart());
 
@@ -295,13 +295,13 @@ void	Methods::_executeGetReq(void)
 			}
 			// ici
 		}
+		// COUT << "path|" << _path << "|\n";
 		if (_fileExist(_path) == false)
 			throw ServerBloc::NotFound();
 		if ((client->req.headers.find("Accept-Charset") != client->req.headers.end())
 		|| (client->req.headers.find("Accept-Language") != client->req.headers.end()))
 			client->resp.header_fields.insert(std::make_pair("Content-Location", client->req.uri));
 	}
-	// COUT << "_path|" << _path << "|" << ENDL;
 }
 
 bool	Methods::_isDirectory(std::string const & path)
@@ -432,14 +432,12 @@ void	Methods::_findFile(std::string header, std::vector<std::string> files)
 				if ((*lv_it == "*" || client->req.strFindCaseinsensitive(*it, lv_it->c_str()) != std::string::npos)
 				&& _fileExist(_pathWithoutLastPart() + *it) == true)
 				{
-					// COUT << "Found the file\n";
 					_path = _pathWithoutLastPart() + *it;
-					// COUT << "_path|" << _path << "|\n";
 					_checkContentType();
 					if (header == "Accept-Language")
 						client->resp.header_fields.insert(std::make_pair("Content-Language", *lv_it));
 					else
-						client->resp.header_fields["Content-Type"].append("; charset=" + *lv_it);
+						_default_charset = "; charset=" + *lv_it;
 					return ;
 				}
 			}
@@ -455,13 +453,10 @@ void	Methods::_findFile(std::string header, std::vector<std::string> files)
 			{
 				for (std::vector<std::string>::iterator it = files.begin(); it != files.end(); ++it)
 				{
-					// COUT << "Searching for the right language|" << *lv_it << "| inside it|" << *it << "|\n";
 					if (lv_it->find("-") != std::string::npos && client->req.strFindCaseinsensitive(*it, lv_it->substr(0, lv_it->find("-")).c_str()) != std::string::npos
 					&& _fileExist(_pathWithoutLastPart() + *it) == true)
 					{
-						// COUT << "Found the file\n";
 						_path = _pathWithoutLastPart() + *it;
-						// COUT << "path|" << _path << "|\n";
 						_checkContentType();
 						if (header == "Accept-Language")
 							client->resp.header_fields.insert(std::make_pair("Content-Language", *lv_it));
@@ -471,20 +466,23 @@ void	Methods::_findFile(std::string header, std::vector<std::string> files)
 			}
 		}
 	}
-
 	for (std::vector<std::string>::iterator files_v = files.begin(); files_v != files.end(); ++files_v)
 	{
+		// COUT << "index:|" << *files_v << "|\n";
 		if (_trimExtension(*files_v) == _pathLastPart())
 		{
-			// COUT << "Found the file\n";
 			_path = _pathWithoutLastPart() + *files_v;
-			// COUT << "_path|" << _path << "|\n";
-			break ;
+
+			_checkContentType();
+			if (header == "Accept-Charset")
+				_default_charset = "; charset=utf-8";
+			return ;
+			// break ;
 		}
 	}
-	_checkContentType();
+	_findIndex();
 	if (header == "Accept-Charset")
-		client->resp.header_fields["Content-Type"].append("; charset=utf-8");
+		_default_charset = "; charset=utf-8";
 }
 
 void	Methods::_findIndex(void)
@@ -499,6 +497,7 @@ void	Methods::_findIndex(void)
 		}
 	}
 	_path += *(_indexes.begin());
+	// COUT << "_path with index:|" << _path << "|\n";
 	_checkContentType();
 }
 
@@ -572,7 +571,7 @@ void	Methods::_checkContentType(void)
 		if (client->req.headers.find("Content-Type")->second != contentType)
 			throw ServerBloc::UnsupportedMediaType();
 	}
-	client->resp.header_fields.insert(std::make_pair("Content-Type", contentType));
+	client->resp.header_fields["Content-Type"] = contentType + _default_charset;
 }
 
 std::string	Methods::_pathExtension(const std::string & path)
@@ -584,6 +583,8 @@ std::string	Methods::_pathExtension(const std::string & path)
 	{
 		if (*it == '.')
 		{
+			if (it == path.rbegin())
+				return (ext);
 			while(--it != path.rbegin())
 				ext += *it;
 			ext += *it;

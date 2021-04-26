@@ -11,6 +11,7 @@
  echo "Curent Path: ". getcwd () ."\n";
  echo "Server Type: ". $_SERVER['SERVER_SOFTWARE'] . "\n";
  echo "Server Admin: ". $_SERVER['SERVER_ADMIN'] . "\n";
+ echo "Remote Ident: ". $_SERVER['REMOTE_IDENT'] . "\n";
  echo "Server Signature: ". $_SERVER['SERVER_SIGNATURE'] ."\n";
  echo "Server Protocol: ". $_SERVER['SERVER_PROTOCOL'] ."\n";
  echo "Server Mode: ". $_SERVER['GATEWAY_INTERFACE'] ."\n";

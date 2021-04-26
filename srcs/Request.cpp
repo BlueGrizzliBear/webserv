@@ -115,13 +115,9 @@ void	Request::_passUntilChar(char c)
 	size_t i = 0;
 
 	if ((i = _req.find_first_of(c, _pos)) != std::string::npos)
-	{
-		// COUT << "found r\n";
 		_pos = i;
-	}
 	else
 	{
-		// COUT << "didnt find r\n";
 		_pos = _req.size();
 		return;
 	}
@@ -204,34 +200,20 @@ bool	Request::parseRequestLine(void) throw(NotImplemented, BadRequest, URITooLon
 	/* Check Method */
 	method = _getWord(" ");
 	if (_dic.methodDic.find(method) == _dic.methodDic.end())
-	{
-		COUT << "_req|" << _req << "|\n";
-		COUT << "METHOD NON IMPLEMENTEE BORDEL |" << method << "|\n";
 		throw NotImplemented();		/* Or 405 (Method Not Allowed), if it doesnt have the rights */
-	}
 
 	/* Pass 1 Space */
 	if (!_passStrictOneChar(' '))
-	{
-		COUT << "1\n";
 		throw BadRequest();
-	}
 
 	/* Check Request-URI */
-	// uri = _getWord(" ");
 	uri = _getURI(" ");
 	if (!_isLegitPath(uri))
-	{
-		COUT << "1\n";
 		throw BadRequest();
-	}
 
 	/* Pass 1 Space */
 	if (!_passStrictOneChar(' '))
-	{
-		COUT << "1\n";
 		throw BadRequest();
-	}
 
 	/* Check HTTP-Version */
 	protocol_v = _getWord("\r");
@@ -269,11 +251,8 @@ bool	Request::parseHeaders(void) throw(BadRequest)
 
 		if (header_key == "" && (header_key = _getWord("\r")) == "")	/* Check Header Key */
 			break ;
-		if (header_key.find_first_of(" \t") != std::string::npos)	// is token A FAIRE
-		{
-			CERR << "whitespace between header-name and colon\n";
+		if (header_key.find_first_of(" \t") != std::string::npos)	/* verification token A FAIRE ici */
 			throw BadRequest();
-		}
 		else
 		{
 			if (!_passStrictOneChar(':'))	/* Check is ':' is present */
@@ -291,7 +270,6 @@ bool	Request::parseHeaders(void) throw(BadRequest)
 					header_val.erase(header_val.size() - 1, 1);
 			}
 
-			// COUT << "HEADER|" << header_key << ":" << header_val << "|\n";
 			if (!headers.insert(std::make_pair(header_key, header_val)).second)
 			{
 				CERR << "Header already exists :\n";
@@ -455,15 +433,46 @@ bool	Request::_parseChunkedBody(size_t & size) throw(BadRequest)
 	}
 }
 
+bool	Request::_checkTransferEncoding(std::string & second)
+{
+	std::string tmp = second;
+	while (!tmp.empty())
+	{
+		size_t pos = 0;
+		if ((pos = tmp.find(",")) != std::string::npos)
+		{
+			std::string tmp2 = tmp.substr(0, pos);
+			if (tmp2.find_last_of(" \t") == tmp2.size() - 1)
+				tmp2.erase(tmp2.size() - 1, 1);
+			if (tmp2 == "identity")
+			{
+				tmp.erase(0, pos + 1);
+				if (tmp.find_first_of(" \t") == 0)
+					tmp.erase(0, 1);
+			}
+			else
+				return (false);
+		}
+		else
+		{
+			if (tmp != "chunked" && tmp != "identity")
+				return (false);
+			second = tmp;
+			tmp.clear();
+		}
+	}
+	return (true);
+}
+
 bool	Request::parseBody(void) throw(NotImplemented, BadRequest)
 {
 	if (headers.find("Transfer-Encoding") != headers.end())
 	{
-		// CERR << "Transfert Encoding" << ENDL;
+		if (_checkTransferEncoding(headers.find("Transfer-Encoding")->second) == false)
+			throw NotImplemented();
 
 		if (headers.find("Transfer-Encoding")->second == "chunked")
 		{
-			// CERR << "> chunked" << ENDL;
 			static size_t size = 0;
 
 			while (_parseChunkedBody(size))
@@ -471,15 +480,11 @@ bool	Request::parseBody(void) throw(NotImplemented, BadRequest)
 				if (size == 0)
 					return (true);
 			}
-			// COUT << "AFTER CHUNEKD _req|" << _req << "|\n";
 			return (false);
 		}
-		else
-			throw NotImplemented();
 	}
-	else if (headers.find("Content-Length") != headers.end())
+	if (headers.find("Content-Length") != headers.end())
 	{
-		// CERR << "Content-length" << ENDL;
 		if (!str_is(headers.find("Content-Length")->second, std::isdigit))
 			throw BadRequest();
 		size_t size = static_cast<size_t>(std::strtol(headers.find("Content-Length")->second.c_str(), NULL, 10));
@@ -491,10 +496,8 @@ bool	Request::parseBody(void) throw(NotImplemented, BadRequest)
 		if (size > _req.size() - _pos)
 			return (false);
 		body.append(_req, _pos, size - _pos);
-		// COUT << "Content-Length: BODY IS COMPLETE" << ENDL;
 		return (true);
 	}
-	// CERR << "No Body" << ENDL;
 	return (true);	/* No body */
 }
 

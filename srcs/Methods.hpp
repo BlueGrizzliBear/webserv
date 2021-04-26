@@ -186,6 +186,8 @@ class Methods
 		std::map<float, std::vector<std::string> >	_languages;
 		std::map<float, std::vector<std::string> >	_charsets;
 
+		std::string	_default_charset;
+
 		std::map<std::string, std::string, ci_less>	_envp;
 		std::vector<std::string>					_argv;
 

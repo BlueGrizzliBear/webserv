@@ -24,16 +24,11 @@ void	Methods::_PostHeaderStatusCode(void)
 		client->resp.reason_phrase = "Created";
 		client->resp.header_fields.insert(std::make_pair("Location", client->req.uri));
 	}
-	else /* if (client->resp.body.empty()) */
+	else
 	{
 		client->resp.status_code = "200";
-		client->resp.reason_phrase = "No Content";
+		client->resp.reason_phrase = "OK";
 	}
-	// else
-	// {
-	// 	client->resp.status_code = "200";
-	// 	client->resp.reason_phrase = "OK";
-	// }
 
 }
 

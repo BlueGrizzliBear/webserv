@@ -74,6 +74,8 @@ class Request
 		bool	_isToken(std::string str);
 		bool	_chunkedExtensionInvalid(std::string str);
 		bool	_parseChunkedBody(size_t & size) throw(BadRequest);
+		bool	_checkTransferEncoding(std::string & second);
+
 
 	/* Member Attributes */
 	public:

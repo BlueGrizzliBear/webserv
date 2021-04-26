@@ -22,8 +22,8 @@ bool	parseClientRequest(ServerBloc & server, Client & client)
 {
 	try
 	{
-		/* Read Client Request with recv */
-		if (server.readClient(client))
+
+		if (server.readClient(client))	/* Read Client Request with recv */
 		{
 			// std::cerr << "Displaying header|" << GREEN;
 			// std::cerr << client.req.getData().substr(0, client.req.getData().find("\r\n\r\n") + 4);
@@ -142,12 +142,20 @@ void	selectServer(ServerBloc & server)
 
 		for (std::list<Client>::iterator it = server.clientList.begin(); it != server.clientList.end(); it++)
 		{
-			if (it->finishedReading)
-				FD_SET(it->socket.fd, &server.serv_select.writefds);
+			if (fcntl(it->socket.fd, F_SETFL, O_NONBLOCK) == -1 && errno == EBADF)
+			{
+				server.clientList.erase(it--);
+			}
 			else
-				FD_SET(it->socket.fd, &server.serv_select.readfds);
-			if (server.serv_select.fd_max < it->socket.fd)
-				server.serv_select.fd_max = it->socket.fd;
+			{
+				if (it->finishedReading)
+					FD_SET(it->socket.fd, &server.serv_select.writefds);
+				else
+					FD_SET(it->socket.fd, &server.serv_select.readfds);
+				if (server.serv_select.fd_max < it->socket.fd)
+					server.serv_select.fd_max = it->socket.fd;
+			}
+			errno = 0;
 		}
 
 		switch (select(server.serv_select.fd_max + 1, &server.serv_select.readfds, &server.serv_select.writefds, NULL, &server.serv_select.timeout))
@@ -159,7 +167,20 @@ void	selectServer(ServerBloc & server)
 			}
 			case -1:
 			{
-				displayError("Error in Select()", strerror(errno));
+				if (errno == EBADF)
+					COUT << "An invalid file descriptor was given in one of the sets.\n";
+				else if (errno == EINTR)
+					COUT << "A signal was caught; see signal(7).\n";
+				else if (errno == EINVAL)
+					COUT << "nfds is negative or exceeds the RLIMIT_NOFILE resource limit (see getrlimit(2))\n";
+				else if (errno == EINVAL)
+					COUT << "The value contained within timeout is invalid\n";
+				else if (errno == ENOMEM)
+					COUT << "Unable to allocate memory for internal tables.\n";
+				// displayError("Error in Select()", strerror(errno));
+				COUT << "FD_SETSIZE|" << FD_SETSIZE << "|\n";
+
+				errno = 0;
 				break ;
 			}
 			default:
@@ -199,6 +220,7 @@ void	selectServer(ServerBloc & server)
 					new_client.clientClosed = 0;
 
 					server.clientList.push_back(new_client);
+					COUT << GREEN << "List.size()|" << server.clientList.size() << "|\n";
 				}
 	/* R | W */	else if (!server.clientList.empty())
 				{
