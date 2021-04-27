@@ -487,12 +487,10 @@ bool	Request::parseBody(void) throw(NotImplemented, BadRequest)
 	{
 		if (!str_is(headers.find("Content-Length")->second, std::isdigit))
 			throw BadRequest();
+		errno = 0;
 		size_t size = static_cast<size_t>(std::strtol(headers.find("Content-Length")->second.c_str(), NULL, 10));
-		if (errno == ERANGE)
-		{
-			errno = 0;
+		if (errno == ERANGE) /* Verifying errno for strtol function */
 			throw BadRequest();
-		}
 		if (size > _req.size() - _pos)
 			return (false);
 		body.append(_req, _pos, size - _pos);

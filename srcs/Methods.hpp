@@ -143,6 +143,9 @@ class Methods
 		void	_createDirectories(void);
 
 	/* MethodsCGI.cpp */
+		void		_exitChild(int pipefd_in, int pipefd_out);
+		void		_closePipes(int * pipefd_in, int * pipefd_out);
+
 		void		_launchCGI(void);
 
 		void 		_createEnvpMap(void);

@@ -1,25 +1,52 @@
 #include "./Methods.hpp"
 
+void	Methods::_exitChild(int pipefd_in, int pipefd_out)
+{
+	close(pipefd_in);
+	close(pipefd_out);
+	exit(EXIT_FAILURE);
+}
+
+void	Methods::_closePipes(int * pipefd_in, int * pipefd_out)
+{
+	close(pipefd_in[0]);
+	close(pipefd_in[1]);
+	close(pipefd_out[0]);
+	close(pipefd_out[1]);
+	throw ServerBloc::InternalServerError();
+}
+
 void	Methods::_launchCGI(void)
 {
 	/* Pipe creation to communicate with the CGI program */
 	int pipefd_in[2];
 	int pipefd_out[2];
 	if (pipe(pipefd_in) || pipe(pipefd_out))
-		serv->getParent()->abortServers("Error in pipe()", strerror(errno));
+	{
+		CERR << "Error in pipe(): " << strerror(errno) << ENDL;
+		_closePipes(pipefd_in, pipefd_out);
+	}
 
 	/* Set the pipe fds to non blocking */
-	fcntl(pipefd_in[0], F_SETFL, O_NONBLOCK);
-	fcntl(pipefd_in[1], F_SETFL, O_NONBLOCK);
-	fcntl(pipefd_out[0], F_SETFL, O_NONBLOCK);
-	fcntl(pipefd_out[1], F_SETFL, O_NONBLOCK);
+	if (fcntl(pipefd_in[0], F_SETFL, O_NONBLOCK)
+	|| fcntl(pipefd_in[1], F_SETFL, O_NONBLOCK)
+	|| fcntl(pipefd_out[0], F_SETFL, O_NONBLOCK)
+	|| fcntl(pipefd_out[1], F_SETFL, O_NONBLOCK))
+	{
+		CERR << "Error in fcntl(): " << strerror(errno) << ENDL;
+		_closePipes(pipefd_in, pipefd_out);
+	}
 
 	/* Fork() the program for the CGI */
 	pid_t pid;
 	if ((pid = fork()) == -1)
-		serv->getParent()->abortServers("Error in fork()", strerror(errno));
+	{
+		CERR << "Error in fork(): " << strerror(errno) << ENDL;
+		_closePipes(pipefd_in, pipefd_out);
+	}
 	else if (pid == 0)	/* Child program */
 	{
+		/* Closing parent's Fd duplicates */
 		close(pipefd_in[1]);
 		close(pipefd_out[0]);
 
@@ -27,7 +54,7 @@ void	Methods::_launchCGI(void)
 		_createEnvpMap();
 		char ** envp = _createEnvpArray();
 		if (envp == NULL)
-			exit(EXIT_FAILURE);
+			_exitChild(pipefd_in[0], pipefd_out[1]);
 
 		/* Array for execve arguments */
 		_createArgvMap();
@@ -35,27 +62,32 @@ void	Methods::_launchCGI(void)
 		if (argv == NULL)
 		{
 			_freeArray(envp);
-			exit(EXIT_FAILURE);
+			_exitChild(pipefd_in[0], pipefd_out[1]);
 		}
 
 		// _displayArray(envp);
 		// _displayArray(argv);
 
 		/* Duplicating Fd for STDIN and STDOUT */
-		if (dup2(pipefd_in[0], STDIN_FILENO) < 0 || close(pipefd_in[0])		/* Lecture par le CGI dans fd_in[0] */
-		|| dup2(pipefd_out[1], STDOUT_FILENO) < 0 || close(pipefd_out[1]))	/* Ecriture par le CGI dans fd_out[1] */
+		if (dup2(pipefd_in[0], STDIN_FILENO) < 0		/* Lecture par le CGI dans fd_in[0] */
+		|| dup2(pipefd_out[1], STDOUT_FILENO) < 0)	/* Ecriture par le CGI dans fd_out[1] */
 		{
 			CERR << "Error in dup2(): " << strerror(errno) << ENDL;
 			_freeArray(envp);
 			_freeArray(argv);
-			exit(EXIT_FAILURE);
+			_exitChild(pipefd_in[0], pipefd_out[1]);
 		}
+		/* Closing Child's Fd duplicates */
+		close(pipefd_in[0]);
+		close(pipefd_out[1]);
 
 		CERR << "Execve-ing\n";
 		execve(_cgi_path.data(), argv, envp);
 		CERR << "Error in execve(): " << strerror(errno) << ENDL;
 		_freeArray(envp);
 		_freeArray(argv);
+		close(STDIN_FILENO);
+		close(STDOUT_FILENO);
 		exit(EXIT_FAILURE);
 	}
 	else	/* Parent program */
@@ -100,7 +132,6 @@ void	Methods::_communicateWithCGI(int fd_in, int fd_out, pid_t pid)
 				cgi.fd_max = fd_in > fd_out ? fd_in : fd_out;
 			}
 		}
-
 		switch (select(cgi.fd_max + 1, &cgi.readfds, &cgi.writefds, NULL, &cgi.timeout))
 		{
 			case 0:
@@ -108,20 +139,30 @@ void	Methods::_communicateWithCGI(int fd_in, int fd_out, pid_t pid)
 				int status = 0;
 				if (waitpid(pid, &status, WNOHANG) == pid)
 				{
-					COUT << "Child was terminated";
-					if (WIFEXITED(status))
-						COUT << " normally with signal |" << WEXITSTATUS(status) << "|";
-					else if (WIFSIGNALED(status))
-						COUT << " ab-normally with signal |" << WTERMSIG(status) << "|";
-					COUT << ENDL;
+					// COUT << "Child was terminated";
+					// if (WIFEXITED(status))
+						// COUT << " normally with signal |" << WEXITSTATUS(status) << "|";
+					// else if (WIFSIGNALED(status))
+					if (WIFSIGNALED(status))
+					{
+						// COUT << " ab-normally with signal |" << WTERMSIG(status) << "|";
+						CERR << "Child terminated with signal: " << WTERMSIG(status) << ENDL;
+						close(fd_in);
+						close(fd_out);
+						throw ServerBloc::InternalServerError();
+					}
+					// COUT << ENDL;
 					CGIfinished = true;
 				}
 				break ;
 			}
 			case -1:
 			{
-				// COUT << "Error in select(): " << strerror(errno) << ENDL;
-				break ;
+				CERR << "Error in select(): " << strerror(errno) << ENDL;
+				close(fd_in);
+				close(fd_out);
+				throw ServerBloc::InternalServerError();
+				// break ;
 			}
 			default:
 			{
@@ -152,7 +193,7 @@ void	Methods::_communicateWithCGI(int fd_in, int fd_out, pid_t pid)
 	/* READ */	else if (FD_ISSET(fd_in, &cgi.readfds))
 				{
 					if (_readCGItoResp(fd_in) == true)
-					{						
+					{
 						if (client->clientClosed)
 						{
 							close(fd_in);
@@ -167,6 +208,8 @@ void	Methods::_communicateWithCGI(int fd_in, int fd_out, pid_t pid)
 			}
 		}
 	}
+	// close(fd_out);
+	// close(fd_in);
 	COUT << "CGI finished\n";
 	return ;
 }
@@ -242,7 +285,7 @@ bool	Methods::_parseHeaderField(void)
 			if (10 + first_osp == size)
 				second_osp = 0;
 			client->resp.reason_phrase = _receivedMessage.substr(10 + first_osp + second_osp, size - 10 - first_osp - second_osp);
-			
+
 			// COUT << "status_code|" << client->resp.status_code << "|\n";
 			// COUT << "reason_phrase|" << client->resp.reason_phrase << "|\n";
 
@@ -405,7 +448,7 @@ char **	Methods::_createEnvpArray(void)
 		array[i] = strdup(serv->getParent()->getEnvp()[j]);
 		if (array[i] == NULL)
 		{
-			CERR << "Error in dup(): " << strerror(errno) << ENDL;
+			CERR << "Error in strdup(): " << strerror(errno) << ENDL;
 			while (--i > 0)
 				free(array[i]);
 			free(array);

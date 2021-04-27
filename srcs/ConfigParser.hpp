@@ -33,7 +33,11 @@ class ConfigParser
 		class FileAccess : public std::exception
 		{
 			public:
-				virtual const char *	what() const throw() { return (strerror(errno)); }
+				virtual const char *	what() const throw() {
+					std::string tmp("Error in stat(): ");
+					tmp.append(strerror(errno));
+					return (tmp.c_str());
+				}
 		};
 
 		class ItemNotFile : public std::exception

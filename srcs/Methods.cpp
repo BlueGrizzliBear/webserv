@@ -523,6 +523,7 @@ void	Methods::_createDirectories(void)
 	while (final_path != _pathWithoutLastPart())
 	{
 		final_path = _pathIterateThroughFolders(i);
+		errno = 0;
 		if (mkdir(final_path.c_str(), 0755) < 0 && errno != EEXIST)
 		{
 			CERR << "Error in mkdir(): " << strerror(errno) << ENDL;

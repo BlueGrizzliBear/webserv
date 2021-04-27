@@ -1,15 +1,9 @@
 # include "./webserv.hpp"
 # include "./ConfigParser.hpp"
 
-void	displayError(const char * main_err, const char * err)
-{
-	COUT << main_err << ": ";
-	COUT << err << ENDL;
-}
-
 // void	exitServerOnError(const char * main_err, const char * err, ServerBloc & server, int client_socket)
 // {
-// 	displayError(main_err, err);
+// 	CERR << main_err << ": " << err << ENDL;
 // 	FD_ZERO(&server.serv_select.readfds);
 // 	FD_ZERO(&server.serv_select.writefds);
 // 	FD_ZERO(&server.serv_select.exceptfds);
@@ -150,7 +144,6 @@ void	selectServer(ServerBloc & server)
 				FD_SET(it->socket.fd, &server.serv_select.readfds);
 			if (server.serv_select.fd_max < it->socket.fd)
 				server.serv_select.fd_max = it->socket.fd;
-			errno = 0;
 		}
 
 		switch (select(server.serv_select.fd_max + 1, &server.serv_select.readfds, &server.serv_select.writefds, NULL, &server.serv_select.timeout))
@@ -162,20 +155,6 @@ void	selectServer(ServerBloc & server)
 			}
 			case -1:
 			{
-				// if (errno == EBADF)
-				// 	COUT << "An invalid file descriptor was given in one of the sets.\n";
-				// else if (errno == EINTR)
-				// 	COUT << "A signal was caught; see signal(7).\n";
-				// else if (errno == EINVAL)
-				// 	COUT << "nfds is negative or exceeds the RLIMIT_NOFILE resource limit (see getrlimit(2))\n";
-				// else if (errno == EINVAL)
-				// 	COUT << "The value contained within timeout is invalid\n";
-				// else if (errno == ENOMEM)
-				// 	COUT << "Unable to allocate memory for internal tables.\n";
-				// // displayError("Error in Select()", strerror(errno));
-				// COUT << "FD_SETSIZE|" << FD_SETSIZE << "|\n";
-
-				// errno = 0;
 				break ;
 			}
 			default:
@@ -208,23 +187,16 @@ void	selectServer(ServerBloc & server)
 					new_client.socket.fd = accept(server.serv_port.fd, reinterpret_cast<struct sockaddr *>(&new_client.socket.address), reinterpret_cast<socklen_t *>(&new_client.socket.addrlen));
 					if (new_client.socket.fd == -1)
 					{
-						displayError("Error in accept()", strerror(errno));
+						CERR << "Error in accept(): " << strerror(errno) << ENDL;
 						break ;
 					}
 					COUT << GREEN << "Created Client with FD|" << new_client.socket.fd << "|\n";
 					server.totalClients++;
 					COUT << GREEN << "TotalClients|" << server.totalClients << "|\n";
-					// if (new_client.socket.fd < FD_SETSIZE - 1 && server.totalClients != maxSize - 1)
-					if (new_client.socket.fd < FD_SETSIZE - 1)
+					if (new_client.socket.fd < FD_SETSIZE - 5) /* corresponding to 4 fd used for CGI implementations */
 					{
-						// COUT << MAGENTA << "Too Many Client" << RESET << ENDL;
 						if (hasCapped == false)
-						{
 							maxSize = server.totalClients + 1;
-							COUT << GREEN << "Increased maxSize|" << maxSize << "|\n";
-						}
-						else
-							COUT << GREEN << "Did not increase maxSize|" << maxSize << "|\n";
 					}
 					else
 					{
@@ -232,9 +204,7 @@ void	selectServer(ServerBloc & server)
 						maxSize = server.totalClients;
 						COUT << GREEN << "Assigned maxSize|" << maxSize << "|\n";
 					}
-
-					// COUT << GREEN << "FD_SETSIZE|" << FD_SETSIZE << "|\n";
-					fcntl(new_client.socket.fd, F_SETFL, O_NONBLOCK);	/* Set the socket to non blocking */
+					// fcntl(new_client.socket.fd, F_SETFL, O_NONBLOCK);	/* Set the socket to non blocking */
 
 					new_client.finishedReading = 0;
 					new_client.clientClosed = 0;
@@ -257,7 +227,6 @@ void	selectServer(ServerBloc & server)
 									server.clientList.erase(it--);
 									COUT << RED << "Removing Client" << RESET << ENDL;
 									server.totalClients--;
-									// maxSize--;
 								}
 								else
 									it->finishedReading = 1;
@@ -273,7 +242,6 @@ void	selectServer(ServerBloc & server)
 								server.clientList.erase(it--);
 								COUT << RED << "Removing Client" << RESET << ENDL;
 								server.totalClients--;
-								// maxSize--;
 							}
 							break;
 						}
