@@ -186,12 +186,12 @@ void	ServerDictionary::_parseMimeTypes(void)
 	std::ifstream	file("./configuration/mime.types");
 	if (file.good())
 	{
-		while (getline(file, line))
+		while (std::getline(file, line))
 		{
 			std::string::iterator	it = line.begin();
 			for ( ; it != line.end() && *it != ' ' && *it != '\t'; ++it)
 				mime_value += *it;
-			while (it != line.end() && *it == ' ' && *it == '\t')
+			while (it != line.end() && (*it == ' ' || *it == '\t'))
 				++it;
 			for ( ; it != line.end(); ++it)
 			{
@@ -205,4 +205,5 @@ void	ServerDictionary::_parseMimeTypes(void)
 			mime_value.clear();
 		}
 	}
+	file.close();
 }
