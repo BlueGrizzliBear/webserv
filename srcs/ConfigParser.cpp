@@ -5,7 +5,7 @@
 ConfigParser::ConfigParser() {}
 
 /*	argument	(2)	*/
-ConfigParser::ConfigParser(const char * path, char const ** envp) : _path(path), _line_no(0), _count(0), _bracket(0), _envp(envp)
+ConfigParser::ConfigParser(const char * path, char const ** envp) : _dic(), _path(path), _line_no(0), _count(0), _bracket(0), _envp(envp)
 {
 	_try_open_file(path);	/* Parse the .conf file to create de server objects */
 
@@ -136,12 +136,6 @@ void	ConfigParser::_display_parsing_error(size_t new_count)
 	CERR << _line << ENDL;
 	CERR << GREEN << fill << "^" << RESET << ENDL;
 	CERR << "1 error generated." << ENDL;
-}
-
-void	ConfigParser::_display_init_error(const char * main_err, const char * err)
-{
-	COUT << main_err << ": ";
-	COUT << err << ENDL;
 }
 
 void	ConfigParser::_try_open_file(const char * path)
@@ -496,7 +490,7 @@ void	ConfigParser::_verify_serverbloc(ServerBloc & serv)
 
 void	ConfigParser::abortServers(const char * main_err, const char * err)
 {
-	_display_init_error(main_err, err);
+	CERR << main_err << ": " << err << ENDL;
 
 	Servers::iterator s_it = _servers.begin();
 	Servers::iterator s_ite = _servers.end();
@@ -515,19 +509,25 @@ void	ConfigParser::_initPort(ServerBloc & serv)
 	if (serv.is_default)
 	{
 		/* Creating socket file descriptor */
-		if ((serv.serv_port.fd = socket(AF_INET, SOCK_STREAM, 0)) == 0)		/* AF_INET: Protocoles Internet IPv4	|	SOCK_STREAM: Virtual Circuit Service */
+		if ((serv.serv_port.fd = socket(AF_INET, SOCK_STREAM, 0)) == -1)		/* AF_INET: Protocoles Internet IPv4	|	SOCK_STREAM: Virtual Circuit Service */
 			abortServers("Error in socket()", strerror(errno));
 
 		/* Set the socket to non blocking */
-		fcntl(serv.serv_port.fd, F_SETFL, O_NONBLOCK);
+		if (fcntl(serv.serv_port.fd, F_SETFL, O_NONBLOCK) == -1)
+			abortServers("Error in fcntl()", strerror(errno));
 
 		/* Defining address struct */
-		serv.serv_port.address.sin_family = AF_INET;						/* corresponding to IPv4 protocols */
-		serv.serv_port.address.sin_addr.s_addr = htonl(INADDR_ANY);			/* corresponding to 0.0.0.0 */
-		serv.serv_port.address.sin_port = htons(serv.port_no);	/* corresponding to the server port, must be > 1024 */
+		// serv.serv_port.address.sin_family = 0;
+		serv.serv_port.address.sin_family = AF_INET;					/* corresponding to IPv4 protocols */
+		// serv.serv_port.address.sin_addr.s_addr = 0;
+		serv.serv_port.address.sin_addr.s_addr = htonl(INADDR_ANY);		/* corresponding to 0.0.0.0 */
+		// serv.serv_port.address.sin_port = 0;
+		serv.serv_port.address.sin_port = htons(serv.port_no);			/* corresponding to the server port, must be > 1024 */
 
 		/* Defining address length */
-		serv.serv_port.addrlen = sizeof(serv.serv_port.address);
+		// serv.serv_port.addrlen = 0;
+		// serv.serv_port.addrlen = sizeof(serv.serv_port.address);
+		serv.serv_port.addrlen = sizeof(struct sockaddr_in);
 
 		/* Initialising other adress attributes to 0 */
 		memset(serv.serv_port.address.sin_zero, '\0', sizeof(serv.serv_port.address.sin_zero));

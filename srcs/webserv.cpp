@@ -170,6 +170,7 @@ void	selectServer(ServerBloc & server)
 						close (it->socket.fd);
 					close(server.serv_port.fd);
 					// server.getParent()->abortServers("Aborting", "");
+					server.getParent()->~ConfigParser();
 					exit(EXIT_SUCCESS);
 				}
 	// /* NEW */	else if (FD_ISSET(server.serv_port.fd, &server.serv_select.readfds) && server.clientList.size() < MAX_CLIENTS)
@@ -182,8 +183,10 @@ void	selectServer(ServerBloc & server)
 
 					/* Opening socket for new client */
 					Client new_client;
+					new_client.socket.addrlen = sizeof(struct sockaddr_in);
 
 					// new_client.request_no = i;
+					// new_client.socket.fd = accept(server.serv_port.fd, reinterpret_cast<struct sockaddr *>(&new_client.socket.address), (&new_client.socket.addrlen));
 					new_client.socket.fd = accept(server.serv_port.fd, reinterpret_cast<struct sockaddr *>(&new_client.socket.address), reinterpret_cast<socklen_t *>(&new_client.socket.addrlen));
 					if (new_client.socket.fd == -1)
 					{
@@ -260,8 +263,7 @@ int main(int argc, char const ** argv, char const ** envp)
 	{
 		try
 		{
-			std::string path = (argc == 1 ? "./configuration/default.conf" : argv[1]);
-			ConfigParser	config(path.c_str(), envp);
+			ConfigParser	config((argc == 1 ? "./configuration/default.conf" : argv[1]), envp);
 			CME << "Parsing Complete !" << EME;
 			// config.display_config();
 

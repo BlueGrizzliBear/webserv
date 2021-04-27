@@ -65,7 +65,7 @@ struct Socket
 {
 	int					fd;
 	struct sockaddr_in	address;
-	int					addrlen;
+	unsigned int					addrlen;
 };
 
 struct ci_less : std::binary_function < std::string, std::string, bool >

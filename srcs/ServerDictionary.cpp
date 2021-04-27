@@ -2,7 +2,8 @@
 
 /* Constructor */
 /*	default	(1)	*/
-ServerDictionary::ServerDictionary()
+ServerDictionary::ServerDictionary(void)
+: mainDic(), locationDic(), serverDic(), methodDic(), headerDic(), errorDic(), mimeDic()
 {
 	/* Dictionary for keys in main context */
 	std::string main_dir[] = {	"user",
@@ -165,16 +166,30 @@ ServerDictionary &	ServerDictionary::operator=( ServerDictionary const & rhs )
 template < class Compare >
 void	ServerDictionary::_createDic(std::map< std::string, std::string, Compare > & dic, std::string const * tab, size_t size)
 {
-	for (size_t i = 0; i < (size / sizeof(*tab)); i++)
+	size_t i = 0;
+
+	while (i < (size / sizeof(*tab)))
+	{
 		dic.insert(std::make_pair(*(tab + i), ""));
+		i++;
+	}
+	// for (size_t i = 0; i < (size / sizeof(*tab)); i++)
+	//	dic.insert(std::make_pair(*(tab + i), ""));
 }
 
 /* . . . overloaded function for error-codes */
 template < class Compare >
 void	ServerDictionary::_createDic(std::map< std::string, std::string, Compare > & dic, std::pair<std::string , std::string> const * tab, size_t size)
 {
-	for (size_t i = 0; i < (size / sizeof(*tab)); i++)
+	size_t i = 0;
+
+	while (i < (size / sizeof(*tab)))
+	{
 		dic.insert(*(tab + i));
+		i++;
+	}
+	//for (size_t i = 0; i < (size / sizeof(*tab)); i++)
+	//	dic.insert(*(tab + i));
 }
 
 void	ServerDictionary::_parseMimeTypes(void)

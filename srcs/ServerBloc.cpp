@@ -3,10 +3,10 @@
 /* ServerBloc Class Declaration */
 /* Constructor */
 /*	default		(1)	*/
-ServerBloc::ServerBloc(void) : port_no(0), is_default(false), is_unique(true), pid(0), _server_no(0), _parent(NULL) {}
+ServerBloc::ServerBloc(void) : port_no(0), is_default(false), is_unique(true), serv_port(), serv_select(), pid(0), _server_no(0), _parent(NULL) {}
 
 /*	default		(1)	*/
-ServerBloc::ServerBloc(ConfigParser * parent) : port_no(0), is_default(false), is_unique(true), pid(0), _server_no(0), _parent(parent) {}
+ServerBloc::ServerBloc(ConfigParser * parent) : port_no(0), is_default(false), is_unique(true), serv_port(), serv_select(), pid(0), _server_no(0), _parent(parent) {}
 
 /*	copy		(2)	*/
 ServerBloc::ServerBloc(ServerBloc const & cpy)
