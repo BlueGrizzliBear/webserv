@@ -44,7 +44,7 @@ struct tm	*Methods::_getFileTime(void)
 	struct tm			*timeinfo = NULL;
 
 	if (!lstat(_path.c_str(), &info))
-		timeinfo = gmtime(&info.st_mtime); // to check (time_t to struct tm)
+		timeinfo = std::gmtime(&info.st_mtime);
 	return timeinfo;
 }
 
@@ -79,8 +79,8 @@ int	Methods::_cmpTimeInfo(struct tm * t1, struct tm * t2)
 	time_t	time1;
 	time_t	time2;
 
-	time1 = mktime(t1); // to check (struct tm to time_t)
-	time2 = mktime(t2); // to check (struct tm to time_t)
+	time1 = std::mktime(t1);
+	time2 = std::mktime(t2);
 
 	if (time1 < time2)
 		return 0;

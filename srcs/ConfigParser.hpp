@@ -34,9 +34,7 @@ class ConfigParser
 		{
 			public:
 				virtual const char *	what() const throw() {
-					std::string tmp("Error in stat(): ");
-					tmp.append(strerror(errno));
-					return (tmp.c_str());
+					return (strerror(errno));
 				}
 		};
 

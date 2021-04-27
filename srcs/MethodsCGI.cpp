@@ -289,7 +289,7 @@ bool	Methods::_parseHeaderField(void)
 			// COUT << "status_code|" << client->resp.status_code << "|\n";
 			// COUT << "reason_phrase|" << client->resp.reason_phrase << "|\n";
 
-			if (!client->req.str_is(client->resp.status_code, isdigit) || !client->req.str_is(client->resp.reason_phrase, isprint))
+			if (!client->req.str_is(client->resp.status_code, std::isdigit) || !client->req.str_is(client->resp.reason_phrase, std::isprint))
 			{
 				// COUT << "Status seems broken\n";
 				return_value = true; // Status value is incorrect - return true to finish parsing

@@ -361,7 +361,7 @@ void	Methods::_createHTMLListing(DIR * dir)
 			dir_list << "</a>";
 			if (!lstat(file_path.c_str(), &info))
 			{
-  				timeinfo = localtime(&info.st_mtime);
+  				timeinfo = std::localtime(&info.st_mtime);
 				strftime(date, 20, "%d-%b-%Y %H:%M", timeinfo);
 				if (strcmp(dp->d_name, ".."))
 					dir_list << points << date << "................" << info.st_size;
