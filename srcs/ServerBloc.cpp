@@ -207,7 +207,7 @@ std::string	ServerBloc::_getDate(void)
 	char			buffer[30];
 
 	gettimeofday(&time_val, NULL);
-	time = std::gmtime(&time_val.tv_sec);
+	time = gmtime(&time_val.tv_sec);
 	strftime(buffer, 30, "%a, %d %b %Y %H:%M:%S GMT", time);
 	std::string	str(buffer);
 	return (str);
