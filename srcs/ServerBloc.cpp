@@ -212,3 +212,5 @@ std::string	ServerBloc::_getDate(void)
 	std::string	str(buffer);
 	return (str);
 }
+
+int ServerBloc::totalClients = 0;

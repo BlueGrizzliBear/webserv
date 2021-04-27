@@ -129,7 +129,8 @@ class ServerBloc
 		Socket			serv_port;
 		Select			serv_select;
 
-		std::list<Client> clientList;
+		std::list<Client>	clientList;
+		static int totalClients;
 
 		/* Process Attributes */
 		pid_t	pid;

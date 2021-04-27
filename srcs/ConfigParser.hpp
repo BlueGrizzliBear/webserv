@@ -90,6 +90,7 @@ class ConfigParser
 		Servers &			getServers(void);
 		Directives &		getMainDirs(void);
 		const char **		getEnvp(void);
+		// int &				getTotalClientsSize(void);
 
 	private:
 		bool	_is_in_dictionnary(Dic dic, std::string word);
@@ -139,6 +140,8 @@ class ConfigParser
 
 		Directives	_main_dir;
 		Servers		_servers;
+
+		// int _totalClients;
 
 		// /* Fork() utilities */
 		// int			_status;

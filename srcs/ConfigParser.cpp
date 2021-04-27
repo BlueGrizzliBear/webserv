@@ -52,6 +52,11 @@ const char **	ConfigParser::getEnvp(void)
 	return (_envp);
 }
 
+// int &	ConfigParser::getTotalClientsSize(void)
+// {
+// 	return (_totalClients);
+// }
+
 ServerDictionary &	ConfigParser::getDictionary(void)
 {
 	return (_dic);

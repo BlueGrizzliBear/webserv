@@ -127,6 +127,8 @@ int	getMaxFd(ServerBloc & server)
 
 void	selectServer(ServerBloc & server)
 {
+	static int maxSize = 1;
+
 	if (server.is_default)
 	{
 		// COUT << "Server #" << server.getNo() << ENDL;
@@ -142,19 +144,12 @@ void	selectServer(ServerBloc & server)
 
 		for (std::list<Client>::iterator it = server.clientList.begin(); it != server.clientList.end(); it++)
 		{
-			if (fcntl(it->socket.fd, F_SETFL, O_NONBLOCK) == -1 && errno == EBADF)
-			{
-				server.clientList.erase(it--);
-			}
+			if (it->finishedReading)
+				FD_SET(it->socket.fd, &server.serv_select.writefds);
 			else
-			{
-				if (it->finishedReading)
-					FD_SET(it->socket.fd, &server.serv_select.writefds);
-				else
-					FD_SET(it->socket.fd, &server.serv_select.readfds);
-				if (server.serv_select.fd_max < it->socket.fd)
-					server.serv_select.fd_max = it->socket.fd;
-			}
+				FD_SET(it->socket.fd, &server.serv_select.readfds);
+			if (server.serv_select.fd_max < it->socket.fd)
+				server.serv_select.fd_max = it->socket.fd;
 			errno = 0;
 		}
 
@@ -167,20 +162,20 @@ void	selectServer(ServerBloc & server)
 			}
 			case -1:
 			{
-				if (errno == EBADF)
-					COUT << "An invalid file descriptor was given in one of the sets.\n";
-				else if (errno == EINTR)
-					COUT << "A signal was caught; see signal(7).\n";
-				else if (errno == EINVAL)
-					COUT << "nfds is negative or exceeds the RLIMIT_NOFILE resource limit (see getrlimit(2))\n";
-				else if (errno == EINVAL)
-					COUT << "The value contained within timeout is invalid\n";
-				else if (errno == ENOMEM)
-					COUT << "Unable to allocate memory for internal tables.\n";
-				// displayError("Error in Select()", strerror(errno));
-				COUT << "FD_SETSIZE|" << FD_SETSIZE << "|\n";
+				// if (errno == EBADF)
+				// 	COUT << "An invalid file descriptor was given in one of the sets.\n";
+				// else if (errno == EINTR)
+				// 	COUT << "A signal was caught; see signal(7).\n";
+				// else if (errno == EINVAL)
+				// 	COUT << "nfds is negative or exceeds the RLIMIT_NOFILE resource limit (see getrlimit(2))\n";
+				// else if (errno == EINVAL)
+				// 	COUT << "The value contained within timeout is invalid\n";
+				// else if (errno == ENOMEM)
+				// 	COUT << "Unable to allocate memory for internal tables.\n";
+				// // displayError("Error in Select()", strerror(errno));
+				// COUT << "FD_SETSIZE|" << FD_SETSIZE << "|\n";
 
-				errno = 0;
+				// errno = 0;
 				break ;
 			}
 			default:
@@ -198,10 +193,12 @@ void	selectServer(ServerBloc & server)
 					// server.getParent()->abortServers("Aborting", "");
 					exit(EXIT_SUCCESS);
 				}
-	/* NEW */	else if (FD_ISSET(server.serv_port.fd, &server.serv_select.readfds))
+	// /* NEW */	else if (FD_ISSET(server.serv_port.fd, &server.serv_select.readfds) && server.clientList.size() < MAX_CLIENTS)
+	/* NEW */	else if (server.totalClients < maxSize && FD_ISSET(server.serv_port.fd, &server.serv_select.readfds))
 				{
-					static int i = 0;
-					COUT << GREEN << "Request #" << ++i << RESET << ENDL;
+					static bool hasCapped = false;
+					// static int i = 0;
+					// COUT << GREEN << "Request #" << ++i << RESET << ENDL;
 					// displayDebug("New", i);
 
 					/* Opening socket for new client */
@@ -214,13 +211,35 @@ void	selectServer(ServerBloc & server)
 						displayError("Error in accept()", strerror(errno));
 						break ;
 					}
+					COUT << GREEN << "Created Client with FD|" << new_client.socket.fd << "|\n";
+					server.totalClients++;
+					COUT << GREEN << "TotalClients|" << server.totalClients << "|\n";
+					// if (new_client.socket.fd < FD_SETSIZE - 1 && server.totalClients != maxSize - 1)
+					if (new_client.socket.fd < FD_SETSIZE - 1)
+					{
+						// COUT << MAGENTA << "Too Many Client" << RESET << ENDL;
+						if (hasCapped == false)
+						{
+							maxSize = server.totalClients + 1;
+							COUT << GREEN << "Increased maxSize|" << maxSize << "|\n";
+						}
+						else
+							COUT << GREEN << "Did not increase maxSize|" << maxSize << "|\n";
+					}
+					else
+					{
+						hasCapped = true;
+						maxSize = server.totalClients;
+						COUT << GREEN << "Assigned maxSize|" << maxSize << "|\n";
+					}
+
+					// COUT << GREEN << "FD_SETSIZE|" << FD_SETSIZE << "|\n";
 					fcntl(new_client.socket.fd, F_SETFL, O_NONBLOCK);	/* Set the socket to non blocking */
 
 					new_client.finishedReading = 0;
 					new_client.clientClosed = 0;
 
 					server.clientList.push_back(new_client);
-					COUT << GREEN << "List.size()|" << server.clientList.size() << "|\n";
 				}
 	/* R | W */	else if (!server.clientList.empty())
 				{
@@ -236,6 +255,9 @@ void	selectServer(ServerBloc & server)
 									COUT << MAGENTA << "Closing prematurely Client" << RESET << ENDL;
 									close(it->socket.fd);
 									server.clientList.erase(it--);
+									COUT << RED << "Removing Client" << RESET << ENDL;
+									server.totalClients--;
+									// maxSize--;
 								}
 								else
 									it->finishedReading = 1;
@@ -249,6 +271,9 @@ void	selectServer(ServerBloc & server)
 							{
 								close(it->socket.fd);
 								server.clientList.erase(it--);
+								COUT << RED << "Removing Client" << RESET << ENDL;
+								server.totalClients--;
+								// maxSize--;
 							}
 							break;
 						}
