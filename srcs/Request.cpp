@@ -85,15 +85,6 @@ size_t	Request::strFindCaseinsensitive(std::string str, char const * to_find)
 	return (tmp.find(tmp_to_find));
 }
 
-int		Request::isValidHost(int c)
-{
-	std::string dic("/<>@\\{}^`|#\"");
-
-	if (dic.find(static_cast<char>(c)) == std::string::npos)
-		return (1);
-	return (0);
-}
-
 bool	Request::str_is(std::string str, int func(int))
 {
 	std::string::iterator begin = str.begin();
@@ -273,7 +264,7 @@ bool	Request::_isQuotedString(std::string str)
 
 		while (it != ite)
 		{
-			if (std::isprint(*it))
+			if (ft_isprint(*it))
 			{
 				if (*it == '\\' && it + 1 == ite)
 					return (false);
@@ -431,7 +422,7 @@ bool	Request::parseBody(void) throw(NotImplemented, BadRequest)
 	}
 	if (headers.find("Content-Length") != headers.end())
 	{
-		if (!str_is(headers.find("Content-Length")->second, std::isdigit))
+		if (!str_is(headers.find("Content-Length")->second, ft_isdigit))
 			throw BadRequest();
 
 		errno = 0;
@@ -466,4 +457,27 @@ std::string Request::transform(std::string str, int func(int))
 		++begin;
 	}
 	return (result);
+}
+
+int		Request::isValidHost(int c)
+{
+	std::string dic("/<>@\\{}^`|#\"");
+
+	if (dic.find(static_cast<char>(c)) == std::string::npos)
+		return (1);
+	return (0);
+}
+
+int		Request::ft_isprint(int c)
+{
+	if (c >= 32 && c <= 126)
+		return (1);
+	return (0);
+}
+
+int		Request::ft_isdigit(int c)
+{
+	if (c >= '0' && c <= '9')
+		return (1);
+	return (0);
 }

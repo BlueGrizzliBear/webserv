@@ -96,6 +96,8 @@ class Request
 		static int			tounderscore(int c);
 		static std::string	transform(std::string str, int func(int));
 		static int			isValidHost(int c);
+		static int			ft_isprint(int c);
+		static int			ft_isdigit(int c);
 };
 
 #endif

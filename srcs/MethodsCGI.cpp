@@ -158,7 +158,7 @@ void	Methods::_communicateWithCGI(int fd_in, int fd_out, pid_t pid)
 			{
 	/* STOP */	if (FD_ISSET(STDIN_FILENO, &cgi.readfds))	/* Keyboard was pressed, exiting server properly */
 				{
-					CERR << "CGI Select: Keyboard was pressed, killing CGI process properly\n";
+					CERR << "CGI Select: Keyboard was pressed, killing CGI process properly" << ENDL;
 					close(fd_in);
 					close(fd_out);
 					kill(pid, SIGKILL);
@@ -196,6 +196,7 @@ void	Methods::_communicateWithCGI(int fd_in, int fd_out, pid_t pid)
 			}
 		}
 	}
+	return ;
 }
 
 bool	Methods::_writeReqtoCGI(int & fd_out)
@@ -267,7 +268,7 @@ bool	Methods::_parseHeaderField(void)
 				second_osp = 0;
 			client->resp.reason_phrase = _receivedMessage.substr(10 + first_osp + second_osp, size - 10 - first_osp - second_osp);
 
-			if (!client->req.str_is(client->resp.status_code, std::isdigit) || !client->req.str_is(client->resp.reason_phrase, std::isprint))
+			if (!client->req.str_is(client->resp.status_code, client->req.ft_isdigit) || !client->req.str_is(client->resp.reason_phrase, client->req.ft_isprint))
 				return_value = true;
 		}
 		else

@@ -401,7 +401,7 @@ bool	ConfigParser::_str_is_digit(std::string const & str)
 	std::string::const_iterator it = str.begin();
 	std::string::const_iterator ite = str.end();
 
-	while (it != ite && std::isdigit(*it))
+	while (it != ite && Request::ft_isdigit(*it))
 		++it;
 	return (!str.empty() && it == ite);
 }
@@ -468,6 +468,21 @@ void	ConfigParser::closeServerSockets(const char * main_err, const char * err)
 	throw ExitProgram();
 }
 
+void *	ConfigParser::_ft_memset(void *b, int c, size_t len)
+{
+	size_t			i;
+	unsigned char	*str;
+
+	i = 0;
+	str = static_cast<unsigned char *>(b);
+	while (i < len)
+	{
+		str[i] = static_cast<unsigned char>(c);
+		i++;
+	}
+	return (b);
+}
+
 void	ConfigParser::_initPort(ServerBloc & serv)
 {
 	if (serv.is_default)
@@ -489,7 +504,7 @@ void	ConfigParser::_initPort(ServerBloc & serv)
 		serv.serv_port.addrlen = sizeof(struct sockaddr_in);
 
 		/* Initialising other adress attributes to 0 */
-		std::memset(serv.serv_port.address.sin_zero, 0, sizeof(serv.serv_port.address.sin_zero));
+		_ft_memset(serv.serv_port.address.sin_zero, 0, sizeof(serv.serv_port.address.sin_zero));
 
 		/* Assigning adress to the socket */
 		if (bind(serv.serv_port.fd, reinterpret_cast<struct sockaddr *>(&serv.serv_port.address), sizeof(serv.serv_port.address)) < 0)

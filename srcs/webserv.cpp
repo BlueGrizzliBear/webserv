@@ -164,6 +164,7 @@ int main(int argc, char const ** argv, char const ** envp)
 		try
 		{
 			ConfigParser	config((argc == 1 ? "./configuration/default.conf" : argv[1]), envp);
+			signal(SIGPIPE, SIG_IGN);
 
 			CERR << "> Launching All Servers . . ." << ENDL;
 			while (1)
@@ -176,5 +177,5 @@ int main(int argc, char const ** argv, char const ** envp)
 	}
 	else
 		CERR << "Error: Incorrect argument number" << ENDL;
-    return 0;
+    return (0);
 }

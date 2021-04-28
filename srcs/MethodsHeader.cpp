@@ -59,34 +59,6 @@ void	Methods::_lastModifiedHeader(struct tm * timeinfo)
 	}
 }
 
-struct tm *	Methods::_getHeaderIfUnmodifiedSinceTime(void)
-{
-	std::string		date;
-	struct tm		*timeinfo = NULL;
-
-	if (client->req.headers.find("If-Unmodified-Since") != client->req.headers.end())
-		date = client->req.headers.find("If-Unmodified-Since")->second;
-	else
-		return timeinfo;
-	strptime(date.c_str(), "%a, %d %b %Y %H:%M:%S GMT", timeinfo);
-	return timeinfo;
-}
-
-int	Methods::_cmpTimeInfo(struct tm * t1, struct tm * t2)
-{
-	if (!t1 || !t2)
-		return (-1);
-	time_t	time1;
-	time_t	time2;
-
-	time1 = std::mktime(t1);
-	time2 = std::mktime(t2);
-
-	if (time1 < time2)
-		return (0);
-	return (1);
-}
-
 std::string	Methods::_readFileToStr(void)
 {
 	std::string		str;

@@ -11,26 +11,20 @@
 # include <unistd.h>
 # include <fcntl.h>
 # include <dirent.h>
+# include <signal.h>
+# include <errno.h>
 
 /* C++ libraries */
-# include <cstdio>
-# include <cstdlib>
-# include <csignal>
-# include <cctype>
-# include <cerrno>
+# include <iostream>
 # include <fstream>
 # include <sstream>
-# include <iostream>
-# include <utility>
 # include <string>
-# include <limits>
-# include <locale>
 
 /* STL libraries */
-# include <algorithm>
-# include <map>
 # include <vector>
 # include <list>
+# include <map>
+# include <algorithm>
 
 /* Default Config */
 # define PORT 8080

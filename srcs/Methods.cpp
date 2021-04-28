@@ -212,14 +212,7 @@ void	Methods::_applyPut(void)
 	if (client->req.headers.find("Content-Range") != client->req.headers.end())
 		throw ServerBloc::BadRequest();
 
-	/* Indepotent method check (execute request only if changes are made */
-	/* An origin server MUST NOT send a Last-Modified field, in a
-	successful response to PUT unless the request's representation data
-	was saved without any transformation applied to the body and the Last-Modified
-	value reflects the new representation. */
-	if (_cmpTimeInfo(_getHeaderIfUnmodifiedSinceTime(), _getFileTime()) == 0)
-		throw ServerBloc::PreconditionFailed();
-	else if (client->req.body == _readFileToStr() && _cmpTimeInfo(_getHeaderIfUnmodifiedSinceTime(), _getFileTime()) == 1)
+	if (client->req.body == _readFileToStr())
 	{
 		_lastModifiedHeader(_getFileTime());
 		_GetHeaderStatusCode(); /* Fill with 200 OK status code */
@@ -312,6 +305,8 @@ void		Methods::_createIndexHTML()
 	else
 		throw ServerBloc::NotFound();
 }
+
+
 
 void	Methods::_createHTMLListing(DIR * dir)
 {

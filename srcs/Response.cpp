@@ -59,8 +59,7 @@ bool	Response::sendResptoClient(Client & client)
 
 	if (sentBytes < 0)
 	{
-		if (sentBytes < 0)
-			CERR << "Error in send(): " << strerror(errno) << ENDL;
+		CERR << "Error in send(): " << strerror(errno) << ENDL;
 		return (true);
 	}
 	if ((writtenBytes += static_cast<size_t>(sentBytes)) == client.resp.msg.length())
@@ -77,5 +76,6 @@ void	Response::cleanResponse(void)
 	body.reserve();			/* Remove allocated memory for body string */
 	msg.clear();			/* Msg */
 	msg.reserve();			/* Remove allocated memory for msg string */
+	writtenBytes = 0;
 	isComplete = 0;			/* Msg status */
 }

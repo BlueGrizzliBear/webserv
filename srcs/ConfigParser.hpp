@@ -96,6 +96,7 @@ class ConfigParser
 		/* void	display_config(void); */
 
 	private:
+		void *	_ft_memset(void *b, int c, size_t len);
 		bool	_is_in_dictionnary(Dic dic, std::string word);
 
 		void	_display_parsing_error(size_t new_count);
