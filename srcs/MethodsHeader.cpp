@@ -40,12 +40,12 @@ void	Methods::_GetHeaderStatusCode(void)
 
 struct tm	*Methods::_getFileTime(void)
 {
-	struct stat			info;
-	struct tm			*timeinfo = NULL;
+	struct stat	info;
+	struct tm	*timeinfo = NULL;
 
 	if (!lstat(_path.c_str(), &info))
-		timeinfo = gmtime(&info.st_mtime);
-	return timeinfo;
+		timeinfo = std::gmtime(&info.st_mtime);
+	return (timeinfo);
 }
 
 void	Methods::_lastModifiedHeader(struct tm * timeinfo)
@@ -75,16 +75,16 @@ struct tm *	Methods::_getHeaderIfUnmodifiedSinceTime(void)
 int	Methods::_cmpTimeInfo(struct tm * t1, struct tm * t2)
 {
 	if (!t1 || !t2)
-		return -1;
+		return (-1);
 	time_t	time1;
 	time_t	time2;
 
-	time1 = mktime(t1);
-	time2 = mktime(t2);
+	time1 = std::mktime(t1);
+	time2 = std::mktime(t2);
 
 	if (time1 < time2)
-		return 0;
-	return 1;
+		return (0);
+	return (1);
 }
 
 std::string	Methods::_readFileToStr(void)
@@ -117,14 +117,9 @@ void	Methods::_createAcceptedMap(std::string header, std::map<float, std::vector
 			if (language_range.find(";") != std::string::npos)
 			{
 				pos = language_range.find(";q=");
-
 				weight = static_cast<float>(std::atof(language_range.substr(pos + 3).c_str()));
-
 				language_range = language_range.substr(0, pos);
-
 			}
-			// COUT << "Inserting Language|" << language_range << "| and weight|" << weight << "|\n";
-			// COUT << "value|" << value << "| and size|" << value.size() << "|\n";
 			value.clear();
 		}
 		else
@@ -138,7 +133,6 @@ void	Methods::_createAcceptedMap(std::string header, std::map<float, std::vector
 
 			if (language_range.find(";") != std::string::npos)
 			{
-				// pos = language_range.find(";q=");
 				pos = language_range.find(";");
 				size_t pos_after = pos;
 				if (language_range.find(" ;") == pos - 1 || language_range.find("\t;") == pos - 1)
@@ -150,7 +144,6 @@ void	Methods::_createAcceptedMap(std::string header, std::map<float, std::vector
 
 				language_range = language_range.substr(0, pos);
 			}
-			// COUT << "Inserting Language|" << language_range << "| and weight|" << weight << "|\n";
 		}
 		(*storage)[weight].push_back(language_range);
 	}

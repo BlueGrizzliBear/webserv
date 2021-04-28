@@ -33,9 +33,7 @@ class ConfigParser
 		class FileAccess : public std::exception
 		{
 			public:
-				virtual const char *	what() const throw() {
-					return (strerror(errno));
-				}
+				virtual const char *	what() const throw() { return (strerror(errno)); }
 		};
 
 		class ItemNotFile : public std::exception
@@ -80,25 +78,27 @@ class ConfigParser
 				virtual const char *	what() const throw() { return ("Error: Missing argument in Configuration File"); }
 		};
 
-		class Abort : public std::exception
+		class ExitProgram : public std::exception
 		{
 			public:
-				virtual const char *	what() const throw() { return ("Exiting."); }
+				virtual const char *	what() const throw() { return ("Exiting program."); }
 		};
 
-	/* Member Functions */
 	public:
+	/* Gets and Sets */
 		ServerDictionary &	getDictionary(void);
 		Servers &			getServers(void);
 		Directives &		getMainDirs(void);
 		const char **		getEnvp(void);
-		// int &				getTotalClientsSize(void);
+
+	/* Member Functions */
+		void	closeServerSockets(const char * main_err, const char * err);
+		/* void	display_config(void); */
 
 	private:
 		bool	_is_in_dictionnary(Dic dic, std::string word);
 
 		void	_display_parsing_error(size_t new_count);
-		void	_display_init_error(const char * main_err, const char * err);
 
 		void	_try_open_file(const char * path);
 		void	_parse_main_context(std::fstream & file, Dic dic, Directives & dir, Servers & serv, Locations & loc);
@@ -117,19 +117,8 @@ class ConfigParser
 		void	_setNonDefaultServers(void);
 		void	_initServers(void);
 
-	// public:
-	// 	void	_initSelect(ServerBloc & serv);
-
-	public:
-		/* Clean-up functions */
-		void	abortServers(const char * main_err, const char * err);
-
-		/* Debug utility functions */
-		void	display_config(void);
-
 	/* Member Attributes */
 	private:
-		/* Parsing utilities */
 		ServerDictionary	_dic;
 
 		std::string			_path;
@@ -142,11 +131,6 @@ class ConfigParser
 
 		Directives	_main_dir;
 		Servers		_servers;
-
-		// int _totalClients;
-
-		// /* Fork() utilities */
-		// int			_status;
 
 	/* Static Functions for Debug */
 		static void	_display_string(std::string const & str);

@@ -2,30 +2,29 @@
 # define WEBSERV_HPP
 
 /* C libraries */
-# include <stdio.h>
-# include <sys/socket.h>
-# include <unistd.h>
-# include <stdlib.h>
 # include <netinet/in.h>
-# include <string.h>
+# include <arpa/inet.h>
+# include <sys/socket.h>
 # include <sys/stat.h>
-# include <fcntl.h>
 # include <sys/time.h>
 # include <sys/wait.h>
+# include <unistd.h>
+# include <fcntl.h>
 # include <dirent.h>
-# include <arpa/inet.h>
-# include <errno.h>
 
 /* C++ libraries */
+# include <cstdio>
 # include <cstdlib>
-# include <limits>
-# include <iostream>
-# include <string>
-# include <fstream>
-# include <utility>
 # include <csignal>
-# include <sstream>
 # include <cctype>
+# include <cerrno>
+# include <fstream>
+# include <sstream>
+# include <iostream>
+# include <utility>
+# include <string>
+# include <limits>
+# include <locale>
 
 /* STL libraries */
 # include <algorithm>
@@ -44,13 +43,6 @@
 # define CERR std::cerr
 # define ENDL std::endl
 
-/* For debug puroposes */
-# define CME std::cerr << CYAN
-# define CMEY std::cerr << YELLOW
-# define CMER std::cerr << RED
-// #define CMEG std::cerr << GREEN
-# define EME RESET << std::endl
-
 /* Terminal Colors */
 # define RESET		"\033[0m"
 # define RED		"\033[0;31m"
@@ -65,17 +57,14 @@ struct Socket
 {
 	int					fd;
 	struct sockaddr_in	address;
-	unsigned int					addrlen;
+	unsigned int		addrlen;
 };
 
-struct ci_less : std::binary_function < std::string, std::string, bool >
+struct ci_less : std::binary_function < std::string, std::string, bool >	/* Map-compare object for case insensitive operations */
 {
 	struct nocase_compare : public std::binary_function< unsigned char, unsigned char, bool>
 	{
-		bool operator() (const char & x, const char & y) const
-		{
-			return tolower(x) < tolower(y);
-		}
+		bool operator() (const char & x, const char & y) const { return (tolower(x) < tolower(y)); }
 	};
 	bool operator() (const std::string & x, const std::string & y) const
 	{

@@ -19,9 +19,6 @@ class LocationBloc
 
 	/* Operators */
 		LocationBloc &	operator=(LocationBloc const & rhs);
-	
-	/* Member Functions */
-	public:
 
 	/* Member Attributes */
 	public:

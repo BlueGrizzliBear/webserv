@@ -3,7 +3,6 @@
 
 # include "./webserv.hpp"
 # include "./ServerDictionary.hpp"
-// #include "./ServerBloc.hpp"
 
 class ServerBloc;
 
@@ -52,26 +51,23 @@ class Request
 
 		void	clear(void);
 
-		void	display(void);
+		/* void	display(void); */
 
 		size_t	strFindCaseinsensitive(std::string str, char const * to_find);
 		bool	str_is(std::string str, int func(int));
 
 	private:
-		void	_passUntilChar(char c);
-
 		bool	_isLegitPath(std::string const & path);
-		bool	_isinDic(char needle, const char * dic);
+		bool	_isQuotedString(std::string str);
+		bool	_isToken(std::string str);
 
+		void	_passUntilChar(char c);
 		bool	_passStrictOneChar(char c);
-
 		void	_passOptionalChars(const char * dic);
 
 		std::string	_getWord(const char * delimiter_dic);
 		std::string	_getURI(const char * delimiter_dic) throw(URITooLong);
 
-		bool	_isQuotedString(std::string str);
-		bool	_isToken(std::string str);
 		bool	_chunkedExtensionInvalid(std::string str);
 		bool	_parseChunkedBody(size_t & size) throw(BadRequest);
 		bool	_checkTransferEncoding(std::string & second);

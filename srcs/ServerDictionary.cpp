@@ -3,7 +3,7 @@
 /* Constructor */
 /*	default	(1)	*/
 ServerDictionary::ServerDictionary(void)
-: mainDic(), locationDic(), serverDic(), methodDic(), headerDic(), errorDic(), mimeDic()
+: mainDic(), locationDic(), serverDic(), methodDic(), errorDic(), headerDic(), mimeDic()
 {
 	/* Dictionary for keys in main context */
 	std::string main_dir[] = {	"user",
@@ -56,7 +56,6 @@ ServerDictionary::ServerDictionary(void)
 								"PATCH"		};
 	_createDic(methodDic, methods, sizeof(methods));
 
-	// case insensitive
 	/* Dictionary for implemented Headers in requests */
 	std::string headers[] = {	"Accept-Charset",
 								"Accept-Language",
@@ -143,6 +142,7 @@ ServerDictionary::ServerDictionary(void)
 															std::make_pair("511", "Network Authentication Required") };
 	_createDic(errorDic, error_codes, sizeof(error_codes));
 
+	/* Dictionary for file types */
 	_parseMimeTypes();
 }
 
@@ -156,9 +156,8 @@ ServerDictionary::ServerDictionary(ServerDictionary const & cpy)
 ServerDictionary::~ServerDictionary() {}
 
 /* Operators */
-ServerDictionary &	ServerDictionary::operator=( ServerDictionary const & rhs )
+ServerDictionary &	ServerDictionary::operator=( ServerDictionary const &)
 {
-	(void)rhs;
 	return (*this);
 }
 
@@ -173,8 +172,6 @@ void	ServerDictionary::_createDic(std::map< std::string, std::string, Compare > 
 		dic.insert(std::make_pair(*(tab + i), ""));
 		i++;
 	}
-	// for (size_t i = 0; i < (size / sizeof(*tab)); i++)
-	//	dic.insert(std::make_pair(*(tab + i), ""));
 }
 
 /* . . . overloaded function for error-codes */
@@ -188,8 +185,6 @@ void	ServerDictionary::_createDic(std::map< std::string, std::string, Compare > 
 		dic.insert(*(tab + i));
 		i++;
 	}
-	//for (size_t i = 0; i < (size / sizeof(*tab)); i++)
-	//	dic.insert(*(tab + i));
 }
 
 void	ServerDictionary::_parseMimeTypes(void)
@@ -219,7 +214,6 @@ void	ServerDictionary::_parseMimeTypes(void)
 			mime_key.clear();
 			mime_value.clear();
 		}
-		file.close();
 	}
 	file.close();
 }

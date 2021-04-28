@@ -9,19 +9,15 @@ Methods::Methods(void) : serv(NULL), client(NULL) {}
 Methods::Methods(ServerBloc & server, Client & client, std::string const & code, std::string const & phrase)
 : serv(&server), client(&client), _max_body_size(1000000), _writtenBytes(0)
 {
-	// COUT << "Execute Methods\n";
-	/* uri resolution process (treat ../ and ./) */
-	_URIResolutionProcess();
+	_URIResolutionProcess();	/* uri resolution process (treat ../ and ./) */
 	_queryResolutionProcess();
-
-	/* Check if path exist on server */
-	_findPath();
+	_findPath();				/* Check if path exist on server */
 
 	if (code == "" && phrase == "")
 	{
-		_checkRequiredAuthentication();	/* check authenticate */
+		_checkRequiredAuthentication();	/* check header 'WWW-Authenticate' */
 		_checkMaxBodySize();
-		_checkAllowedMethods();	/* return exeption if method not allowed */
+		_checkAllowedMethods();			/* return exeption if method not allowed */
 	}
 	else
 		customError(code, phrase);
@@ -54,8 +50,6 @@ void	Methods::execute(void)
 		_applyPost();
 	else if (client->req.method == "PUT")
 		_applyPut();
-
-	// client->req.display();
 }
 
 void	Methods::customError(std::string const & status_code, std::string const & reason_phrase)
@@ -112,7 +106,7 @@ void	Methods::_URIResolutionProcess(void)
 	std::string tmp;
 	std::string new_uri;
 
-	/* Alorithm from RFC */
+	/* Algorithm for URI Resolution, inspired from RFC */
 	while (!client->req.uri.empty())
 	{
 		/* 1st */
@@ -167,25 +161,21 @@ void	Methods::_applyGet(void)
 {
 	if (_cgi_path.empty())
 	{
-		/* execute specific to GET request */
-		_executeGetReq();
-		/* Check if server knows file type */
-		_checkContentType();
-		/* Fill body with file content */
-		if (_path != "./dir_listing.html")
-			_fillStrFromFile(client->resp.body, _path);
-		/* Fill header informations */
-		/* (1) Fill Status Line */
-		_GetHeaderStatusCode();
 
-		/* (2) Fill Last-Modified */
+		_executeGetReq();	/* execute specific to GET request */
+		_checkContentType();	/* Check if server knows file type */
+
+		if (_path != "./dir_listing.html")	/* Fill body with file content */
+			_fillStrFromFile(client->resp.body, _path);
+		_GetHeaderStatusCode();	/* (1) Fill Status Line */
+
 		if (_path != "./dir_listing.html")
-			_lastModifiedHeader(_getFileTime());
+			_lastModifiedHeader(_getFileTime());	/* (2) Fill Last-Modified */
 	}
 	else
 		_launchCGI();
-	/* (4) Fill Content-lenght */
-	client->resp.header_fields.insert(std::make_pair("Content-Length", _getSizeOfStr(client->resp.body)));
+
+	client->resp.header_fields.insert(std::make_pair("Content-Length", _getSizeOfStr(client->resp.body)));	/* (3) Fill Content-lenght */
 }
 
 void	Methods::_applyHead(void)
@@ -197,21 +187,19 @@ void	Methods::_applyHead(void)
 
 void	Methods::_applyPost()
 {
-	/* execute specific to POST request */
+
 	if (_cgi_path.empty())
 	{
-		/* (1) Fill Status Line header */
-		_PostHeaderStatusCode();
-		/* Execute request */
-		_executePostReq();
+
+		_PostHeaderStatusCode();	/* (1) Fill Status Line header */
+		_executePostReq();			/* execute specific to POST request */
 	}
 	else
 	{
-		_launchCGI();
-		// /* (2) Fill Content-length */
-		client->resp.header_fields.insert(std::make_pair("Content-Length", _getSizeOfStr(client->resp.body)));
+		_launchCGI();	/* execute CGI binary */
+		client->resp.header_fields.insert(std::make_pair("Content-Length", _getSizeOfStr(client->resp.body)));	/* (2) Fill Content-length */
 	}
-	// if header 201 creater ou content negotation header request (Accept, Accept-*)
+	/* if header 201 creater ou content negotation header request (Accept, Accept-*) */
 	if (client->resp.status_code == "201"
 	|| (client->req.headers.find("Accept-Charset") != client->req.headers.end())
 	|| (client->req.headers.find("Accept-Language") != client->req.headers.end()))
@@ -238,11 +226,10 @@ void	Methods::_applyPut(void)
 	}
 	else	/* execute specific to PUT request */
 	{
-		/* (1) Fill Status Line header */
-		_PutHeaderStatusCode();
-		/* Execute request */
-		_executePutReq();
+		_PutHeaderStatusCode();	/* (1) Fill Status Line header */
+		_executePutReq();	/* Execute request */
 	}
+	/* if header 201 creater ou content negotation header request (Accept, Accept-*) */
 	if (client->resp.status_code == "201"
 	|| (client->req.headers.find("Accept-Charset") != client->req.headers.end())
 	|| (client->req.headers.find("Accept-Language") != client->req.headers.end()))
@@ -275,7 +262,6 @@ void	Methods::_executeGetReq(void)
 					_findFile("Accept-Language", _indexes);
 				else
 					_findIndex();
-
 			}
 			else
 				throw ServerBloc::Forbidden();
@@ -286,16 +272,10 @@ void	Methods::_executeGetReq(void)
 			_createVectorFromCWD(files, _pathWithoutLastPart());
 
 			if ((client->req.headers.find("Accept-Charset") != client->req.headers.end()))
-			{
 				_findFile("Accept-Charset", files);
-			}
 			else if ((client->req.headers.find("Accept-Language") != client->req.headers.end()))
-			{
 				_findFile("Accept-Language", files);
-			}
-			// ici
 		}
-		// COUT << "path|" << _path << "|\n";
 		if (_fileExist(_path) == false)
 			throw ServerBloc::NotFound();
 		if ((client->req.headers.find("Accept-Charset") != client->req.headers.end())
@@ -350,7 +330,7 @@ void	Methods::_createHTMLListing(DIR * dir)
 	{
 		if (strcmp(dp->d_name, "."))
 		{
-			std::string		points(30 - strlen(dp->d_name), '.');
+			std::string		points(30 - std::strlen(dp->d_name), '.');
 
 			file_path = _path + dp->d_name;
 			dir_list << "<a href=\"" << client->req.uri;
@@ -362,7 +342,7 @@ void	Methods::_createHTMLListing(DIR * dir)
 			dir_list << "</a>";
 			if (!lstat(file_path.c_str(), &info))
 			{
-  				timeinfo = localtime(&info.st_mtime);
+  				timeinfo = std::localtime(&info.st_mtime);
 				strftime(date, 20, "%d-%b-%Y %H:%M", timeinfo);
 				if (strcmp(dp->d_name, ".."))
 					dir_list << points << date << "................" << info.st_size;
@@ -385,7 +365,6 @@ void	Methods::_createVectorFromCWD(std::vector<std::string> & files, std::string
 {
 	DIR *dir;
 
-	// COUT << "Before Createing Vector from cwd, path |" << path << "|\n";
 	if ((dir = opendir(path.c_str())))	/* list directory in html format*/
 	{
 		struct dirent		*dp;
@@ -422,15 +401,12 @@ void	Methods::_findFile(std::string header, std::vector<std::string> files)
 		storage = &_languages;
 
 	_createAcceptedMap(header, storage);
-	// COUT << "Searching for exact match\n";
 	for (std::map<float, std::vector<std::string> >::reverse_iterator l_it = storage->rbegin(); l_it != storage->rend(); ++l_it)
 	{
-		// COUT << "Iterating through language Map\n";
 		for (std::vector<std::string>::iterator lv_it = l_it->second.begin(); lv_it != l_it->second.end(); ++lv_it)
 		{
 			for (std::vector<std::string>::iterator it = files.begin(); it != files.end(); ++it)
 			{
-				// COUT << "Searching for the right language|" << *lv_it << "| inside it|" << *it << "|\n";
 				if ((*lv_it == "*" || client->req.strFindCaseinsensitive(*it, lv_it->c_str()) != std::string::npos)
 				&& _fileExist(_pathWithoutLastPart() + *it) == true)
 				{
@@ -447,10 +423,8 @@ void	Methods::_findFile(std::string header, std::vector<std::string> files)
 	}
 	if (header == "Accept-Language")
 	{
-		// COUT << "Searching for prefix\n";
 		for (std::map<float, std::vector<std::string> >::reverse_iterator l_it = storage->rbegin(); l_it != storage->rend(); ++l_it)
 		{
-			// COUT << "Iterating through language Map\n";
 			for (std::vector<std::string>::iterator lv_it = l_it->second.begin(); lv_it != l_it->second.end(); ++lv_it)
 			{
 				for (std::vector<std::string>::iterator it = files.begin(); it != files.end(); ++it)
@@ -470,7 +444,6 @@ void	Methods::_findFile(std::string header, std::vector<std::string> files)
 	}
 	for (std::vector<std::string>::iterator files_v = files.begin(); files_v != files.end(); ++files_v)
 	{
-		// COUT << "index:|" << *files_v << "|\n";
 		if (_trimExtension(*files_v) == _pathLastPart())
 		{
 			_path = _pathWithoutLastPart() + *files_v;
@@ -479,10 +452,10 @@ void	Methods::_findFile(std::string header, std::vector<std::string> files)
 			if (header == "Accept-Charset")
 				_default_charset = "; charset=utf-8";
 			return ;
-			// break ;
 		}
 	}
-	_findIndex();
+	if (!_path.empty() && (*(_path.rbegin()) == '/' ))	/* FOLDER */
+		_findIndex();
 	if (header == "Accept-Charset")
 		_default_charset = "; charset=utf-8";
 }
@@ -499,7 +472,6 @@ void	Methods::_findIndex(void)
 		}
 	}
 	_path += *(_indexes.begin());
-	// COUT << "_path with index:|" << _path << "|\n";
 	_checkContentType();
 }
 

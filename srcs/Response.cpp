@@ -18,21 +18,13 @@ Response::~Response() {}
 /* Operators */
 Response &	Response::operator=(Response const & rhs)
 {
-	/* Status Line */
 	status_code = rhs.status_code;
 	reason_phrase = rhs.reason_phrase;
-
-	/* Header Fields */
 	header_fields = rhs.header_fields;
-
-	/* Body */
 	body = rhs.body;
-
 	msg = rhs.msg;
-
 	writtenBytes = rhs.writtenBytes;
 	isComplete = rhs.isComplete;
-
 	return (*this);
 }
 
@@ -53,14 +45,9 @@ void	Response::concatenateResponse(void)
 	/* New line */
 	msg += "\r\n";
 
-	// CME << "> RESPONSE\n" << msg << EME;
-
 	/* Body */
 	if (!body.empty())
-	{
 		msg += body;
-		// CME << "-- with Body --\n" << EME;
-	}
 
 	/* Initialisation de count */
 	isComplete = 1;
@@ -74,32 +61,21 @@ bool	Response::sendResptoClient(Client & client)
 	{
 		if (sentBytes < 0)
 			CERR << "Error in send(): " << strerror(errno) << ENDL;
-		// else
-		// 	CERR << "Error in send(): client closed connection" << ENDL;
-		// client.clientClosed = true;
 		return (true);
 	}
-
 	if ((writtenBytes += static_cast<size_t>(sentBytes)) == client.resp.msg.length())
-	{
-		// COUT << "------------------Complete message sent-------------------" << ENDL;
 		return (true);
-	}
-	// COUT << "Sent|" << writtenBytes << "/" << client.resp.msg.length() << "|bytes" << ENDL;
 	return (false);
 }
 
 void	Response::cleanResponse(void)
 {
-	/* Cleaning Response */
 	status_code.clear();	/* Status Line */
 	reason_phrase.clear();	/* Status Line */
 	header_fields.clear();	/* Header Fields */
 	body.clear();			/* Body */
-	body.reserve();								/* Reserver */
-
-	/* Cleaning Msg */
-	msg.clear();	/* Msg */
-	msg.reserve();								/* Reserver */
-	isComplete = 0;	/* Msg status */
+	body.reserve();			/* Remove allocated memory for body string */
+	msg.clear();			/* Msg */
+	msg.reserve();			/* Remove allocated memory for msg string */
+	isComplete = 0;			/* Msg status */
 }

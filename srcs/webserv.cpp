@@ -1,44 +1,20 @@
 # include "./webserv.hpp"
 # include "./ConfigParser.hpp"
 
-// void	exitServerOnError(const char * main_err, const char * err, ServerBloc & server, int client_socket)
-// {
-// 	CERR << main_err << ": " << err << ENDL;
-// 	FD_ZERO(&server.serv_select.readfds);
-// 	FD_ZERO(&server.serv_select.writefds);
-// 	FD_ZERO(&server.serv_select.exceptfds);
-// 	close(client_socket);
-// 	close(server.serv_port.fd);
-// 	exit(EXIT_FAILURE);
-// }
-
 bool	parseClientRequest(ServerBloc & server, Client & client)
 {
 	try
 	{
-
 		if (server.readClient(client))	/* Read Client Request with recv */
 		{
-			// std::cerr << "Displaying header|" << GREEN;
-			// std::cerr << client.req.getData().substr(0, client.req.getData().find("\r\n\r\n") + 4);
-			// std::cerr << RESET << "|" << std::endl;
-
-			// std::cerr << "Displaying all data|" << GREEN << client.req.getData() << RESET << "|" << std::endl;
-
-			// std::cerr << "Displaying data.length|" << GREEN << client.req.getData().length() << RESET << "|" << std::endl;
-
 			if (client.clientClosed)
 				return (true);
-
-			/* Parse Client Request first */
-			if (server.processRequest(client))
+			if (server.processRequest(client))	/* Parse Client Request first */
 				return (true);
 		}
 	}
-	catch(const std::exception & e)
+	catch(const std::exception & e)	/* Catching exception from parsing request or execute request */
 	{
-		/* Catching exception from parsing request or execute request */
-		std::cerr << RED << e.what() << RESET << std::endl; // Display Exception what() for debug
 		server.parseException(client, e.what());
 		return (true);	/* send true to execute the error msg to Response */
 	}
@@ -50,61 +26,6 @@ bool	parseServerResponse(ServerBloc & server, Client & client)
 	if (server.sendResponse(client))
 		return (true);
 	return (false);
-}
-
-void	displayDebug(const char * str, int request_no)
-{
-	static int mystatic = -1;
-	bool yes = 0;
-
-	if (!strcmp(str, "I"))
-	{
-		yes = (mystatic != 0) ? 1 : 0;
-		mystatic = 0;
-	}
-	else if (!strcmp(str, "R"))
-	{
-		yes = (mystatic != 1) ? 1 : 0;
-		mystatic = 1;
-	}
-	else if (!strcmp(str, "W"))
-	{
-		yes = (mystatic != 2) ? 1 : 0;
-		mystatic = 2;
-	}
-	else if (!strcmp(str, "Reading"))
-	{
-		yes = (mystatic != 3) ? 1 : 0;
-		mystatic = 3;
-	}
-	else if (!strcmp(str, "Writing"))
-	{
-		yes = (mystatic != 4) ? 1 : 0;
-		mystatic = 4;
-	}
-	else if (!strcmp(str, "New"))
-	{
-		yes = (mystatic != 5) ? 1 : 0;
-		mystatic = 5;
-	}
-	else if (!strcmp(str, "Time Out"))
-	{
-		yes = (mystatic != 6) ? 1 : 0;
-		mystatic = 6;
-	}
-	else if (!strcmp(str, "Read or Write"))
-	{
-		yes = (mystatic != 7) ? 1 : 0;
-		mystatic = 7;
-	}
-
-	if (yes == 1)
-		CERR << str << ENDL;
-	// else if (strcmp(str, "Time Out"))
-	else
-	{
-		CERR << "\r" << str << " " << request_no << ENDL;
-	}
 }
 
 int	getMaxFd(ServerBloc & server)
@@ -125,7 +46,6 @@ void	selectServer(ServerBloc & server)
 
 	if (server.is_default)
 	{
-		// COUT << "Server #" << server.getNo() << ENDL;
 		server.serv_select.timeout.tv_sec = 0;
 		server.serv_select.timeout.tv_usec = 0;
 
@@ -150,7 +70,6 @@ void	selectServer(ServerBloc & server)
 		{
 			case 0:
 			{
-				// displayDebug("Time Out", -1);
 				break ;
 			}
 			case -1:
@@ -159,43 +78,35 @@ void	selectServer(ServerBloc & server)
 			}
 			default:
 			{
-				/* Keyboard was pressed, exiting server properly */
-	/* STOP */	if (FD_ISSET(STDIN_FILENO, &server.serv_select.readfds))
+	/* STOP */	if (FD_ISSET(STDIN_FILENO, &server.serv_select.readfds))	/* Keyboard was pressed, exiting server properly */
 				{
-					COUT << "Keyboard was pressed, exiting server properly\n";
+					CERR << "IO Select: Keyboard was pressed, exiting server properly" << ENDL;
 					FD_ZERO(&server.serv_select.readfds);
 					FD_ZERO(&server.serv_select.writefds);
 					FD_ZERO(&server.serv_select.exceptfds);
 					for (std::list<Client>::iterator it = server.clientList.begin(); it != server.clientList.end(); ++it)
 						close (it->socket.fd);
 					close(server.serv_port.fd);
-					// server.getParent()->abortServers("Aborting", "");
 					server.getParent()->~ConfigParser();
 					exit(EXIT_SUCCESS);
 				}
-	// /* NEW */	else if (FD_ISSET(server.serv_port.fd, &server.serv_select.readfds) && server.clientList.size() < MAX_CLIENTS)
 	/* NEW */	else if (server.totalClients < maxSize && FD_ISSET(server.serv_port.fd, &server.serv_select.readfds))
 				{
 					static bool hasCapped = false;
-					// static int i = 0;
-					// COUT << GREEN << "Request #" << ++i << RESET << ENDL;
-					// displayDebug("New", i);
 
 					/* Opening socket for new client */
 					Client new_client;
 					new_client.socket.addrlen = sizeof(struct sockaddr_in);
+					new_client.finishedReading = 0;
+					new_client.clientClosed = 0;
 
-					// new_client.request_no = i;
-					// new_client.socket.fd = accept(server.serv_port.fd, reinterpret_cast<struct sockaddr *>(&new_client.socket.address), (&new_client.socket.addrlen));
 					new_client.socket.fd = accept(server.serv_port.fd, reinterpret_cast<struct sockaddr *>(&new_client.socket.address), reinterpret_cast<socklen_t *>(&new_client.socket.addrlen));
 					if (new_client.socket.fd == -1)
 					{
 						CERR << "Error in accept(): " << strerror(errno) << ENDL;
 						break ;
 					}
-					COUT << GREEN << "Created Client with FD|" << new_client.socket.fd << "|\n";
 					server.totalClients++;
-					COUT << GREEN << "TotalClients|" << server.totalClients << "|\n";
 					if (new_client.socket.fd < FD_SETSIZE - 5) /* corresponding to 4 fd used for CGI implementations */
 					{
 						if (hasCapped == false)
@@ -205,13 +116,7 @@ void	selectServer(ServerBloc & server)
 					{
 						hasCapped = true;
 						maxSize = server.totalClients;
-						COUT << GREEN << "Assigned maxSize|" << maxSize << "|\n";
 					}
-					// fcntl(new_client.socket.fd, F_SETFL, O_NONBLOCK);	/* Set the socket to non blocking */
-
-					new_client.finishedReading = 0;
-					new_client.clientClosed = 0;
-
 					server.clientList.push_back(new_client);
 				}
 	/* R | W */	else if (!server.clientList.empty())
@@ -220,15 +125,12 @@ void	selectServer(ServerBloc & server)
 					{
 			/* READ */	if (FD_ISSET(it->socket.fd, &server.serv_select.readfds))
 						{
-							// displayDebug("Reading", it->request_no);
 							if (parseClientRequest(server, *it))	/* Parsing Client Request */
 							{
-								if (it->clientClosed)
+								if (it->clientClosed)	/* Client closed prematurely socket */
 								{
-									COUT << MAGENTA << "Closing prematurely Client" << RESET << ENDL;
 									close(it->socket.fd);
 									server.clientList.erase(it--);
-									COUT << RED << "Removing Client" << RESET << ENDL;
 									server.totalClients--;
 								}
 								else
@@ -238,12 +140,10 @@ void	selectServer(ServerBloc & server)
 						}
 			/* WRITE */	else if (FD_ISSET(it->socket.fd, &server.serv_select.writefds))
 						{
-							// displayDebug("Writing", it->request_no);
 							if (parseServerResponse(server, *it))	/* Parsing Server Response */
 							{
 								close(it->socket.fd);
 								server.clientList.erase(it--);
-								COUT << RED << "Removing Client" << RESET << ENDL;
 								server.totalClients--;
 							}
 							break;
@@ -264,14 +164,10 @@ int main(int argc, char const ** argv, char const ** envp)
 		try
 		{
 			ConfigParser	config((argc == 1 ? "./configuration/default.conf" : argv[1]), envp);
-			CME << "Parsing Complete !" << EME;
-			// config.display_config();
 
-			CME << "Launching All Servers . . ." << EME;
+			CERR << "> Launching All Servers . . ." << ENDL;
 			while (1)
 				std::for_each(config.getServers().begin(), config.getServers().end(), selectServer);
-
-			CME << "All servers came back . . ." << EME;
 		}
 		catch(const std::exception& e)
 		{
@@ -279,6 +175,6 @@ int main(int argc, char const ** argv, char const ** envp)
 		}
 	}
 	else
-		COUT << "Incorrect argument number" << ENDL;
+		CERR << "Error: Incorrect argument number" << ENDL;
     return 0;
 }
