@@ -98,6 +98,8 @@ class Request
 		static int			isValidHost(int c);
 		static int			ft_isprint(int c);
 		static int			ft_isdigit(int c);
+		static size_t		ft_strlen(const char * s);
+		static size_t		ft_strcmp(const char *s1, const char *s2);
 };
 
 #endif

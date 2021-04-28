@@ -325,7 +325,7 @@ void	Methods::_createHTMLListing(DIR * dir)
 	{
 		if (strcmp(dp->d_name, "."))
 		{
-			std::string		points(30 - std::strlen(dp->d_name), '.');
+			std::string		points(30 - Request::ft_strlen(dp->d_name), '.');
 
 			file_path = _path + dp->d_name;
 			dir_list << "<a href=\"" << client->req.uri;

@@ -6,6 +6,7 @@
 # include <arpa/inet.h>
 # include <sys/socket.h>
 # include <sys/stat.h>
+# include <ctime>
 # include <sys/time.h>
 # include <sys/wait.h>
 # include <unistd.h>
@@ -13,6 +14,7 @@
 # include <dirent.h>
 # include <signal.h>
 # include <errno.h>
+# include <string.h>
 
 /* C++ libraries */
 # include <iostream>

@@ -481,3 +481,22 @@ int		Request::ft_isdigit(int c)
 		return (1);
 	return (0);
 }
+
+size_t	Request::ft_strlen(const char * s)
+{
+	size_t i = 0;
+
+	while (s[i])
+		i++;
+	return (i);
+}
+
+size_t	Request::ft_strcmp(const char *s1, const char *s2)
+{
+	size_t i;
+
+	i = 0;
+	while (s1[i] == s2[i] && s2[i] != '\0' && s1[i] != '\0')
+		i++;
+	return static_cast<unsigned int>(s1[i] - s2[i]);
+}
