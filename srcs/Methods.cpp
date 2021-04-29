@@ -9,15 +9,18 @@ Methods::Methods(void) : serv(NULL), client(NULL) {}
 Methods::Methods(ServerBloc & server, Client & client, std::string const & code, std::string const & phrase)
 : serv(&server), client(&client), _max_body_size(1000000), _writtenBytes(0)
 {
-	_URIResolutionProcess();	/* uri resolution process (treat ../ and ./) */
+	/* uri resolution process (treat ../ and ./) */
+	_URIResolutionProcess();
 	_queryResolutionProcess();
-	_findPath();				/* Check if path exist on server */
+
+	/* Check if path exist on server */
+	_findPath();
 
 	if (code == "" && phrase == "")
 	{
-		_checkRequiredAuthentication();	/* check header 'WWW-Authenticate' */
+		_checkRequiredAuthentication();	/* check authenticate */
 		_checkMaxBodySize();
-		_checkAllowedMethods();			/* return exeption if method not allowed */
+		_checkAllowedMethods();	/* return exeption if method not allowed */
 	}
 	else
 		customError(code, phrase);
@@ -50,6 +53,8 @@ void	Methods::execute(void)
 		_applyPost();
 	else if (client->req.method == "PUT")
 		_applyPut();
+
+	// client->req.display();
 }
 
 void	Methods::customError(std::string const & status_code, std::string const & reason_phrase)
@@ -106,7 +111,7 @@ void	Methods::_URIResolutionProcess(void)
 	std::string tmp;
 	std::string new_uri;
 
-	/* Algorithm for URI Resolution, inspired from RFC */
+	/* Alorithm from RFC */
 	while (!client->req.uri.empty())
 	{
 		/* 1st */
@@ -149,7 +154,7 @@ void	Methods::_queryResolutionProcess(void)
 	/*       path        query               fragment */
 	if ((begin = client->req.uri.find('?')) != std::string::npos)
 	{
-		end = client->req.uri.find('#');	/* jusqu'au # ou fin de l'uri */
+		end = client->req.uri.find('#');	/* until # or end of uri */
 		_query = client->req.uri.substr(begin + 1, end);
 		client->req.uri.erase(begin, std::string::npos);
 	}
@@ -161,21 +166,25 @@ void	Methods::_applyGet(void)
 {
 	if (_cgi_path.empty())
 	{
-
-		_executeGetReq();	/* execute specific to GET request */
-		_checkContentType();	/* Check if server knows file type */
-
-		if (_path != "./dir_listing.html")	/* Fill body with file content */
-			_fillStrFromFile(client->resp.body, _path);
-		_GetHeaderStatusCode();	/* (1) Fill Status Line */
-
+		/* execute specific to GET request */
+		_executeGetReq();
+		/* Check if server knows file type */
+		_checkContentType();
+		/* Fill body with file content */
 		if (_path != "./dir_listing.html")
-			_lastModifiedHeader(_getFileTime());	/* (2) Fill Last-Modified */
+			_fillStrFromFile(client->resp.body, _path);
+		/* Fill header informations */
+		/* (1) Fill Status Line */
+		_GetHeaderStatusCode();
+
+		/* (2) Fill Last-Modified */
+		if (_path != "./dir_listing.html")
+			_lastModifiedHeader(_getFileTime());
 	}
 	else
 		_launchCGI();
-
-	client->resp.header_fields.insert(std::make_pair("Content-Length", _getSizeOfStr(client->resp.body)));	/* (3) Fill Content-lenght */
+	/* (4) Fill Content-lenght */
+	client->resp.header_fields.insert(std::make_pair("Content-Length", _getSizeOfStr(client->resp.body)));
 }
 
 void	Methods::_applyHead(void)
@@ -187,17 +196,19 @@ void	Methods::_applyHead(void)
 
 void	Methods::_applyPost()
 {
-
+	/* execute specific to POST request */
 	if (_cgi_path.empty())
 	{
-
-		_PostHeaderStatusCode();	/* (1) Fill Status Line header */
-		_executePostReq();			/* execute specific to POST request */
+		/* (1) Fill Status Line header */
+		_PostHeaderStatusCode();
+		/* Execute request */
+		_executePostReq();
 	}
 	else
 	{
-		_launchCGI();	/* execute CGI binary */
-		client->resp.header_fields.insert(std::make_pair("Content-Length", _getSizeOfStr(client->resp.body)));	/* (2) Fill Content-length */
+		_launchCGI();
+		/* (2) Fill Content-length */
+		client->resp.header_fields.insert(std::make_pair("Content-Length", _getSizeOfStr(client->resp.body)));
 	}
 	/* if header 201 creater ou content negotation header request (Accept, Accept-*) */
 	if (client->resp.status_code == "201"
@@ -212,17 +223,25 @@ void	Methods::_applyPut(void)
 	if (client->req.headers.find("Content-Range") != client->req.headers.end())
 		throw ServerBloc::BadRequest();
 
-	if (client->req.body == _readFileToStr())
+	/* Indepotent method check (execute request only if changes are made */
+	/* An origin server MUST NOT send a Last-Modified field, in a
+	successful response to PUT unless the request's representation data
+	was saved without any transformation applied to the body and the Last-Modified
+	value reflects the new representation. */
+	if (_cmpTimeInfo(_getHeaderIfUnmodifiedSinceTime(), _getFileTime()) == 0)
+		throw ServerBloc::PreconditionFailed();
+	else if (client->req.body == _readFileToStr() && _cmpTimeInfo(_getHeaderIfUnmodifiedSinceTime(), _getFileTime()) == 1)
 	{
 		_lastModifiedHeader(_getFileTime());
 		_GetHeaderStatusCode(); /* Fill with 200 OK status code */
 	}
 	else	/* execute specific to PUT request */
 	{
-		_PutHeaderStatusCode();	/* (1) Fill Status Line header */
-		_executePutReq();	/* Execute request */
+		/* (1) Fill Status Line header */
+		_PutHeaderStatusCode();
+		/* Execute request */
+		_executePutReq();
 	}
-	/* if header 201 creater ou content negotation header request (Accept, Accept-*) */
 	if (client->resp.status_code == "201"
 	|| (client->req.headers.find("Accept-Charset") != client->req.headers.end())
 	|| (client->req.headers.find("Accept-Language") != client->req.headers.end()))
@@ -255,6 +274,7 @@ void	Methods::_executeGetReq(void)
 					_findFile("Accept-Language", _indexes);
 				else
 					_findIndex();
+
 			}
 			else
 				throw ServerBloc::Forbidden();
@@ -265,9 +285,13 @@ void	Methods::_executeGetReq(void)
 			_createVectorFromCWD(files, _pathWithoutLastPart());
 
 			if ((client->req.headers.find("Accept-Charset") != client->req.headers.end()))
+			{
 				_findFile("Accept-Charset", files);
+			}
 			else if ((client->req.headers.find("Accept-Language") != client->req.headers.end()))
+			{
 				_findFile("Accept-Language", files);
+			}
 		}
 		if (_fileExist(_path) == false)
 			throw ServerBloc::NotFound();
@@ -300,13 +324,10 @@ void		Methods::_createIndexHTML()
 		/* list directory in html format*/
 		_createHTMLListing(dir);
 		_path = "./dir_listing.html";
-		closedir(dir);
 	}
 	else
 		throw ServerBloc::NotFound();
 }
-
-
 
 void	Methods::_createHTMLListing(DIR * dir)
 {
@@ -325,7 +346,7 @@ void	Methods::_createHTMLListing(DIR * dir)
 	{
 		if (strcmp(dp->d_name, "."))
 		{
-			std::string		points(30 - Request::ft_strlen(dp->d_name), '.');
+			std::string		points(30 - strlen(dp->d_name), '.');
 
 			file_path = _path + dp->d_name;
 			dir_list << "<a href=\"" << client->req.uri;
@@ -337,7 +358,7 @@ void	Methods::_createHTMLListing(DIR * dir)
 			dir_list << "</a>";
 			if (!lstat(file_path.c_str(), &info))
 			{
-  				timeinfo = std::localtime(&info.st_mtime);
+  				timeinfo = localtime(&info.st_mtime);
 				strftime(date, 20, "%d-%b-%Y %H:%M", timeinfo);
 				if (strcmp(dp->d_name, ".."))
 					dir_list << points << date << "................" << info.st_size;
@@ -369,7 +390,6 @@ void	Methods::_createVectorFromCWD(std::vector<std::string> & files, std::string
 			if (dp->d_type == DT_REG)
 				files.push_back(dp->d_name);
 		}
-		closedir(dir);
 	}
 	else
 		throw ServerBloc::NotFound();

@@ -9,12 +9,14 @@ bool	parseClientRequest(ServerBloc & server, Client & client)
 		{
 			if (client.clientClosed)
 				return (true);
-			if (server.processRequest(client))	/* Parse Client Request first */
+			if (server.processRequest(client)) /* Parse Client Request first */
 				return (true);
 		}
 	}
-	catch(const std::exception & e)	/* Catching exception from parsing request or execute request */
+	catch(const std::exception & e)
 	{
+		/* Catching exception from parsing request or execute request */
+		/* std::cerr << RED << e.what() << RESET << std::endl; */ /* Display Exception what() for debug */
 		server.parseException(client, e.what());
 		return (true);	/* send true to execute the error msg to Response */
 	}
@@ -78,9 +80,10 @@ void	selectServer(ServerBloc & server)
 			}
 			default:
 			{
-	/* STOP */	if (FD_ISSET(STDIN_FILENO, &server.serv_select.readfds))	/* Keyboard was pressed, exiting server properly */
+				/* Keyboard was pressed, exiting server properly */
+	/* STOP */	if (FD_ISSET(STDIN_FILENO, &server.serv_select.readfds))
 				{
-					CERR << "IO Select: Keyboard was pressed, exiting server properly" << ENDL;
+					CERR << "IO Select(): Keyboard was pressed, exiting server properly\n";
 					FD_ZERO(&server.serv_select.readfds);
 					FD_ZERO(&server.serv_select.writefds);
 					FD_ZERO(&server.serv_select.exceptfds);
@@ -96,10 +99,8 @@ void	selectServer(ServerBloc & server)
 
 					/* Opening socket for new client */
 					Client new_client;
-					new_client.socket.addrlen = sizeof(struct sockaddr_in);
-					new_client.finishedReading = 0;
-					new_client.clientClosed = 0;
 
+					new_client.socket.addrlen = sizeof(new_client.socket.address);
 					new_client.socket.fd = accept(server.serv_port.fd, reinterpret_cast<struct sockaddr *>(&new_client.socket.address), reinterpret_cast<socklen_t *>(&new_client.socket.addrlen));
 					if (new_client.socket.fd == -1)
 					{
@@ -117,6 +118,9 @@ void	selectServer(ServerBloc & server)
 						hasCapped = true;
 						maxSize = server.totalClients;
 					}
+					new_client.finishedReading = 0;
+					new_client.clientClosed = 0;
+
 					server.clientList.push_back(new_client);
 				}
 	/* R | W */	else if (!server.clientList.empty())
@@ -127,7 +131,7 @@ void	selectServer(ServerBloc & server)
 						{
 							if (parseClientRequest(server, *it))	/* Parsing Client Request */
 							{
-								if (it->clientClosed)	/* Client closed prematurely socket */
+								if (it->clientClosed)
 								{
 									close(it->socket.fd);
 									server.clientList.erase(it--);
@@ -163,10 +167,10 @@ int main(int argc, char const ** argv, char const ** envp)
 	{
 		try
 		{
-			ConfigParser	config((argc == 1 ? "./configuration/default.conf" : argv[1]), envp);
+			std::string path = (argc == 1 ? "./configuration/default.conf" : argv[1]);
+			ConfigParser	config(path.c_str(), envp);
 			signal(SIGPIPE, SIG_IGN);
-
-			CERR << "> Launching All Servers . . ." << ENDL;
+			CERR << "Launching All Servers . . ." << ENDL;
 			while (1)
 				std::for_each(config.getServers().begin(), config.getServers().end(), selectServer);
 		}
@@ -176,6 +180,6 @@ int main(int argc, char const ** argv, char const ** envp)
 		}
 	}
 	else
-		CERR << "Error: Incorrect argument number" << ENDL;
-    return (0);
+		CERR << "Incorrect argument number" << ENDL;
+    return 0;
 }

@@ -16,8 +16,8 @@ struct Client
 	Request		req;
 	Response 	resp;
 
-	bool	finishedReading;
-	bool	clientClosed;
+	bool				finishedReading;
+	bool				clientClosed;
 };
 
 struct Select
@@ -97,12 +97,12 @@ class ServerBloc
 				virtual const char *	what() const throw() { return ("500"); }
 		};
 
+	/* Member Functions */
 	public:
-	/* Gets and Sets */
+		/* Gets and Sets */
 		size_t &		getNo(void);
 		ConfigParser *	getParent(void);
 
-	/* Member Functions */
 		bool	readClient(Client & client);
 		void	parseException(Client & client, const char * code);
 
@@ -110,28 +110,32 @@ class ServerBloc
 		bool	sendResponse(Client & client);
 
 	private:
-		std::string	_createDate(void);
+		/* Response functions */
+		std::string	_getDate(void);
 		void		_addHeaderFields(Client & client);
 
-	public:
 	/* Member Attributes */
+	public:
 		/* Attributes from parsing */
 		Directives	dir;
 		Locations	loc;
+
+		/* Attributes from initialization */
 		unsigned short	port_no;
 		bool			is_default;
 		bool			is_unique;
 
-		/* Socket attributes of the server */
 		Socket			serv_port;
-
-		/* Utilities for IO operations */
 		Select			serv_select;
 
 		std::list<Client>	clientList;
 		static int totalClients;
 
+		/* Process Attributes */
+		pid_t	pid;
+
 	private:
+		/* ConfigFile Parsing Utilities */
 		size_t			_server_no;
 		ConfigParser *	_parent;
 };

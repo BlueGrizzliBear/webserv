@@ -154,13 +154,14 @@ class Methods
 		char **		_createArgvArray(void);
 
 		void		_freeArray(char ** array);
-		/* void		_displayArray(char ** array); */
+		void		_displayArray(char ** array);
 
 		void		_communicateWithCGI(int fd_in, int fd_out, pid_t pid);
 
 		bool		_writeReqtoCGI(int & fd_out);
 		bool		_readCGItoResp(int & fd_in);
 
+		/* Utitilies */
 		void		_parseCGIResponse(void);
 		bool		_parseHeaderField(void);
 
@@ -191,7 +192,7 @@ class Methods
 		std::map<std::string, std::string, ci_less>	_envp;
 		std::vector<std::string>					_argv;
 
-		size_t		_writtenBytes;
+		size_t	_writtenBytes;
 		std::string _receivedMessage;
 
 };

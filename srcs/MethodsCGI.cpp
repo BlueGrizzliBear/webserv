@@ -65,8 +65,11 @@ void	Methods::_launchCGI(void)
 			_exitChild(pipefd_in[0], pipefd_out[1]);
 		}
 
+		// _displayArray(envp);
+		// _displayArray(argv);
+
 		/* Duplicating Fd for STDIN and STDOUT */
-		if (dup2(pipefd_in[0], STDIN_FILENO) < 0	/* Lecture par le CGI dans fd_in[0] */
+		if (dup2(pipefd_in[0], STDIN_FILENO) < 0		/* Lecture par le CGI dans fd_in[0] */
 		|| dup2(pipefd_out[1], STDOUT_FILENO) < 0)	/* Ecriture par le CGI dans fd_out[1] */
 		{
 			CERR << "Error in dup2(): " << strerror(errno) << ENDL;
@@ -78,7 +81,6 @@ void	Methods::_launchCGI(void)
 		close(pipefd_in[0]);
 		close(pipefd_out[1]);
 
-		/* Execve-ing */
 		execve(_cgi_path.data(), argv, envp);
 		CERR << "Error in execve(): " << strerror(errno) << ENDL;
 		_freeArray(envp);
@@ -89,11 +91,8 @@ void	Methods::_launchCGI(void)
 	}
 	else	/* Parent program */
 	{
-		/* Closing Child's Fd duplicates */
 		close(pipefd_in[0]);
 		close(pipefd_out[1]);
-
-		/* Going to communicate with CGI */
 		_communicateWithCGI(pipefd_out[0], pipefd_in[1], pid);
 	}
 }
@@ -158,7 +157,7 @@ void	Methods::_communicateWithCGI(int fd_in, int fd_out, pid_t pid)
 			{
 	/* STOP */	if (FD_ISSET(STDIN_FILENO, &cgi.readfds))	/* Keyboard was pressed, exiting server properly */
 				{
-					CERR << "CGI Select: Keyboard was pressed, killing CGI process properly" << ENDL;
+					CERR << "CGI Select(): Keyboard was pressed, killing CGI properly\n";
 					close(fd_in);
 					close(fd_out);
 					kill(pid, SIGKILL);
@@ -217,8 +216,8 @@ bool	Methods::_writeReqtoCGI(int & fd_out)
 bool	Methods::_readCGItoResp(int & fd_in)
 {
 	char	recv_buffer[MAX_HEADER_SIZE];
-	ssize_t receivedBytes = read(fd_in, &recv_buffer, MAX_HEADER_SIZE);
 
+	ssize_t receivedBytes = read(fd_in, &recv_buffer, MAX_HEADER_SIZE);
 	if (receivedBytes <= 0)
 	{
 		if (receivedBytes == 0)
@@ -267,15 +266,14 @@ bool	Methods::_parseHeaderField(void)
 			if (10 + first_osp == size)
 				second_osp = 0;
 			client->resp.reason_phrase = _receivedMessage.substr(10 + first_osp + second_osp, size - 10 - first_osp - second_osp);
-
-			if (!client->req.str_is(client->resp.status_code, client->req.ft_isdigit) || !client->req.str_is(client->resp.reason_phrase, client->req.ft_isprint))
-				return_value = true;
+			if (!client->req.str_is(client->resp.status_code, isdigit) || !client->req.str_is(client->resp.reason_phrase, isprint))
+				return_value = true; // Status value is incorrect - return true to finish parsing
 		}
 		else
 		{
 			if (client->resp.status_code.empty())
 			{
-				if (client->req.strFindCaseinsensitive(key, "Location") == 0)
+				if (client->req.strFindCaseinsensitive(key, "Location") == 0) // a implementer davantage
 				{
 					client->resp.status_code = "301";
 					client->resp.reason_phrase = "Found";
@@ -314,31 +312,31 @@ void	Methods::_createEnvpMap(void)
 {
 	std::stringstream tmp;
 
-/* AUTH_TYPE */
+// AUTH_TYPE
 	/* _checkAuthenticate already assign the correct value */
-/* CONTENT_LENGTH */
+// CONTENT_LENGTH
 	if (client->req.headers.find("Content-Length") != client->req.headers.end())
 		_envp["CONTENT_LENGTH"] = client->req.headers.find("Content-Length")->second;
 	else
 		_envp["CONTENT_LENGTH"] = "";
-/* CONTENT_TYPE */
+// CONTENT_TYPE
 	if (client->req.headers.find("Content-Type") != client->req.headers.end())
 		_envp["CONTENT_TYPE"] = client->req.headers.find("Content-Type")->second;
 	else
 		_envp["CONTENT_TYPE"] = "";
-/* GATEWAY_INTERFACE */
+// GATEWAY_INTERFACE
 	_envp["GATEWAY_INTERFACE"] = "CGI/1.1";
-/* PATH_INFO */
+// PATH_INFO
 	_envp["PATH_INFO"] = client->req.uri;
-/* PATH_TRANSLATED */
+// PATH_TRANSLATED
 	_envp["PATH_TRANSLATED"] = _path;
-/* QUERY_STRING */
-	_envp["QUERY_STRING"] = _query;
-/* REMOTE_ADDR */
+// QUERY_STRING
+	_envp["QUERY_STRING"] = _query;	/* put the search identifier in the uri if any (query-string part of the uri) */
+// REMOTE_ADDR
 	tmp << inet_ntoa(client->socket.address.sin_addr);
-	_envp["REMOTE_ADDR"] = tmp.str();
+	_envp["REMOTE_ADDR"] = tmp.str();	/* Get client IP adress */
 	tmp.str("");
-/* REMOTE_IDENT */
+// REMOTE_IDENT
 	tmp << ntohs(serv->serv_port.address.sin_port) << ", " << ntohs(client->socket.address.sin_port);
 	if (_envp["REMOTE_USER"].empty())
 		tmp << " : ERROR : HIDDEN-USER";
@@ -346,29 +344,30 @@ void	Methods::_createEnvpMap(void)
 		tmp << " : USERID : UNIX : " << _envp["REMOTE_USER"];
 	_envp["REMOTE_IDENT"] = tmp.str();
 	tmp.str("");
-/* REMOTE_USER */
+// REMOTE_USER
 	/* _checkAuthenticate already assign the correct value */
-/* REQUEST_METHOD */
+// REQUEST_METHOD
 	_envp["REQUEST_METHOD"] = client->req.method;
-/* REQUEST_URI */
-	_envp["REQUEST_URI"] = client->req.uri;
-/* SCRIPT_NAME */
+// REQUEST_URI
+	_envp["REQUEST_URI"] = client->req.uri; /* Check with PATH_INFO */
+// SCRIPT_NAME
 	_envp["SCRIPT_NAME"] = _cgi_path;
-/* SERVER_NAME */
+// SERVER_NAME
+	// A VERIFIER
 	if (serv->dir.find("server_name") != serv->dir.end())
 		_envp["SERVER_NAME"] = serv->dir.find("server_name")->second[0];
 	else
 		_envp["SERVER_NAME"] = "";
-/* SERVER_PORT */
+// SERVER_PORT
 	tmp << ntohs(serv->serv_port.address.sin_port);
 	_envp["SERVER_PORT"] = tmp.str();
 	tmp.str("");
-/* SERVER_PROTOCOL */
+// SERVER_PROTOCOL
 	_envp["SERVER_PROTOCOL"] = "HTTP/1.1";
-/* SERVER_SOFTWARE */
-	_envp["SERVER_SOFTWARE"] = "webserv/1.0 (Unix)";
+// SERVER_SOFTWARE
+	_envp["SERVER_SOFTWARE"] = "HuntGaming/1.0";
 
-/* ADDITIONAL IMPLEMENTATION-DEFINED CGI HEADER FIELDS */
+// ADDITIONAL IMPLEMENTATION-DEFINED CGI HEADER FIELDS
 	for (std::map<std::string, std::string, ci_less>::iterator it = client->req.headers.begin(); it != client->req.headers.end(); ++it)
 	{
 		std::string result = "HTTP_" + it->first;
@@ -376,7 +375,7 @@ void	Methods::_createEnvpMap(void)
 		result = client->req.transform(result, client->req.tounderscore);
 		_envp[result] = it->second;
 	}
-/* REDIRECT_STATUS */
+// REDIRECT_STATUS
 	_envp["REDIRECT_STATUS"] = "1";
 }
 
@@ -431,7 +430,8 @@ char **	Methods::_createEnvpArray(void)
 
 void	Methods::_createArgvMap(void)
 {
-	_argv.push_back(_cgi_path.c_str());	/* Name of the program */
+	/* Name of the program */
+	_argv.push_back(_cgi_path.c_str());
 }
 
 char **	Methods::_createArgvArray(void)
@@ -473,10 +473,8 @@ void	Methods::_freeArray(char ** array)
 	free(array);
 }
 
-/* For debug purposes
 void	Methods::_displayArray(char ** array)
 {
 	for (int i = 0; array[i]; ++i)
 		COUT << "array[" << i << "]|" << array[i] << "|\n";
 }
-*/

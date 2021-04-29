@@ -51,23 +51,26 @@ class Request
 
 		void	clear(void);
 
-		/* void	display(void); */
+		void	display(void);
 
 		size_t	strFindCaseinsensitive(std::string str, char const * to_find);
 		bool	str_is(std::string str, int func(int));
 
 	private:
-		bool	_isLegitPath(std::string const & path);
-		bool	_isQuotedString(std::string str);
-		bool	_isToken(std::string str);
-
 		void	_passUntilChar(char c);
+
+		bool	_isLegitPath(std::string const & path);
+		bool	_isinDic(char needle, const char * dic);
+
 		bool	_passStrictOneChar(char c);
+
 		void	_passOptionalChars(const char * dic);
 
 		std::string	_getWord(const char * delimiter_dic);
 		std::string	_getURI(const char * delimiter_dic) throw(URITooLong);
 
+		bool	_isQuotedString(std::string str);
+		bool	_isToken(std::string str);
 		bool	_chunkedExtensionInvalid(std::string str);
 		bool	_parseChunkedBody(size_t & size) throw(BadRequest);
 		bool	_checkTransferEncoding(std::string & second);
@@ -96,10 +99,6 @@ class Request
 		static int			tounderscore(int c);
 		static std::string	transform(std::string str, int func(int));
 		static int			isValidHost(int c);
-		static int			ft_isprint(int c);
-		static int			ft_isdigit(int c);
-		static size_t		ft_strlen(const char * s);
-		static size_t		ft_strcmp(const char *s1, const char *s2);
 };
 
 #endif

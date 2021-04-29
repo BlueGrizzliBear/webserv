@@ -1,12 +1,12 @@
 #include "./Methods.hpp"
 
 /* Find path (_path) */
-/* (1) find server config */
+	/* (1) find server config */
 void	Methods::_findPath(void)
 {
 	std::string	req_uri = client->req.uri;
-	_autoindex = true;
 
+	_autoindex = true;
 	/* finding all default server conf */
 	_findAuthenticate(serv->dir);
 	_findRoot(serv->dir);
@@ -18,12 +18,12 @@ void	Methods::_findPath(void)
 
 	/* iterating location bloc */
 	std::map<std::vector<std::string>, LocationBloc>::iterator tmp = serv->loc.end();
+
 	for (std::map<std::vector<std::string>, LocationBloc>::iterator it = serv->loc.begin(); it != serv->loc.end(); ++it)
 	{
 		if (_matchingLocationDir(it, tmp))
 			break;
 	}
-
 	/* if location bloc found applying corresponding config */
 	if (tmp != serv->loc.end())
 	{
@@ -36,12 +36,11 @@ void	Methods::_findPath(void)
 		_findVect(tmp->second.loc_dir, "index", &_indexes);
 		req_uri = _findRewrite(tmp->second.loc_dir);
 	}
-
 	_path += req_uri;
 }
 
 template< typename T, typename U >
-void	Methods::_findAuthenticate(std::map< T, U > & dir)
+void		Methods::_findAuthenticate(std::map< T, U > & dir)
 {
 	if (dir.find("auth_basic") != dir.end())
 	{
@@ -62,14 +61,14 @@ void	Methods::_findAuthenticate(std::map< T, U > & dir)
 }
 
 template< typename T, typename U >
-void	Methods::_findRoot(std::map< T, U > & dir)
+void		Methods::_findRoot(std::map< T, U > & dir)
 {
 	if (dir.find("root") != dir.end())
 		_path = ("." + dir.find("root")->second[0]);
 }
 
 template< typename T, typename U >
-void	Methods::_findAutoIndex(std::map< T, U > & dir)
+void		Methods::_findAutoIndex(std::map< T, U > & dir)
 {
 	if (dir.find("autoindex") != dir.end() && dir.find("autoindex")->second[0] == "off")
 		_autoindex = false;
@@ -119,11 +118,11 @@ std::string	Methods::_findRewrite(std::map< T, U > & dir)
 	if (dir.find("rewrite") != dir.end())
 	{
 		req_uri = dir.find("rewrite")->second[0];
-		if (!_path.empty() && *(_path.rbegin()) == '/')	/* remove front '/' */
+		if (!_path.empty() && *(_path.rbegin()) == '/')
 			req_uri.erase(0, 1);
 		req_uri += _uriWithoutFirstPart();
 	}
-	return (req_uri);
+	return req_uri;
 }
 
 std::string	Methods::_uriWithoutFirstPart(void)
@@ -138,35 +137,35 @@ std::string	Methods::_uriWithoutFirstPart(void)
 	return (uri_path);
 }
 
-/* (2) find location bloc config */
+	/* (2) find location bloc config */
 bool	Methods::_matchingLocationDir(std::map<std::vector<std::string>, LocationBloc>::iterator & it, std::map<std::vector<std::string>, LocationBloc>::iterator & tmp)
 {
 	if (it->first[0] == "=" && ((_uriFirstPart() == it->first[1]) || (client->req.uri == it->first[1])))
 	{
 		tmp = it;
-		return (true);
+		return true;
 	}
 	else if (it->first[0] == "^~" && _compareCapturingGroup(client->req.uri, it->first[1]))
 	{
 		tmp = it;
-		return (true);
+		return true;
 	}
 	else if (it->first[0] == "~" && _compareCapturingGroup(client->req.uri, it->first[1]))
 	{
 		tmp = it;
-		return (true);
+		return true;
 	}
 	else if (it->first[0] == "~*" && _compareCapturingGroup(client->req.transform(client->req.uri, tolower), client->req.transform(it->first[1], tolower)))
 	{
 		tmp = it;
-		return (true);
+		return true;
 	}
 	else if ((it->first[0] == "/" && *(client->req.uri.begin()) == '/') || it->first[0] == _uriFirstPart())
 		tmp = it;
-	return (false);
+	return false;
 }
 
-bool	Methods::_compareCapturingGroup(std::string uri_path, std::string cap_grp)
+bool			Methods::_compareCapturingGroup(std::string uri_path, std::string cap_grp)
 {
 	std::string::iterator		it_cap = cap_grp.begin();
 	std::vector<std::string>	path_set;
@@ -207,10 +206,10 @@ bool	Methods::_compareCapturingGroup(std::string uri_path, std::string cap_grp)
 		++it_cap;
 	}
 	if (!cap_grp.empty() && *(cap_grp.rbegin()) == '$' && _compareFromEnd(uri_path, path_set))
-		return (true);
+		return true;
 	else if (_compareFromBegin(uri_path, path_set))
-		return (true);
-	return (false);
+		return true;
+	return false;
 }
 
 bool	Methods::_compareFromEnd(std::string & uri_path, std::vector<std::string> & path_set)
@@ -225,9 +224,9 @@ bool	Methods::_compareFromEnd(std::string & uri_path, std::vector<std::string> &
 			++it_uri;
 		}
 		if (it_str == (*it).rend())
-			return (true);
+			return true;
 	}
-	return (false);
+	return false;
 }
 
 bool	Methods::_compareFromBegin(std::string & uri_path, std::vector<std::string> & path_set)
@@ -242,9 +241,9 @@ bool	Methods::_compareFromBegin(std::string & uri_path, std::vector<std::string>
 			++it_uri;
 		}
 		if (it_str == (*it).end())
-			return (true);
+			return true;
 	}
-	return (false);
+	return false;
 }
 
 std::string	Methods::_uriFirstPart(void)
@@ -306,7 +305,7 @@ std::string	Methods::_pathIterateThroughFolders(size_t nb)
 	return (uri_path);
 }
 
-/* (3) authentication */
+	/* (3) authentication */
 void	Methods::_checkRequiredAuthentication(void)
 {
 	_envp["AUTH_TYPE"] = "";
@@ -327,8 +326,8 @@ void	Methods::_checkRequiredAuthentication(void)
 bool	Methods::_checkUserExist(std::string & user, std::string & auth_path)
 {
 	std::vector<std::string>	users;
-	std::string		line;
-	std::fstream	user_file(auth_path.c_str());
+	std::string					line;
+	std::fstream				user_file(auth_path.c_str());
 
 	_envp["AUTH_TYPE"] = user.substr(0, user.find(' '));
 	if (client->req.strFindCaseinsensitive(user, "Basic") != std::string::npos && user_file.good())
@@ -342,11 +341,11 @@ bool	Methods::_checkUserExist(std::string & user, std::string & auth_path)
 			if (*it == user)
 			{
 				_envp["REMOTE_USER"] = user.substr(0, user.find(':'));
-				return (true);
+				return true;
 			}
 		}
 	}
-	return (false);
+	return false;
 }
 
 std::string	Methods::_decodeUser(std::string & user)
@@ -359,7 +358,7 @@ std::string	Methods::_decodeUser(std::string & user)
 									 15,  16,  17,  18,  19,  20,  21,  22,  23,  24,  25, 255,  255, 255, 255, 63,
 									 255, 26,  27,  28,  29,  30,  31,  32,  33,  34,  35,  36,  37,  38,  39,  40,
 									 41,  42,  43,  44,  45,  46,  47,  48,  49,  50,  51, 255,  255, 255, 255, 255};
-	/* Make sure string length is a multiple of 4 */
+	// Make sure string length is a multiple of 4
 	while ((user.size() % 4) != 0)
 		user.push_back('=');
 
@@ -369,18 +368,18 @@ std::string	Methods::_decodeUser(std::string & user)
 	ret.reserve(3 * encoded_size / 4);
 	for (size_t i = 0; i < encoded_size; i += 4)
 	{
-		/* Get values for each group of four base 64 characters */
+		// Get values for each group of four base 64 characters
 		unsigned char	b4[4];
 		b4[0] = (user[i + 0] <= 'z') ? from_base64[static_cast<unsigned char>(user[i + 0])] : 0xff;
 		b4[1] = (user[i + 1] <= 'z') ? from_base64[static_cast<unsigned char>(user[i + 1])] : 0xff;
 		b4[2] = (user[i + 2] <= 'z') ? from_base64[static_cast<unsigned char>(user[i + 2])] : 0xff;
 		b4[3] = (user[i + 3] <= 'z') ? from_base64[static_cast<unsigned char>(user[i + 3])] : 0xff;
-		/* Transform into a group of three bytes */
+		// Transform into a group of three bytes
 		unsigned char	b3[3];
 		b3[0] = static_cast<unsigned char>(((b4[0] & 0x3f) << 2) + ((b4[1] & 0x30) >> 4));
 		b3[1] = static_cast<unsigned char>(((b4[1] & 0x0f) << 4) + ((b4[2] & 0x3c) >> 2));
 		b3[2] = static_cast<unsigned char>(((b4[2] & 0x03) << 6) + ((b4[3] & 0x3f) >> 0));
-		/* Add the byte to the return value if it isn't part of an '=' character (indicated by 0xff) */
+		// Add the byte to the return value if it isn't part of an '=' character (indicated by 0xff)
 		if (b4[1] != 0xff)
 			ret.push_back(b3[0]);
 		if (b4[2] != 0xff)
@@ -389,7 +388,6 @@ std::string	Methods::_decodeUser(std::string & user)
 			ret.push_back(b3[2]);
 	}
 
-	/* Concatenate decoded result */
 	std::string cat;
 
 	for (std::vector<unsigned char>::iterator it = ret.begin(); it != ret.end(); ++it)
@@ -397,7 +395,7 @@ std::string	Methods::_decodeUser(std::string & user)
 	return (cat);
 }
 
-/* (4) allowed method */
+	/* (4) allowed method */
 void	Methods::_checkAllowedMethods(void)
 {
 	std::string	cat_meth;
@@ -418,9 +416,10 @@ void	Methods::_checkAllowedMethods(void)
 	}
 }
 
-/* (5) max_body_size */
+	/* (5) max_body_size */
 void	Methods::_checkMaxBodySize(void)
 {
 	if (client->req.body.length() > _max_body_size)
 		throw ServerBloc::PayloadTooLarge();
 }
+

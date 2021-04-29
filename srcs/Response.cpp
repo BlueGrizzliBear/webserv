@@ -18,13 +18,21 @@ Response::~Response() {}
 /* Operators */
 Response &	Response::operator=(Response const & rhs)
 {
+	/* Status Line */
 	status_code = rhs.status_code;
 	reason_phrase = rhs.reason_phrase;
+
+	/* Header Fields */
 	header_fields = rhs.header_fields;
+
+	/* Body */
 	body = rhs.body;
+
 	msg = rhs.msg;
+
 	writtenBytes = rhs.writtenBytes;
 	isComplete = rhs.isComplete;
+
 	return (*this);
 }
 
@@ -59,9 +67,11 @@ bool	Response::sendResptoClient(Client & client)
 
 	if (sentBytes < 0)
 	{
-		CERR << "Error in send(): " << strerror(errno) << ENDL;
+		if (sentBytes < 0)
+			CERR << "Error in send(): " << strerror(errno) << ENDL;
 		return (true);
 	}
+
 	if ((writtenBytes += static_cast<size_t>(sentBytes)) == client.resp.msg.length())
 		return (true);
 	return (false);
@@ -69,13 +79,15 @@ bool	Response::sendResptoClient(Client & client)
 
 void	Response::cleanResponse(void)
 {
+	/* Cleaning Response */
 	status_code.clear();	/* Status Line */
 	reason_phrase.clear();	/* Status Line */
 	header_fields.clear();	/* Header Fields */
 	body.clear();			/* Body */
-	body.reserve();			/* Remove allocated memory for body string */
-	msg.clear();			/* Msg */
-	msg.reserve();			/* Remove allocated memory for msg string */
-	writtenBytes = 0;
-	isComplete = 0;			/* Msg status */
+	body.reserve();								/* Reserver */
+
+	/* Cleaning Msg */
+	msg.clear();	/* Msg */
+	msg.reserve();								/* Reserver */
+	isComplete = 0;	/* Msg status */
 }

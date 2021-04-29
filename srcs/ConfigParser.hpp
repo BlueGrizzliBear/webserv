@@ -78,28 +78,23 @@ class ConfigParser
 				virtual const char *	what() const throw() { return ("Error: Missing argument in Configuration File"); }
 		};
 
-		class ExitProgram : public std::exception
+		class Abort : public std::exception
 		{
 			public:
-				virtual const char *	what() const throw() { return ("Exiting program."); }
+				virtual const char *	what() const throw() { return ("Exiting."); }
 		};
 
+	/* Member Functions */
 	public:
-	/* Gets and Sets */
 		ServerDictionary &	getDictionary(void);
 		Servers &			getServers(void);
 		Directives &		getMainDirs(void);
 		const char **		getEnvp(void);
-
-	/* Member Functions */
-		void	closeServerSockets(const char * main_err, const char * err);
-		/* void	display_config(void); */
-
 	private:
-		void *	_ft_memset(void *b, int c, size_t len);
 		bool	_is_in_dictionnary(Dic dic, std::string word);
 
 		void	_display_parsing_error(size_t new_count);
+		void	_display_init_error(const char * main_err, const char * err);
 
 		void	_try_open_file(const char * path);
 		void	_parse_main_context(std::fstream & file, Dic dic, Directives & dir, Servers & serv, Locations & loc);
@@ -118,8 +113,16 @@ class ConfigParser
 		void	_setNonDefaultServers(void);
 		void	_initServers(void);
 
+	public:
+		/* Clean-up functions */
+		void	abortServers(const char * main_err, const char * err);
+
+		/* Debug utility functions */
+		void	display_config(void);
+
 	/* Member Attributes */
 	private:
+		/* Parsing utilities */
 		ServerDictionary	_dic;
 
 		std::string			_path;

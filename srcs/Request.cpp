@@ -19,13 +19,16 @@ Request &	Request::operator=(Request const & rhs)
 {
 	headerComplete = rhs.headerComplete;
 	headerParsed = rhs.headerParsed;
+
 	method = rhs.method;
 	uri = rhs.uri;
 	protocol_v = rhs.protocol_v;
 	headers = rhs.headers;
 	body = rhs.body;
+
 	_req = rhs._req;
 	_pos = rhs._pos;
+
 	return (*this);
 }
 
@@ -41,8 +44,7 @@ size_t &	Request::getPos(void)
 }
 
 /* Member Functions */
-/* Display request for debugging purposes
-void	Request::display(void)
+void	Request::display(void)	/* Display request for debugging purposes */
 {
 	COUT << GREEN << "> CLIENT REQUEST\n";
 	COUT << method << " " << uri << " " << protocol_v << ENDL;
@@ -56,12 +58,11 @@ void	Request::display(void)
 	// COUT << body << ENDL;
 	COUT << RESET;
 }
-*/
 
 void	Request::clear(void)
 {
-	headerComplete = false;
-	headerParsed = false;
+	headerComplete = false;		/* Reseting bool indicator if header is complete or not */
+	headerParsed = false;		/* Reseting bool indicator if header is parsed or not */
 
 	method.clear();
 	uri.clear();
@@ -69,6 +70,7 @@ void	Request::clear(void)
 	headers.clear();
 	body.clear();
 	body.reserve();
+
 	_req.clear();
 	_pos = 0;
 }
@@ -83,6 +85,15 @@ size_t	Request::strFindCaseinsensitive(std::string str, char const * to_find)
 	for (std::string::iterator it = tmp_to_find.begin(); it != tmp_to_find.end(); ++it)
 		*it = static_cast<char>(tolower(*it));
 	return (tmp.find(tmp_to_find));
+}
+
+int		Request::isValidHost(int c)
+{
+	std::string dic("/<>@\\{}^`|#\"");
+
+	if (dic.find(static_cast<char>(c)) == std::string::npos)
+		return (1);
+	return (0);
 }
 
 bool	Request::str_is(std::string str, int func(int))
@@ -136,8 +147,8 @@ void	Request::_passOptionalChars(const char * dic)
 /* A function which gets the first encountered word until the function func is true */
 std::string	Request::_getWord(const char * delimiter_dic)
 {
-	std::string	word;
-	size_t 		pos;
+	std::string word;
+	size_t pos;
 
 	if ((pos = _req.find(delimiter_dic, _pos)) != std::string::npos)
 	{
@@ -151,8 +162,8 @@ std::string	Request::_getWord(const char * delimiter_dic)
 
 std::string	Request::_getURI(const char * delimiter_dic) throw(URITooLong)
 {
-	std::string	word;
-	size_t 		pos;
+	std::string word;
+	size_t pos;
 
 	if ((pos = _req.find_first_of(delimiter_dic, _pos)) != std::string::npos)
 	{
@@ -168,87 +179,83 @@ std::string	Request::_getURI(const char * delimiter_dic) throw(URITooLong)
 
 bool	Request::_isLegitPath(std::string const & path)
 {
-	if (path.empty() || path == "*")
+	/* Request-URI = "*" | absoluteURI | abs_path | authority */
+
+	if (path.empty())
 		return (false);
 	return (true);
 }
 
 bool	Request::parseRequestLine(void) throw(NotImplemented, BadRequest, URITooLong)
 {
+	/* Request-Line = Method SP Request-URI SP HTTP-Version CRLF */
 	/* Check Method */
 	method = _getWord(" ");
 	if (_dic.methodDic.find(method) == _dic.methodDic.end())
-		throw NotImplemented();
-
+		throw NotImplemented();		/* Or 405 (Method Not Allowed), if it doesnt have the rights */
 	/* Pass 1 Space */
 	if (!_passStrictOneChar(' '))
 		throw BadRequest();
-
 	/* Check Request-URI */
 	uri = _getURI(" ");
 	if (!_isLegitPath(uri))
 		throw BadRequest();
-
 	/* Pass 1 Space */
 	if (!_passStrictOneChar(' '))
 		throw BadRequest();
-
 	/* Check HTTP-Version */
 	protocol_v = _getWord("\r");
 	if (protocol_v != "HTTP/1.1")
 		throw BadRequest();
-
 	/* Check if end of the line (CRLF = \r\n) */
 	if (!_passStrictOneChar('\r'))
 		throw BadRequest();
 	if (!_passStrictOneChar('\n'))
 		throw BadRequest();
-
 	return (true);
 }
 
 bool	Request::parseHeaders(void) throw(BadRequest)
 {
+	/* Request Header Fields */
 	while (1)
 	{
 		if (_req.find("\r\n", _pos) == _pos)
 			break ;
-		std::string header_key = _getWord(":");	/* Get Header Key */
+
+		std::string header_key = _getWord(":");	/* Check Header Key */
 
 		if (header_key == "" && (header_key = _getWord("\r")) == "")	/* Check Header Key */
 			break ;
-		if (header_key.find_first_of(" \t") != std::string::npos)
+		if (header_key.find_first_of(" \t") != std::string::npos)	/* verification token A FAIRE ici */
 			throw BadRequest();
 		else
 		{
 			if (!_passStrictOneChar(':'))	/* Check is ':' is present */
 				throw BadRequest();
+			_passOptionalChars("\t ");
 
-			_passOptionalChars("\t ");	/* Pass OWS */
+			std::string header_val = _getWord("\r\n");
 
-			std::string header_val = _getWord("\r\n");	/* Get Header Value */
-
-			if (header_val.size())	/* Check Header Value */
+			if (header_val.size())
 			{
 				if ((header_val.rfind(" ") == header_val.size() - 1) || (header_val.rfind("\t") == header_val.size() - 1))
 					header_val.erase(header_val.size() - 1, 1);
 			}
 
-			if (!headers.insert(std::make_pair(header_key, header_val)).second)	/* Insert Header */
+			if (!headers.insert(std::make_pair(header_key, header_val)).second)
 				throw BadRequest();
 		}
-
 		if (!_passStrictOneChar('\r'))
 			throw BadRequest();
 		if (!_passStrictOneChar('\n'))
 			throw BadRequest();
 	}
-
+	/* Check if new line */
 	if (!_passStrictOneChar('\r'))
 		throw BadRequest();
 	if (!_passStrictOneChar('\n'))
 		throw BadRequest();
-
 	return (true);
 }
 
@@ -264,7 +271,7 @@ bool	Request::_isQuotedString(std::string str)
 
 		while (it != ite)
 		{
-			if (ft_isprint(*it))
+			if (isprint(*it))
 			{
 				if (*it == '\\' && it + 1 == ite)
 					return (false);
@@ -326,7 +333,6 @@ bool	Request::_parseChunkedBody(size_t & size) throw(BadRequest)
 	{
 		if (!(size = static_cast<unsigned long>(std::strtol((_req.substr(0, pos)).c_str(), NULL, 16))))
 			foundEnd = true;
-
 		if (nb != pos && _chunkedExtensionInvalid(_req.substr(nb, pos)))
 		{
 			body.clear();
@@ -336,7 +342,6 @@ bool	Request::_parseChunkedBody(size_t & size) throw(BadRequest)
 
 		if (_req.size() - pos - 2 < size + 2)
 			return (false);
-
 		if (foundEnd)
 		{
 			if (_req.find("\r\n") != pos + 2)
@@ -372,7 +377,6 @@ bool	Request::_parseChunkedBody(size_t & size) throw(BadRequest)
 bool	Request::_checkTransferEncoding(std::string & second)
 {
 	std::string tmp = second;
-
 	while (!tmp.empty())
 	{
 		size_t pos = 0;
@@ -422,14 +426,12 @@ bool	Request::parseBody(void) throw(NotImplemented, BadRequest)
 	}
 	if (headers.find("Content-Length") != headers.end())
 	{
-		if (!str_is(headers.find("Content-Length")->second, ft_isdigit))
+		if (!str_is(headers.find("Content-Length")->second, std::isdigit))
 			throw BadRequest();
-
 		errno = 0;
 		size_t size = static_cast<size_t>(std::strtol(headers.find("Content-Length")->second.c_str(), NULL, 10));
-		if (errno == ERANGE) /* Verifying errno for std::strtol function */
+		if (errno == ERANGE) /* Verifying errno for strtol function */
 			throw BadRequest();
-
 		if (size > _req.size() - _pos)
 			return (false);
 		body.append(_req, _pos, size - _pos);
@@ -457,46 +459,4 @@ std::string Request::transform(std::string str, int func(int))
 		++begin;
 	}
 	return (result);
-}
-
-int		Request::isValidHost(int c)
-{
-	std::string dic("/<>@\\{}^`|#\"");
-
-	if (dic.find(static_cast<char>(c)) == std::string::npos)
-		return (1);
-	return (0);
-}
-
-int		Request::ft_isprint(int c)
-{
-	if (c >= 32 && c <= 126)
-		return (1);
-	return (0);
-}
-
-int		Request::ft_isdigit(int c)
-{
-	if (c >= '0' && c <= '9')
-		return (1);
-	return (0);
-}
-
-size_t	Request::ft_strlen(const char * s)
-{
-	size_t i = 0;
-
-	while (s[i])
-		i++;
-	return (i);
-}
-
-size_t	Request::ft_strcmp(const char *s1, const char *s2)
-{
-	size_t i;
-
-	i = 0;
-	while (s1[i] == s2[i] && s2[i] != '\0' && s1[i] != '\0')
-		i++;
-	return static_cast<unsigned int>(s1[i] - s2[i]);
 }

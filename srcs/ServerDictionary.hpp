@@ -8,7 +8,6 @@ class	ServerDictionary
 	/* Member Types */
 	public:
 		typedef std::map<std::string, std::string >	Dic;
-		typedef std::map<std::string, std::string, ci_less>	CIDic;
 
 	/* Constructor */
 		/*	default	(1)	*/	ServerDictionary(void);
@@ -30,13 +29,13 @@ class	ServerDictionary
 
 	/* Member Attributes */
 	public:
-		Dic		mainDic;
-		Dic		locationDic;
-		Dic		serverDic;
-		Dic		methodDic;
-		Dic		errorDic;
-		CIDic	headerDic;
-		CIDic 	mimeDic;
+		Dic	mainDic;
+		Dic	locationDic;
+		Dic	serverDic;
+		Dic	methodDic;
+		std::map<std::string, std::string, ci_less>	headerDic;
+		Dic	errorDic;
+		std::map<std::string, std::string, ci_less> mimeDic;
 };
 
 #endif
