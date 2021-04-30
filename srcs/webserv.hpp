@@ -62,13 +62,15 @@ struct Socket
 	int					addrlen;
 };
 
+int	ft_tolower(int c);
+
 struct ci_less : std::binary_function < std::string, std::string, bool >
 {
 	struct nocase_compare : public std::binary_function< unsigned char, unsigned char, bool>
 	{
 		bool operator() (const char & x, const char & y) const
 		{
-			return tolower(x) < tolower(y);
+			return ft_tolower(x) < ft_tolower(y);
 		}
 	};
 	bool operator() (const std::string & x, const std::string & y) const
@@ -76,5 +78,6 @@ struct ci_less : std::binary_function < std::string, std::string, bool >
 		return std::lexicographical_compare(x.begin(), x.end(), y.begin(), y.end(), nocase_compare());
 	}
 };
+
 
 #endif

@@ -73,7 +73,10 @@ bool	Response::sendResptoClient(Client & client)
 	}
 
 	if ((writtenBytes += static_cast<size_t>(sentBytes)) == client.resp.msg.length())
+	{
+		COUT << MAGENTA << "From |" << client.serv->port_no << "|...Sending to Client#" << client.nb << " with fd|" << client.socket.fd << "|" << RESET << ENDL;
 		return (true);
+	}
 	return (false);
 }
 

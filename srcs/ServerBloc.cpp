@@ -60,7 +60,7 @@ void	ServerBloc::parseException(Client & client, const char * code)
 		client.resp.status_code = it->first;
 		client.resp.reason_phrase = it->second;
 
-		Methods	implementedMethods(*this, client, client.resp.status_code, client.resp.reason_phrase);
+		Methods	methodsForError(*client.serv, client, client.resp.status_code, client.resp.reason_phrase);
 		client.req.clear();	/* Clean Client Request - need to answer client now */
 	}
 }
@@ -109,6 +109,8 @@ bool	ServerBloc::processRequest(Client & client)
 	}
 	if (client.req.parseBody())
 	{
+		static int i = 0;
+		COUT << "Request #" << i++ << ", Finished Parsing\n";
 		client.finishedReading = 1;
 
 		/* Cleaning */
@@ -118,7 +120,11 @@ bool	ServerBloc::processRequest(Client & client)
 		client.req.headerComplete = false;		/* Reseting bool indicator if header is complete or not */
 		client.req.headerParsed = false;		/* Reseting bool indicator if header is parsed or not */
 
-		ServerBloc * ptr = NULL;
+		// ServerBloc * ptr = nullptr;
+		// if (is_unique)
+		// 	client.serv = this;
+			// ptr = this;
+		// else if (client.req.headers.find("Host") != client.req.headers.end())
 		if (!is_unique && client.req.headers.find("Host") != client.req.headers.end())
 		{
 			bool found = 0;
@@ -139,23 +145,21 @@ bool	ServerBloc::processRequest(Client & client)
 						{
 							if (*vec_it == server_name)
 							{
-								ptr = &(*it);
+								client.serv = &(*it);
 								found = true;
 							}
 							vec_it++;
 						}
 					}
 					else
-						ptr = &(*it);
+						client.serv = &(*it);
 				}
 				it++;
 			}
 		}
-		else
-			ptr = this;
 
 		/* Execute the parsed request */
-		Methods	implementedMethods(*ptr, client);
+		Methods	implementedMethods(*client.serv, client);
 		implementedMethods.execute();
 
 

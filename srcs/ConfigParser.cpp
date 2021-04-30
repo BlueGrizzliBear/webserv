@@ -399,7 +399,7 @@ bool	ConfigParser::_str_is_digit(std::string const & str)
 	std::string::const_iterator it = str.begin();
 	std::string::const_iterator ite = str.end();
 
-	while (it != ite && std::isdigit(*it))
+	while (it != ite && Request::ft_isdigit(*it))
 		++it;
 	return (!str.empty() && it == ite);
 }
@@ -489,7 +489,7 @@ void	ConfigParser::_initPort(ServerBloc & serv)
 		serv.serv_port.addrlen = sizeof(serv.serv_port.address);
 
 		/* Initialising other adress attributes to 0 */
-		memset(serv.serv_port.address.sin_zero, '\0', sizeof(serv.serv_port.address.sin_zero));
+		Request::ft_memset(serv.serv_port.address.sin_zero, '\0', sizeof(serv.serv_port.address.sin_zero));
 
 		/* Assigning adress to the socket */
 		if (bind(serv.serv_port.fd, reinterpret_cast<struct sockaddr *>(&serv.serv_port.address), sizeof(serv.serv_port.address)) < 0)

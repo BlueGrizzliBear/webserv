@@ -59,7 +59,7 @@ class Request
 	private:
 		void	_passUntilChar(char c);
 
-		bool	_isLegitPath(std::string const & path);
+		// bool	_isLegitPath(std::string const & path);
 		bool	_isinDic(char needle, const char * dic);
 
 		bool	_passStrictOneChar(char c);
@@ -72,7 +72,8 @@ class Request
 		bool	_isQuotedString(std::string str);
 		bool	_isToken(std::string str);
 		bool	_chunkedExtensionInvalid(std::string str);
-		bool	_parseChunkedBody(size_t & size) throw(BadRequest);
+		// bool	_parseChunkedBody(size_t & size) throw(BadRequest);
+		bool	_parseChunkedBody(void) throw(BadRequest);
 		bool	_checkTransferEncoding(std::string & second);
 
 
@@ -93,12 +94,23 @@ class Request
 		ServerDictionary	_dic;
 		std::string 		_req;
 		size_t				_pos;
+		bool				_foundEnd;
 
 	/* Static functions */
 	public:
 		static int			tounderscore(int c);
 		static std::string	transform(std::string str, int func(int));
 		static int			isValidHost(int c);
+		static void *		ft_calloc(size_t count, size_t size);
+		static char *		ft_strcpy(char *dest, const char *src);
+		static char *		ft_strdup(const char *s1);
+		static void *		ft_memset(void *b, int c, size_t len);
+		static int			ft_strcmp(const char *s1, const char *s2);
+		static size_t		ft_strlen(const char *s);
+		static int			ft_isdigit(int c);
+		static int			ft_isprint(int c);
+		static int			ft_toupper(int c);
+
 };
 
 #endif

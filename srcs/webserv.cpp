@@ -1,6 +1,14 @@
 # include "./webserv.hpp"
 # include "./ConfigParser.hpp"
 
+int	ft_tolower(int c)
+{
+	if (c >= 'A' && c <= 'Z')
+		return (c + 32);
+	else
+		return (c);
+}
+
 bool	parseClientRequest(ServerBloc & server, Client & client)
 {
 	try
@@ -16,7 +24,7 @@ bool	parseClientRequest(ServerBloc & server, Client & client)
 	catch(const std::exception & e)
 	{
 		/* Catching exception from parsing request or execute request */
-		/* std::cerr << RED << e.what() << RESET << std::endl; */ /* Display Exception what() for debug */
+		std::cerr << RED << "Caught an Exception|" << e.what() << "| for client#" << client.nb << RESET << std::endl; /* Display Exception what() for debug */
 		server.parseException(client, e.what());
 		return (true);	/* send true to execute the error msg to Response */
 	}
@@ -44,6 +52,7 @@ int	getMaxFd(ServerBloc & server)
 
 void	selectServer(ServerBloc & server)
 {
+	static int i = 0;
 	static int maxSize = 1;
 
 	if (server.is_default)
@@ -101,12 +110,18 @@ void	selectServer(ServerBloc & server)
 					Client new_client;
 
 					new_client.socket.addrlen = sizeof(new_client.socket.address);
+					// new_client.serv = nullptr;
+					new_client.serv = &server;
+					new_client.nb = i++;
 					new_client.socket.fd = accept(server.serv_port.fd, reinterpret_cast<struct sockaddr *>(&new_client.socket.address), reinterpret_cast<socklen_t *>(&new_client.socket.addrlen));
 					if (new_client.socket.fd == -1)
 					{
 						CERR << "Error in accept(): " << strerror(errno) << ENDL;
 						break ;
 					}
+					COUT << GREEN << "Creating Client#" << new_client.nb << " with fd|" << new_client.socket.fd << "|" << RESET << ENDL;
+					// fcntl(new_client.socket.fd, F_SETFL, O_NONBLOCK);
+
 					server.totalClients++;
 					if (new_client.socket.fd < FD_SETSIZE - 5) /* corresponding to 4 fd used for CGI implementations */
 					{
@@ -133,6 +148,7 @@ void	selectServer(ServerBloc & server)
 							{
 								if (it->clientClosed)
 								{
+									COUT << RED << "Prematurely Removing Client#" << it->nb << RESET << ENDL;
 									close(it->socket.fd);
 									server.clientList.erase(it--);
 									server.totalClients--;
@@ -146,6 +162,7 @@ void	selectServer(ServerBloc & server)
 						{
 							if (parseServerResponse(server, *it))	/* Parsing Server Response */
 							{
+								COUT << RED << "Removing Client#" << it->nb << RESET << ENDL;
 								close(it->socket.fd);
 								server.clientList.erase(it--);
 								server.totalClients--;
@@ -171,8 +188,18 @@ int main(int argc, char const ** argv, char const ** envp)
 			ConfigParser	config(path.c_str(), envp);
 			signal(SIGPIPE, SIG_IGN);
 			CERR << "Launching All Servers . . ." << ENDL;
+			ConfigParser::Servers::iterator ite = config.getServers().end();
 			while (1)
-				std::for_each(config.getServers().begin(), config.getServers().end(), selectServer);
+			{
+				ConfigParser::Servers::iterator it = config.getServers().begin();
+				while (it != ite)
+				{
+					selectServer(*it);
+					it++;
+				}
+			}
+			// while (1)
+				// std::for_each(config.getServers().begin(), config.getServers().end(), selectServer);
 		}
 		catch(const std::exception& e)
 		{

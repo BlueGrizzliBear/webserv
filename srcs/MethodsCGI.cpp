@@ -195,6 +195,7 @@ void	Methods::_communicateWithCGI(int fd_in, int fd_out, pid_t pid)
 			}
 		}
 	}
+	COUT << "CGI Code|" << client->resp.status_code << "|\n";
 	return ;
 }
 
@@ -266,14 +267,14 @@ bool	Methods::_parseHeaderField(void)
 			if (10 + first_osp == size)
 				second_osp = 0;
 			client->resp.reason_phrase = _receivedMessage.substr(10 + first_osp + second_osp, size - 10 - first_osp - second_osp);
-			if (!client->req.str_is(client->resp.status_code, isdigit) || !client->req.str_is(client->resp.reason_phrase, isprint))
+			if (!client->req.str_is(client->resp.status_code, Request::ft_isdigit) || !client->req.str_is(client->resp.reason_phrase, Request::ft_isprint))
 				return_value = true; // Status value is incorrect - return true to finish parsing
 		}
 		else
 		{
 			if (client->resp.status_code.empty())
 			{
-				if (client->req.strFindCaseinsensitive(key, "Location") == 0) // a implementer davantage
+				if (client->req.strFindCaseinsensitive(key, "Location") == 0)
 				{
 					client->resp.status_code = "301";
 					client->resp.reason_phrase = "Found";
@@ -294,10 +295,10 @@ bool	Methods::_parseHeaderField(void)
 void	Methods::_parseCGIResponse(void)
 {
 	size_t size = _receivedMessage.size();
-	static bool	HeaderIncomplete = true;
+	// static bool	_headerIncomplete = true;
 
-	while (HeaderIncomplete && (_receivedMessage.find("\r\n") != std::string::npos || _receivedMessage.find("\n") != std::string::npos))
-		HeaderIncomplete = !_parseHeaderField();
+	while (_headerIncomplete && (_receivedMessage.find("\r\n") != std::string::npos || _receivedMessage.find("\n") != std::string::npos))
+		_headerIncomplete = !_parseHeaderField();
 
 	if (!_receivedMessage.empty())
 	{
@@ -305,7 +306,7 @@ void	Methods::_parseCGIResponse(void)
 		_receivedMessage.clear();
 	}
 	else if (!size)
-		HeaderIncomplete = true;
+		_headerIncomplete = true;
 }
 
 void	Methods::_createEnvpMap(void)
@@ -371,7 +372,7 @@ void	Methods::_createEnvpMap(void)
 	for (std::map<std::string, std::string, ci_less>::iterator it = client->req.headers.begin(); it != client->req.headers.end(); ++it)
 	{
 		std::string result = "HTTP_" + it->first;
-		result = client->req.transform(result, toupper);
+		result = client->req.transform(result, Request::ft_toupper);
 		result = client->req.transform(result, client->req.tounderscore);
 		_envp[result] = it->second;
 	}
@@ -414,7 +415,7 @@ char **	Methods::_createEnvpArray(void)
 	}
 	for (int j = 0; serv->getParent()->getEnvp()[j]; ++j)
 	{
-		array[i] = strdup(serv->getParent()->getEnvp()[j]);
+		array[i] = Request::ft_strdup(serv->getParent()->getEnvp()[j]);
 		if (array[i] == NULL)
 		{
 			CERR << "Error in strdup(): " << strerror(errno) << ENDL;

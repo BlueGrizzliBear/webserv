@@ -7,7 +7,7 @@ Methods::Methods(void) : serv(NULL), client(NULL) {}
 
 /*	parent	(2)	*/
 Methods::Methods(ServerBloc & server, Client & client, std::string const & code, std::string const & phrase)
-: serv(&server), client(&client), _max_body_size(1000000), _writtenBytes(0)
+: serv(&server), client(&client), _max_body_size(1000000), _headerIncomplete(true), _writtenBytes(0)
 {
 	/* uri resolution process (treat ../ and ./) */
 	_URIResolutionProcess();
@@ -16,7 +16,7 @@ Methods::Methods(ServerBloc & server, Client & client, std::string const & code,
 	/* Check if path exist on server */
 	_findPath();
 
-	if (code == "" && phrase == "")
+	if (code.empty() && phrase.empty())
 	{
 		_checkRequiredAuthentication();	/* check authenticate */
 		_checkMaxBodySize();
@@ -345,9 +345,9 @@ void	Methods::_createHTMLListing(DIR * dir)
 	dir_list << "<h1>Index of " << client->req.uri << "</h1><hr><pre>\n";
 	while ((dp = readdir(dir)) != NULL)
 	{
-		if (strcmp(dp->d_name, "."))
+		if (Request::ft_strcmp(dp->d_name, "."))
 		{
-			std::string		points(30 - strlen(dp->d_name), '.');
+			std::string		points(30 - Request::ft_strlen(dp->d_name), '.');
 
 			file_path = _path + dp->d_name;
 			dir_list << "<a href=\"" << client->req.uri;
@@ -361,13 +361,13 @@ void	Methods::_createHTMLListing(DIR * dir)
 			{
   				timeinfo = localtime(&info.st_mtime);
 				strftime(date, 20, "%d-%b-%Y %H:%M", timeinfo);
-				if (strcmp(dp->d_name, ".."))
+				if (Request::ft_strcmp(dp->d_name, ".."))
 					dir_list << points << date << "................" << info.st_size;
 				dir_list << '\n';
 			}
 			else
 			{
-				if (strcmp(dp->d_name, ".."))
+				if (Request::ft_strcmp(dp->d_name, ".."))
 					dir_list << points << "unauthorized..................unauthorized";
 				dir_list << '\n';
 			}

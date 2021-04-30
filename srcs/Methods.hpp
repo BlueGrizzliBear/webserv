@@ -192,6 +192,8 @@ class Methods
 		std::map<std::string, std::string, ci_less>	_envp;
 		std::vector<std::string>					_argv;
 
+		bool	_headerIncomplete;
+
 		size_t	_writtenBytes;
 		std::string _receivedMessage;
 

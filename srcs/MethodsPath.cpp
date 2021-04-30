@@ -155,7 +155,7 @@ bool	Methods::_matchingLocationDir(std::map<std::vector<std::string>, LocationBl
 		tmp = it;
 		return true;
 	}
-	else if (it->first[0] == "~*" && _compareCapturingGroup(client->req.transform(client->req.uri, tolower), client->req.transform(it->first[1], tolower)))
+	else if (it->first[0] == "~*" && _compareCapturingGroup(client->req.transform(client->req.uri, ft_tolower), client->req.transform(it->first[1], ft_tolower)))
 	{
 		tmp = it;
 		return true;

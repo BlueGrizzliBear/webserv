@@ -16,6 +16,10 @@ struct Client
 	Request		req;
 	Response 	resp;
 
+	int nb;
+
+	ServerBloc * serv;
+
 	bool				finishedReading;
 	bool				clientClosed;
 };

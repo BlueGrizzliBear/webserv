@@ -14,6 +14,7 @@ void	Methods::_PutHeaderStatusCode(void)
 		client->resp.status_code = "204";
 		client->resp.reason_phrase = "No Content";
 	}
+	COUT << "PUT Code|" << client->resp.status_code << "|\n";
 }
 
 void	Methods::_PostHeaderStatusCode(void)
@@ -29,7 +30,7 @@ void	Methods::_PostHeaderStatusCode(void)
 		client->resp.status_code = "200";
 		client->resp.reason_phrase = "OK";
 	}
-
+	COUT << "POST Code|" << client->resp.status_code << "|\n";
 }
 
 void	Methods::_GetHeaderStatusCode(void)
