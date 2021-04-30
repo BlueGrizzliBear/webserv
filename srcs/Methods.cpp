@@ -324,6 +324,7 @@ void		Methods::_createIndexHTML()
 		/* list directory in html format*/
 		_createHTMLListing(dir);
 		_path = "./dir_listing.html";
+		closedir(dir);
 	}
 	else
 		throw ServerBloc::NotFound();
@@ -390,6 +391,7 @@ void	Methods::_createVectorFromCWD(std::vector<std::string> & files, std::string
 			if (dp->d_type == DT_REG)
 				files.push_back(dp->d_name);
 		}
+		closedir(dir);
 	}
 	else
 		throw ServerBloc::NotFound();

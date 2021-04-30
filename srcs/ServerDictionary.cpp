@@ -204,4 +204,5 @@ void	ServerDictionary::_parseMimeTypes(void)
 			mime_value.clear();
 		}
 	}
+	file.close();
 }
