@@ -19,6 +19,7 @@ NAME			=		./webserv
 COMPIL			=		clang++
 # Salut
 # FLAGS			+= 		trying something out
+# FLAGS			+= 		trying something out again
 # FLAGS			+=		-Wall -Wextra -Werror -Wconversion -std=c++98 -fsanitize=address -g3
 FLAGS			+=		-Wall -Wextra -Werror -Wconversion -std=c++98 -g3
 
