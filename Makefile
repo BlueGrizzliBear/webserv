@@ -17,11 +17,7 @@ OBJS			= 		${SRCS:.cpp=.o}
 NAME			=		./webserv
 
 COMPIL			=		clang++
-<<<<<<< HEAD
 # FLAGS			+= 		trying something out
-=======
-#Salut
->>>>>>> 471e0fefa8ebc2ae03b6e4f53f3b5063dd7533cc
 # FLAGS			+=		-Wall -Wextra -Werror -Wconversion -std=c++98 -fsanitize=address -g3
 FLAGS			+=		-Wall -Wextra -Werror -Wconversion -std=c++98 -g3
 
