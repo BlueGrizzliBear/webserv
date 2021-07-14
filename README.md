@@ -47,14 +47,24 @@ Configuration remarks:
 ### Launch the program
 
 Use the Makefile to compile the project
-`make`
+
+```bash
+make
+```
 
 Launch the project
-`./webserv`
+
+```bash
+./webserv
+```
+
 By default, the program takes the default.conf configuration file in the configuration folder
 
 However, it can be given the path to another configuration file instead on the first argument.
-`./webserv ./my/path/to/this/other/configuration/file`
+
+```bash
+./webserv ./my/path/to/this/other/configuration/file
+```
 
 ### Testing
 
