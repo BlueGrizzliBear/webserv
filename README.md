@@ -1,6 +1,6 @@
 # webserv
 
-A HTTP server compliant to RFC 7230-7235 using socket programming, written in C/C++.
+A HTTP server compliant to RFC 7230-7235 using socket programming, written in C++.
 The server configuration file is by default ./configuration/default.conf.
 
 Implemented methods: GET POST PUT HEAD
