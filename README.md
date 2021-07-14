@@ -11,7 +11,7 @@ The server manages multi-clients and can be configured for multiples servers.
 
 ## Context
 
-This project is part of the webserv project of 42 Software Engineering program.
+This project was done as part of 42's Software Engineering program.
 
 ## Configuration
 
