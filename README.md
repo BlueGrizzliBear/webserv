@@ -9,9 +9,9 @@ Additional implemented features: The server can execute CGI-based extension file
 
 The server manages multi-clients and can be configured for multiples servers.
 
-## Requirements
+## Context
 
-The Makefile compiles using clang++.
+This project is part of the webserv project of 42 Software Engineering program.
 
 ## Configuration
 
