@@ -20,3 +20,5 @@ LocationBloc &	LocationBloc::operator=(LocationBloc const & rhs)
 	loc_dir = rhs.loc_dir;
 	return (*this);
 }
+
+/* Member Functions */

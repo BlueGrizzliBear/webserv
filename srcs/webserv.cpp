@@ -17,14 +17,12 @@ bool	parseClientRequest(ServerBloc & server, Client & client)
 		{
 			if (client.clientClosed)
 				return (true);
-			if (server.processRequest(client)) /* Parse Client Request first */
+			if (server.processRequest(client))	/* Parse Client Request first */
 				return (true);
 		}
 	}
-	catch(const std::exception & e)
+	catch(const std::exception & e)	/* Catching exception from parsing request or execute request */
 	{
-		/* Catching exception from parsing request or execute request */
-		std::cerr << RED << "Caught an Exception|" << e.what() << "| for client#" << client.nb << RESET << std::endl; /* Display Exception what() for debug */
 		server.parseException(client, e.what());
 		return (true);	/* send true to execute the error msg to Response */
 	}
@@ -52,7 +50,7 @@ int	getMaxFd(ServerBloc & server)
 
 void	selectServer(ServerBloc & server)
 {
-	static int i = 0;
+	static int i =0;
 	static int maxSize = 1;
 
 	if (server.is_default)
@@ -89,10 +87,9 @@ void	selectServer(ServerBloc & server)
 			}
 			default:
 			{
-				/* Keyboard was pressed, exiting server properly */
-	/* STOP */	if (FD_ISSET(STDIN_FILENO, &server.serv_select.readfds))
+	/* STOP */	if (FD_ISSET(STDIN_FILENO, &server.serv_select.readfds))	/* Keyboard was pressed, exiting server properly */
 				{
-					CERR << "IO Select(): Keyboard was pressed, exiting server properly\n";
+					CERR << "IO Select: Keyboard was pressed, exiting server properly" << ENDL;
 					FD_ZERO(&server.serv_select.readfds);
 					FD_ZERO(&server.serv_select.writefds);
 					FD_ZERO(&server.serv_select.exceptfds);
@@ -104,24 +101,22 @@ void	selectServer(ServerBloc & server)
 				}
 	/* NEW */	else if (server.totalClients < maxSize && FD_ISSET(server.serv_port.fd, &server.serv_select.readfds))
 				{
+					COUT << GREEN << "Request|" << i++ << "|" << RESET << ENDL;
 					static bool hasCapped = false;
 
 					/* Opening socket for new client */
 					Client new_client;
-
-					new_client.socket.addrlen = sizeof(new_client.socket.address);
-					// new_client.serv = nullptr;
+					new_client.clientClosed = false;
+					new_client.finishedReading = false;
+					new_client.socket.addrlen = sizeof(struct sockaddr_in);
 					new_client.serv = &server;
-					new_client.nb = i++;
+
 					new_client.socket.fd = accept(server.serv_port.fd, reinterpret_cast<struct sockaddr *>(&new_client.socket.address), reinterpret_cast<socklen_t *>(&new_client.socket.addrlen));
 					if (new_client.socket.fd == -1)
 					{
 						CERR << "Error in accept(): " << strerror(errno) << ENDL;
 						break ;
 					}
-					COUT << GREEN << "Creating Client#" << new_client.nb << " with fd|" << new_client.socket.fd << "|" << RESET << ENDL;
-					// fcntl(new_client.socket.fd, F_SETFL, O_NONBLOCK);
-
 					server.totalClients++;
 					if (new_client.socket.fd < FD_SETSIZE - 5) /* corresponding to 4 fd used for CGI implementations */
 					{
@@ -133,9 +128,6 @@ void	selectServer(ServerBloc & server)
 						hasCapped = true;
 						maxSize = server.totalClients;
 					}
-					new_client.finishedReading = 0;
-					new_client.clientClosed = 0;
-
 					server.clientList.push_back(new_client);
 				}
 	/* R | W */	else if (!server.clientList.empty())
@@ -146,9 +138,8 @@ void	selectServer(ServerBloc & server)
 						{
 							if (parseClientRequest(server, *it))	/* Parsing Client Request */
 							{
-								if (it->clientClosed)
+								if (it->clientClosed)	/* Client closed prematurely socket */
 								{
-									COUT << RED << "Prematurely Removing Client#" << it->nb << RESET << ENDL;
 									close(it->socket.fd);
 									server.clientList.erase(it--);
 									server.totalClients--;
@@ -162,7 +153,6 @@ void	selectServer(ServerBloc & server)
 						{
 							if (parseServerResponse(server, *it))	/* Parsing Server Response */
 							{
-								COUT << RED << "Removing Client#" << it->nb << RESET << ENDL;
 								close(it->socket.fd);
 								server.clientList.erase(it--);
 								server.totalClients--;
@@ -184,22 +174,12 @@ int main(int argc, char const ** argv, char const ** envp)
 	{
 		try
 		{
-			std::string path = (argc == 1 ? "./configuration/default.conf" : argv[1]);
-			ConfigParser	config(path.c_str(), envp);
+			ConfigParser	config((argc == 1 ? "./configuration/default.conf" : argv[1]), envp);
 			signal(SIGPIPE, SIG_IGN);
-			CERR << "Launching All Servers . . ." << ENDL;
-			ConfigParser::Servers::iterator ite = config.getServers().end();
+
+			CERR << "> Launching All Servers . . ." << ENDL;
 			while (1)
-			{
-				ConfigParser::Servers::iterator it = config.getServers().begin();
-				while (it != ite)
-				{
-					selectServer(*it);
-					it++;
-				}
-			}
-			// while (1)
-				// std::for_each(config.getServers().begin(), config.getServers().end(), selectServer);
+				std::for_each(config.getServers().begin(), config.getServers().end(), selectServer);
 		}
 		catch(const std::exception& e)
 		{
@@ -207,6 +187,6 @@ int main(int argc, char const ** argv, char const ** envp)
 		}
 	}
 	else
-		CERR << "Incorrect argument number" << ENDL;
-    return 0;
+		CERR << "Error: Incorrect argument number" << ENDL;
+    return (0);
 }

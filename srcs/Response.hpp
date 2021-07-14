@@ -23,8 +23,6 @@ class Response
 	/* Operators */
 		Response &	operator=(Response const & rhs);
 
-	/* Exceptions */
-
 	/* Member Functions */
 	public:
 		void	concatenateResponse(void);
@@ -36,14 +34,11 @@ class Response
 	public:
 		std::string	status_code;	/* Status Line */
 		std::string	reason_phrase;	/* Status Line */
-
 		Headers		header_fields;	/* Header Fields */
-
 		std::string	body;			/* Body */
 
 		/* Write/Send utilities */
 		std::string	msg;
-
 		size_t	writtenBytes;
 		bool	isComplete;
 };

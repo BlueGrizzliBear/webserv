@@ -5,7 +5,7 @@
 ConfigParser::ConfigParser() {}
 
 /*	argument	(2)	*/
-ConfigParser::ConfigParser(const char * path, char const ** envp) : _path(path), _line_no(0), _count(0), _bracket(0), _envp(envp)
+ConfigParser::ConfigParser(const char * path, char const ** envp) : _dic(), _path(path), _line_no(0), _count(0), _bracket(0), _envp(envp)
 {
 	_try_open_file(path);	/* Parse the .conf file to create de server objects */
 
@@ -57,6 +57,7 @@ ServerDictionary &	ConfigParser::getDictionary(void)
 	return (_dic);
 }
 
+/* Display functions for debug purposes
 void	ConfigParser::_display_string(std::string const & str)
 {
 	COUT << str << " ";
@@ -113,6 +114,7 @@ void	ConfigParser::display_config(void)
 	COUT << "=== Servers ===\n";
 	std::for_each(_servers.begin(), _servers.end(), _display_server_bloc);
 }
+*/
 
 bool	ConfigParser::_is_in_dictionnary(Dic dic, std::string word)
 {
@@ -123,20 +125,15 @@ bool	ConfigParser::_is_in_dictionnary(Dic dic, std::string word)
 
 void	ConfigParser::_display_parsing_error(size_t new_count)
 {
-	_count = new_count;
 	std::string fill;
+
+	_count = new_count;
 	for (size_t i = 0; i < _count; i++)
 		fill.append(1, (_line[i] == '\t' ? '\t' : ' '));
 	CERR << _path << ":" << _line_no << ":" << _count << ":" << YELLOW << " error:" << RESET << ENDL;
 	CERR << _line << ENDL;
 	CERR << GREEN << fill << "^" << RESET << ENDL;
 	CERR << "1 error generated." << ENDL;
-}
-
-void	ConfigParser::_display_init_error(const char * main_err, const char * err)
-{
-	CERR << main_err << ": ";
-	CERR << err << ENDL;
 }
 
 void	ConfigParser::_try_open_file(const char * path)
@@ -161,7 +158,7 @@ void	ConfigParser::_try_open_file(const char * path)
 			}
 			if (file.good())
 			{
-				while (getline(file, _line))
+				while (std::getline(file, _line))
 				{
 					++_line_no;
 					_parse_main_context(file, _dic.mainDic, _main_dir, _servers, _servers.back().loc);
@@ -222,8 +219,8 @@ void	ConfigParser::_parse_main_context(std::fstream & file, Dic dic, Directives 
 
 void	ConfigParser::_parse_server(std::string & key, std::fstream & file, Servers & serv)
 {
-	std::vector<std::string> values;
-	std::string::iterator it = _line.begin();
+	std::vector<std::string>	values;
+	std::string::iterator 		it = _line.begin();
 
 	_count = _line.find(key) + key.length();
 	for (size_t i = 0; i < _count; i++)
@@ -258,12 +255,12 @@ void	ConfigParser::_parse_server(std::string & key, std::fstream & file, Servers
 	}
 	if (values.size() == 1 && values[0] == "{")
 	{
-		ServerBloc tmp(this);
-		size_t old = _bracket;
+		ServerBloc	tmp(this);
+		size_t 		old = _bracket;
 
 		++_bracket;
 		tmp.getNo() = serv.size() + 1;
-		while (old != _bracket && ++_line_no && getline(file, _line))
+		while (old != _bracket && ++_line_no && std::getline(file, _line))
 			_parse_main_context(file, _dic.serverDic, tmp.dir, serv, tmp.loc);
 		_verify_serverbloc(tmp);
 		serv.push_back(tmp);
@@ -279,8 +276,8 @@ void	ConfigParser::_parse_server(std::string & key, std::fstream & file, Servers
 
 void	ConfigParser::_parse_location(std::string & key, std::fstream & file, Servers & serv, Locations & loc)
 {
-	std::vector<std::string> values;
-	std::string::iterator it = _line.begin();
+	std::vector<std::string>	values;
+	std::string::iterator 		it = _line.begin();
 
 	_count = _line.find(key) + key.length();
 	for (size_t i = 0; i < _count; i++)
@@ -316,11 +313,11 @@ void	ConfigParser::_parse_location(std::string & key, std::fstream & file, Serve
 	}
 	if ((values.size() == 2 && values[1] == "{") || (values.size() == 3 && values[2] == "{"))
 	{
-		LocationBloc tmp;
-		size_t old = _bracket;
+		LocationBloc	tmp;
+		size_t			old = _bracket;
 
 		++_bracket;
-		while (old != _bracket && ++_line_no && getline(file, _line))
+		while (old != _bracket && ++_line_no && std::getline(file, _line))
 			_parse_main_context(file, _dic.locationDic, tmp.loc_dir, serv, loc);
 		loc.insert(std::make_pair(values, tmp));
 	}
@@ -333,8 +330,8 @@ void	ConfigParser::_parse_location(std::string & key, std::fstream & file, Serve
 
 void	ConfigParser::_parse_directive(std::string & key, Directives & dir)
 {
-	std::vector<std::string> values;
-	std::string::iterator it = _line.begin();
+	std::vector<std::string>	values;
+	std::string::iterator		it = _line.begin();
 	size_t tmp;
 
 	_count = _line.find(key) + key.length();
@@ -406,16 +403,13 @@ bool	ConfigParser::_str_is_digit(std::string const & str)
 
 int		ConfigParser::_check_directive(std::string & key, std::vector<std::string> & values)
 {
-	/* Check it has at least 1 argument */
 	if (key.empty())
 		return (1);
 	if (key == "listen")
 	{
-		/* Check if not 1 or 2 arguments in values */
-		if (!(values.size() == 2 || values.size() == 1))
+		if (!(values.size() == 2 || values.size() == 1))	/* Check if not 1 or 2 arguments in values */
 			return (1);
-		/* Check if normal port number */
-		if (!_str_is_digit(values[0]))
+		if (!_str_is_digit(values[0]))	/* Check if normal port number */
 			return (1);
 	}
 	else if (key == "root")
@@ -453,9 +447,9 @@ void	ConfigParser::_verify_serverbloc(ServerBloc & serv)
 	_verify_uniqueness(serv, "server_name");
 }
 
-void	ConfigParser::abortServers(const char * main_err, const char * err)
+void	ConfigParser::closeServerSockets(const char * main_err, const char * err)
 {
-	_display_init_error(main_err, err);
+	CERR << main_err << ": " << err << ENDL;
 
 	Servers::iterator s_it = _servers.begin();
 	Servers::iterator s_ite = _servers.end();
@@ -466,7 +460,22 @@ void	ConfigParser::abortServers(const char * main_err, const char * err)
 			close(s_it->serv_port.fd);
 		s_it++;
 	}
-	throw Abort();
+	throw ExitProgram();
+}
+
+void *	ConfigParser::_ft_memset(void *b, int c, size_t len)
+{
+	size_t			i;
+	unsigned char	*str;
+
+	i = 0;
+	str = static_cast<unsigned char *>(b);
+	while (i < len)
+	{
+		str[i] = static_cast<unsigned char>(c);
+		i++;
+	}
+	return (b);
 }
 
 void	ConfigParser::_initPort(ServerBloc & serv)
@@ -474,30 +483,31 @@ void	ConfigParser::_initPort(ServerBloc & serv)
 	if (serv.is_default)
 	{
 		/* Creating socket file descriptor */
-		if ((serv.serv_port.fd = socket(AF_INET, SOCK_STREAM, 0)) == 0)		/* AF_INET: Protocoles Internet IPv4	|	SOCK_STREAM: Virtual Circuit Service */
-			abortServers("Error in socket()", strerror(errno));
+		if ((serv.serv_port.fd = socket(AF_INET, SOCK_STREAM, 0)) == -1)	/* AF_INET: Protocoles Internet IPv4	|	SOCK_STREAM: Virtual Circuit Service */
+			closeServerSockets("Error in socket()", strerror(errno));
 
-		/* Set the socket to non blocking */
-		fcntl(serv.serv_port.fd, F_SETFL, O_NONBLOCK);
+		/* Set the socket to non-blocking */
+		if (fcntl(serv.serv_port.fd, F_SETFL, O_NONBLOCK) == -1)
+			closeServerSockets("Error in fcntl()", strerror(errno));
 
 		/* Defining address struct */
-		serv.serv_port.address.sin_family = AF_INET;						/* corresponding to IPv4 protocols */
-		serv.serv_port.address.sin_addr.s_addr = htonl(INADDR_ANY);			/* corresponding to 0.0.0.0 */
-		serv.serv_port.address.sin_port = htons(serv.port_no);	/* corresponding to the server port, must be > 1024 */
+		serv.serv_port.address.sin_family = AF_INET;					/* corresponding to IPv4 protocols */
+		serv.serv_port.address.sin_addr.s_addr = htonl(INADDR_ANY);		/* corresponding to 0.0.0.0 */
+		serv.serv_port.address.sin_port = htons(serv.port_no);			/* corresponding to the server port, must be > 1024 */
 
 		/* Defining address length */
-		serv.serv_port.addrlen = sizeof(serv.serv_port.address);
+		serv.serv_port.addrlen = sizeof(struct sockaddr_in);
 
 		/* Initialising other adress attributes to 0 */
-		Request::ft_memset(serv.serv_port.address.sin_zero, '\0', sizeof(serv.serv_port.address.sin_zero));
+		_ft_memset(serv.serv_port.address.sin_zero, 0, sizeof(serv.serv_port.address.sin_zero));
 
 		/* Assigning adress to the socket */
 		if (bind(serv.serv_port.fd, reinterpret_cast<struct sockaddr *>(&serv.serv_port.address), sizeof(serv.serv_port.address)) < 0)
-			abortServers("Error in bind()", strerror(errno));
+			closeServerSockets("Error in bind()", strerror(errno));
 
 		/* Enable socket to accept connections */
 		if (listen(serv.serv_port.fd, MAX_CLIENTS) < 0)
-			abortServers("Error in listen()", strerror(errno));
+			closeServerSockets("Error in listen()", strerror(errno));
 	}
 }
 
@@ -560,7 +570,7 @@ void	ConfigParser::_setPortNo(void)
 		{
 			if ((*d_it).first == "listen")
 			{
-				s_it->port_no = static_cast<unsigned short>(std::atoi((*d_it).second[0].c_str()));
+				s_it->port_no = static_cast<unsigned short>(Request::ft_atoi((*d_it).second[0].c_str()));
 			}
 			d_it++;
 		}

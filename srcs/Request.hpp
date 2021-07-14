@@ -51,28 +51,24 @@ class Request
 
 		void	clear(void);
 
-		void	display(void);
+		/* void	display(void); */
 
 		size_t	strFindCaseinsensitive(std::string str, char const * to_find);
 		bool	str_is(std::string str, int func(int));
 
 	private:
+		bool	_isLegitPath(std::string const & path);
+		bool	_isQuotedString(std::string str);
+		bool	_isToken(std::string str);
+
 		void	_passUntilChar(char c);
-
-		// bool	_isLegitPath(std::string const & path);
-		bool	_isinDic(char needle, const char * dic);
-
 		bool	_passStrictOneChar(char c);
-
 		void	_passOptionalChars(const char * dic);
 
 		std::string	_getWord(const char * delimiter_dic);
 		std::string	_getURI(const char * delimiter_dic) throw(URITooLong);
 
-		bool	_isQuotedString(std::string str);
-		bool	_isToken(std::string str);
 		bool	_chunkedExtensionInvalid(std::string str);
-		// bool	_parseChunkedBody(size_t & size) throw(BadRequest);
 		bool	_parseChunkedBody(void) throw(BadRequest);
 		bool	_checkTransferEncoding(std::string & second);
 
@@ -101,16 +97,21 @@ class Request
 		static int			tounderscore(int c);
 		static std::string	transform(std::string str, int func(int));
 		static int			isValidHost(int c);
-		static void *		ft_calloc(size_t count, size_t size);
-		static char *		ft_strcpy(char *dest, const char *src);
-		static char *		ft_strdup(const char *s1);
-		static void *		ft_memset(void *b, int c, size_t len);
-		static int			ft_strcmp(const char *s1, const char *s2);
-		static size_t		ft_strlen(const char *s);
-		static int			ft_isdigit(int c);
 		static int			ft_isprint(int c);
+		static int			ft_isdigit(int c);
+		static size_t		ft_strlen(const char * s);
+		static size_t		ft_strcmp(const char *s1, const char *s2);
+		static char *		ft_strdup(const char *s1);
+		static void *		ft_memcpy(void *dst, const void *src, size_t n);
+		static int			ft_atoi(const char *str);
+		static float		ft_atof(const char *arr);
+		static double		ft_pow(int a, int b);
+		static long long	ft_power(long long nbr, long long power);
+		static long long	ft_posbase(char c, const char * base);
+		static long			ft_atol_base(const char * str, const char * base);
+		static long			ft_strtol_base(std::string str, const char * base);
+		static std::string	ft_inet_ntoa(in_addr addr);
 		static int			ft_toupper(int c);
-
 };
 
 #endif

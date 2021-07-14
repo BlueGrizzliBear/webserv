@@ -2,37 +2,30 @@
 # define WEBSERV_HPP
 
 /* C libraries */
-# include <stdio.h>
-# include <sys/socket.h>
-# include <unistd.h>
-# include <stdlib.h>
 # include <netinet/in.h>
-# include <string.h>
+# include <arpa/inet.h>
+# include <sys/socket.h>
 # include <sys/stat.h>
-# include <fcntl.h>
 # include <sys/time.h>
 # include <sys/wait.h>
+# include <unistd.h>
+# include <fcntl.h>
 # include <dirent.h>
-# include <arpa/inet.h>
-# include <errno.h>
 # include <signal.h>
+# include <errno.h>
+# include <string.h>
 
 /* C++ libraries */
-# include <cstdlib>
-# include <limits>
 # include <iostream>
-# include <string>
 # include <fstream>
-# include <utility>
-# include <csignal>
 # include <sstream>
-# include <cctype>
+# include <string>
 
 /* STL libraries */
-# include <algorithm>
-# include <map>
 # include <vector>
 # include <list>
+# include <map>
+# include <algorithm>
 
 /* Default Config */
 # define PORT 8080
@@ -59,25 +52,21 @@ struct Socket
 {
 	int					fd;
 	struct sockaddr_in	address;
-	int					addrlen;
+	unsigned int		addrlen;
 };
 
-int	ft_tolower(int c);
+int		ft_tolower(int c);
 
-struct ci_less : std::binary_function < std::string, std::string, bool >
+struct ci_less : std::binary_function < std::string, std::string, bool >	/* Map-compare object for case insensitive operations */
 {
 	struct nocase_compare : public std::binary_function< unsigned char, unsigned char, bool>
 	{
-		bool operator() (const char & x, const char & y) const
-		{
-			return ft_tolower(x) < ft_tolower(y);
-		}
+		bool operator() (const char & x, const char & y) const { return (ft_tolower(x) < ft_tolower(y)); }
 	};
 	bool operator() (const std::string & x, const std::string & y) const
 	{
 		return std::lexicographical_compare(x.begin(), x.end(), y.begin(), y.end(), nocase_compare());
 	}
 };
-
 
 #endif

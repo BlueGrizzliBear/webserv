@@ -14,7 +14,6 @@ void	Methods::_PutHeaderStatusCode(void)
 		client->resp.status_code = "204";
 		client->resp.reason_phrase = "No Content";
 	}
-	COUT << "PUT Code|" << client->resp.status_code << "|\n";
 }
 
 void	Methods::_PostHeaderStatusCode(void)
@@ -30,7 +29,7 @@ void	Methods::_PostHeaderStatusCode(void)
 		client->resp.status_code = "200";
 		client->resp.reason_phrase = "OK";
 	}
-	COUT << "POST Code|" << client->resp.status_code << "|\n";
+
 }
 
 void	Methods::_GetHeaderStatusCode(void)
@@ -39,53 +38,26 @@ void	Methods::_GetHeaderStatusCode(void)
 	client->resp.reason_phrase = "OK";
 }
 
-struct tm	*Methods::_getFileTime(void)
+void	Methods::_lastModifiedHeader(void)
 {
 	struct stat			info;
-	struct tm			*timeinfo = NULL;
+	struct tm			timeinfo;
+	struct timeval		time_val;
+	struct timezone		tz;
+	std::stringstream	s_str;
+
+	char	date[30];
 
 	if (!lstat(_path.c_str(), &info))
-		timeinfo = gmtime(&info.st_mtime); // to check (time_t to struct tm)
-	return timeinfo;
-}
-
-void	Methods::_lastModifiedHeader(struct tm * timeinfo)
-{
-	char				date[30];
-
-	if (timeinfo)
 	{
-		strftime(date, 30, "%a, %d %b %Y %H:%M:%S GMT", timeinfo);
+		gettimeofday(&time_val, &tz);
+		s_str << (info.st_mtime + tz.tz_minuteswest * 60 - tz.tz_dsttime * 60 * 60);
+		if (strptime(s_str.str().c_str(), "%s", &timeinfo) != NULL)
+		{
+			strftime(date, 30, "%a, %d %b %Y %H:%M:%S GMT", &timeinfo);
 			client->resp.header_fields.insert(std::make_pair("Last-Modified", date));
+		}
 	}
-}
-
-struct tm *	Methods::_getHeaderIfUnmodifiedSinceTime(void)
-{
-	std::string		date;
-	struct tm		*timeinfo = NULL;
-
-	if (client->req.headers.find("If-Unmodified-Since") != client->req.headers.end())
-		date = client->req.headers.find("If-Unmodified-Since")->second;
-	else
-		return timeinfo;
-	strptime(date.c_str(), "%a, %d %b %Y %H:%M:%S GMT", timeinfo);
-	return timeinfo;
-}
-
-int	Methods::_cmpTimeInfo(struct tm * t1, struct tm * t2)
-{
-	if (!t1 || !t2)
-		return -1;
-	time_t	time1;
-	time_t	time2;
-
-	time1 = mktime(t1);
-	time2 = mktime(t2);
-
-	if (time1 < time2)
-		return 0;
-	return 1;
 }
 
 std::string	Methods::_readFileToStr(void)
@@ -114,10 +86,11 @@ void	Methods::_createAcceptedMap(std::string header, std::map<float, std::vector
 		if (value.find(",") == std::string::npos)
 		{
 			language_range = value.substr(0, value.size());
+
 			if (language_range.find(";") != std::string::npos)
 			{
 				pos = language_range.find(";q=");
-				weight = static_cast<float>(std::atof(language_range.substr(pos + 3).c_str()));
+				weight = static_cast<float>(Request::ft_atof(language_range.substr(pos + 3).c_str()));
 				language_range = language_range.substr(0, pos);
 			}
 			value.clear();
@@ -140,7 +113,8 @@ void	Methods::_createAcceptedMap(std::string header, std::map<float, std::vector
 				if (language_range.find("; q=") == pos_after + 1 || language_range.find(";\tq=") == pos_after + 1)
 					pos_after += 1;
 
-				weight = static_cast<float>(std::atof(language_range.substr(pos_after + 2).c_str()));
+				weight = static_cast<float>(Request::ft_atof(language_range.substr(pos_after + 2).c_str()));
+
 				language_range = language_range.substr(0, pos);
 			}
 		}

@@ -2,7 +2,8 @@
 
 /* Constructor */
 /*	default	(1)	*/
-ServerDictionary::ServerDictionary()
+ServerDictionary::ServerDictionary(void)
+: mainDic(), locationDic(), serverDic(), methodDic(), errorDic(), headerDic(), mimeDic()
 {
 	/* Dictionary for keys in main context */
 	std::string main_dir[] = {	"user",
@@ -141,6 +142,7 @@ ServerDictionary::ServerDictionary()
 															std::make_pair("511", "Network Authentication Required") };
 	_createDic(errorDic, error_codes, sizeof(error_codes));
 
+	/* Dictionary for file types */
 	_parseMimeTypes();
 }
 
@@ -154,9 +156,8 @@ ServerDictionary::ServerDictionary(ServerDictionary const & cpy)
 ServerDictionary::~ServerDictionary() {}
 
 /* Operators */
-ServerDictionary &	ServerDictionary::operator=( ServerDictionary const & rhs )
+ServerDictionary &	ServerDictionary::operator=( ServerDictionary const &)
 {
-	(void)rhs;
 	return (*this);
 }
 
@@ -164,16 +165,26 @@ ServerDictionary &	ServerDictionary::operator=( ServerDictionary const & rhs )
 template < class Compare >
 void	ServerDictionary::_createDic(std::map< std::string, std::string, Compare > & dic, std::string const * tab, size_t size)
 {
-	for (size_t i = 0; i < (size / sizeof(*tab)); i++)
+	size_t i = 0;
+
+	while (i < (size / sizeof(*tab)))
+	{
 		dic.insert(std::make_pair(*(tab + i), ""));
+		i++;
+	}
 }
 
 /* . . . overloaded function for error-codes */
 template < class Compare >
 void	ServerDictionary::_createDic(std::map< std::string, std::string, Compare > & dic, std::pair<std::string , std::string> const * tab, size_t size)
 {
-	for (size_t i = 0; i < (size / sizeof(*tab)); i++)
+	size_t i = 0;
+
+	while (i < (size / sizeof(*tab)))
+	{
 		dic.insert(*(tab + i));
+		i++;
+	}
 }
 
 void	ServerDictionary::_parseMimeTypes(void)
@@ -185,12 +196,12 @@ void	ServerDictionary::_parseMimeTypes(void)
 	std::ifstream	file("./configuration/mime.types");
 	if (file.good())
 	{
-		while (getline(file, line))
+		while (std::getline(file, line))
 		{
 			std::string::iterator	it = line.begin();
 			for ( ; it != line.end() && *it != ' ' && *it != '\t'; ++it)
 				mime_value += *it;
-			while (it != line.end() && *it == ' ' && *it == '\t')
+			while (it != line.end() && (*it == ' ' || *it == '\t'))
 				++it;
 			for ( ; it != line.end(); ++it)
 			{

@@ -133,10 +133,7 @@ class Methods
 		void	_PutHeaderStatusCode(void);
 		void	_PostHeaderStatusCode(void);
 
-		void	_lastModifiedHeader(struct tm * timeinfo);
-		struct tm	* _getFileTime(void);
-		struct tm	* _getHeaderIfUnmodifiedSinceTime(void);
-		int			_cmpTimeInfo(struct tm * t1, struct tm * t2);
+		void		_lastModifiedHeader(void);
 		std::string	_readFileToStr(void);
 
 		void	_createAcceptedMap(std::string header, std::map<float, std::vector<std::string> > * storage);
@@ -154,14 +151,13 @@ class Methods
 		char **		_createArgvArray(void);
 
 		void		_freeArray(char ** array);
-		void		_displayArray(char ** array);
+		/* void		_displayArray(char ** array); */
 
 		void		_communicateWithCGI(int fd_in, int fd_out, pid_t pid);
 
 		bool		_writeReqtoCGI(int & fd_out);
 		bool		_readCGItoResp(int & fd_in);
 
-		/* Utitilies */
 		void		_parseCGIResponse(void);
 		bool		_parseHeaderField(void);
 
@@ -194,7 +190,7 @@ class Methods
 
 		bool	_headerIncomplete;
 
-		size_t	_writtenBytes;
+		size_t		_writtenBytes;
 		std::string _receivedMessage;
 
 };

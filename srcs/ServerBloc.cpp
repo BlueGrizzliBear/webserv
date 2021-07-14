@@ -3,12 +3,12 @@
 /* ServerBloc Class Declaration */
 /* Constructor */
 /*	default		(1)	*/
-ServerBloc::ServerBloc(void) : port_no(0), is_default(false), is_unique(true), pid(0), _server_no(0), _parent(NULL) {}
+ServerBloc::ServerBloc(void) : port_no(0), is_default(false), is_unique(true), serv_port(), serv_select(), _server_no(0), _parent(NULL) {}
 
-/*	default		(1)	*/
-ServerBloc::ServerBloc(ConfigParser * parent) : port_no(0), is_default(false), is_unique(true), pid(0), _server_no(0), _parent(parent) {}
+/*	by parent	(2)	*/
+ServerBloc::ServerBloc(ConfigParser * parent) : port_no(0), is_default(false), is_unique(true), serv_port(), serv_select(), _server_no(0), _parent(parent) {}
 
-/*	copy		(2)	*/
+/*	copy		(3)	*/
 ServerBloc::ServerBloc(ServerBloc const & cpy)
 {
 	*this = cpy;
@@ -22,16 +22,11 @@ ServerBloc &	ServerBloc::operator=(ServerBloc const & rhs)
 {
 	dir = rhs.dir;
 	loc = rhs.loc;
-
 	port_no = rhs.port_no;
 	is_default = rhs.is_default;
 	is_unique = rhs.is_unique;
-
 	serv_port = rhs.serv_port;
 	serv_select = rhs.serv_select;
-
-	pid = rhs.pid;
-
 	_server_no = rhs._server_no;
 	_parent = rhs._parent;
 	return (*this);
@@ -56,11 +51,10 @@ void	ServerBloc::parseException(Client & client, const char * code)
 
 	if (it != _parent->getDictionary().errorDic.end())
 	{
-		/* Fill Status Line */
 		client.resp.status_code = it->first;
 		client.resp.reason_phrase = it->second;
 
-		Methods	methodsForError(*client.serv, client, client.resp.status_code, client.resp.reason_phrase);
+		Methods	methodsForErrors(*client.serv, client, client.resp.status_code, client.resp.reason_phrase);
 		client.req.clear();	/* Clean Client Request - need to answer client now */
 	}
 }
@@ -68,7 +62,6 @@ void	ServerBloc::parseException(Client & client, const char * code)
 bool	ServerBloc::readClient(Client & client)
 {
 	char	recv_buffer[MAX_HEADER_SIZE];
-
 	ssize_t receivedBytes = recv(client.socket.fd, &recv_buffer, MAX_HEADER_SIZE, MSG_DONTWAIT);
 
 	if (receivedBytes <= 0)
@@ -84,7 +77,6 @@ bool	ServerBloc::readClient(Client & client)
 	size_t old_pos = client.req.getData().size() > 4 ? client.req.getData().size() - 4 : 0;
 
 	client.req.getData().append(recv_buffer, static_cast<size_t>(receivedBytes));
-
 	if (client.req.headerComplete)	/* Headers seems complete */
 		return (true);
 	else if ((client.req.getData().find("\r\n\r\n", old_pos) == std::string::npos))
@@ -103,28 +95,18 @@ bool	ServerBloc::processRequest(Client & client)
 		|| !client.req.str_is(client.req.headers.find("Host")->second, client.req.isValidHost))
 			throw BadRequest();
 		client.req.headerParsed = true;
-
 		client.req.getData().erase(0, client.req.getData().find("\r\n\r\n") + 4);
 		client.req.getPos() = 0;
 	}
 	if (client.req.parseBody())
 	{
-		static int i = 0;
-		COUT << "Request #" << i++ << ", Finished Parsing\n";
 		client.finishedReading = 1;
-
-		/* Cleaning */
-		client.req.getData().clear();			/* Clearing _req buffer */
+		client.req.getData().clear();
 		client.req.getData().reserve();
+		client.req.headerComplete = false;
+		client.req.headerParsed = false;
 
-		client.req.headerComplete = false;		/* Reseting bool indicator if header is complete or not */
-		client.req.headerParsed = false;		/* Reseting bool indicator if header is parsed or not */
-
-		// ServerBloc * ptr = nullptr;
-		// if (is_unique)
-		// 	client.serv = this;
-			// ptr = this;
-		// else if (client.req.headers.find("Host") != client.req.headers.end())
+		/* Find the most suited server corresponding to the Host */
 		if (!is_unique && client.req.headers.find("Host") != client.req.headers.end())
 		{
 			bool found = 0;
@@ -162,7 +144,6 @@ bool	ServerBloc::processRequest(Client & client)
 		Methods	implementedMethods(*client.serv, client);
 		implementedMethods.execute();
 
-
 		client.req.clear();	/* Clean Client Request - need to answer client now */
 
 		return (true);
@@ -172,11 +153,8 @@ bool	ServerBloc::processRequest(Client & client)
 
 void	ServerBloc::_addHeaderFields(Client & client)
 {
-	/* Create corresponding header fields */
-	client.resp.header_fields.insert(std::make_pair("Date", _getDate()));
-	client.resp.header_fields.insert(std::make_pair("Server", "URI Hunter/1.0 (Unix)"));
-
-	/* Cache indications */
+	client.resp.header_fields.insert(std::make_pair("Date", _createDate()));
+	client.resp.header_fields.insert(std::make_pair("Server", "webserv/1.0 (Unix)"));
 	client.resp.header_fields.insert(std::make_pair("Cache-Control", "no-store"));
 	client.resp.header_fields.insert(std::make_pair("Connection", "close"));
 }
@@ -185,10 +163,10 @@ bool	ServerBloc::sendResponse(Client & client)
 {
 	if (!client.resp.isComplete)
 	{
-		_addHeaderFields(client);	/* Add the right header fields */
+		_addHeaderFields(client);	/* Add basic header fields */
 		client.resp.concatenateResponse();	/* Fill response msg */
 	}
-	if (client.resp.sendResptoClient(client) == true)
+	if (client.resp.sendResptoClient(client) == true)	/* Send msg to client via socket */
 	{
 		client.resp.cleanResponse();
 		return (true);
@@ -196,15 +174,18 @@ bool	ServerBloc::sendResponse(Client & client)
 	return (false);
 }
 
-std::string	ServerBloc::_getDate(void)
+std::string	ServerBloc::_createDate(void)
 {
 	struct timeval	time_val;
-	struct tm		*time;
+	struct tm		time;
 	char			buffer[30];
+	struct timezone tz;
+	std::stringstream	s_str;
 
-	gettimeofday(&time_val, NULL);
-	time = gmtime(&time_val.tv_sec);
-	strftime(buffer, 30, "%a, %d %b %Y %H:%M:%S GMT", time);
+	gettimeofday(&time_val, &tz);
+	s_str << (time_val.tv_sec + tz.tz_minuteswest * 60 - tz.tz_dsttime * 60 * 60);
+	strptime(s_str.str().c_str(), "%s", &time);
+	strftime(buffer, 30, "%a, %d %b %Y %H:%M:%S GMT", &time);
 	std::string	str(buffer);
 	return (str);
 }
