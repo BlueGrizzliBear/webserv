@@ -69,6 +69,7 @@ However, it can be given the path to another configuration file instead on the f
 ### Testing
 
 The project has a data/ folder used for personnal testing.
+The server has been tested successfully with siege (HTTP stress-tester).
 
 ## Remarks
 
