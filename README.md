@@ -11,7 +11,7 @@ The server manages multi-clients and can be configured for multiples servers.
 
 ## Context
 
-This project was done as part of 42's Software Engineering program.
+This project was done as part of 42's Software Engineer program.
 
 ## Configuration
 
@@ -27,10 +27,10 @@ Notable features:
   - server_name
   - error_page
   - location
-  - allowed_methods (custom)
+  - allowed_methods
   - index
   - autoindex
-  - rewrite (custom)
+  - rewrite
   - auth_basic
   - auth_basic_user_file
   - cgi
