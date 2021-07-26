@@ -12,6 +12,7 @@ The server manages multi-clients and can be configured for multiples servers.
 ## Context
 
 This project was done as part of 42's Software Engineer program.
+Project was passed on the 3rd May 2021.
 
 ## Configuration
 
